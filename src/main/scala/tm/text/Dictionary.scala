@@ -1,4 +1,4 @@
-package hillary
+package tm.text
 
 import java.io.PrintWriter
 import scala.io.Source
@@ -12,7 +12,7 @@ import scala.io.Source
 case class WordInfo(word: String, tf: Int, df: Int, tfidf: Double)
 
 object Dictionary {
-    def order(w1: WordInfo, w2: WordInfo) = {
+    private def order(w1: WordInfo, w2: WordInfo) = {
         val cmp1 = -w1.tfidf.compare(w2.tfidf)
         val cmp2 =
             if (cmp1 == 0)
@@ -23,12 +23,18 @@ object Dictionary {
         cmp2 < 0
     }
 
+    /**
+     * Builds a dictionary from a collection of WordInfo objects.
+     */
     def buildFrom(w: Iterable[WordInfo]) = {
         val info = w.toVector.sortWith(order)
         val map = info.zipWithIndex.map(p => (p._1.word -> p._2)).toMap
         new Dictionary(info, map)
     }
 
+    /**
+     * Reads a dictionary from a file specified by the given file name.
+     */
     def read(filename: String) = {
         buildFrom(
             Source.fromFile(filename).getLines

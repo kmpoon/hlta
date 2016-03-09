@@ -1,6 +1,4 @@
-
-
-package hillary
+package tm.hillary
 
 import java.io.FileReader
 import org.apache.commons.csv.CSVFormat
@@ -8,12 +6,14 @@ import java.util.Date
 import java.text.SimpleDateFormat
 import scala.collection.mutable
 import scala.collection.GenSeq
+import tm.text.Preprocessor
 
 object Convert extends App {
     run(println)
 
     def run(log: (String) => Any) = {
         import Converter._
+        import Preprocessor._
 
         val maxN = 2
         val minTf = 6

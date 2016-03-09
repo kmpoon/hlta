@@ -1,21 +1,15 @@
-package hillary
+package tm.hillary
 
-import hillary.test.BaseSpec
+import tm.test.BaseSpec
 import java.util.regex.Pattern
 import scala.annotation.tailrec
+import tm.text.Preprocessor
 
 
 class ConvertSpec extends BaseSpec {
 
     import Converter._
-
-    trait Emails {
-        val emails = Converter.readEmails()
-        def bodies = emails.map(_._3)
-
-        def countWordsInEmails(numberOfEmails: Int, n: Int = 1) =
-            bodies.take(numberOfEmails).toList.map(tokenizeAndCount(_, 1))
-    }
+    import Preprocessor._
 
     trait DictionaryFrom2ndEmail {
         val dictionary = Set("thursday", "aiding", "docx", "hillary",

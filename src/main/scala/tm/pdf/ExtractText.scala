@@ -1,4 +1,4 @@
-package pdf
+package tm.pdf
 
 import org.apache.pdfbox.pdmodel.PDDocument
 import java.io.PrintWriter

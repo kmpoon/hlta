@@ -1,4 +1,4 @@
-package hillary
+package tm.text
 
 import scala.io.Source
 import scala.annotation.tailrec

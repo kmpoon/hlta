@@ -1,4 +1,6 @@
-package hillary
+package tm.hillary
+
+import tm.text.Dictionary
 
 object CheckDictionary extends App {
     println("Welcome to the Scala worksheet")

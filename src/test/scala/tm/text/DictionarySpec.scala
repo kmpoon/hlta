@@ -1,13 +1,19 @@
-package hillary
+package tm.text
 
-import hillary.test.BaseSpec
+import tm.test.BaseSpec
 import java.util.regex.Pattern
 import java.text.Normalizer
+import tm.hillary.Emails
 
 class DictionarySpec extends BaseSpec {
 
-    trait HillaryDictionary {
-        val dictionary = Dictionary.read("hillary-dict.csv")
+    trait HillaryDictionary extends Emails {
+        Given("The first 500 emails")
+        val countsByEmails = countWordsInEmails(500)
+
+        When("The data is converted to bow")
+        val dictionary =
+            Preprocessor.buildDictionary(countsByEmails).filter(_.tf > 5)
     }
 
     describe("Dictionary built from Hillary emails") {

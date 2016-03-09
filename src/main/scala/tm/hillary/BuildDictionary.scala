@@ -1,10 +1,13 @@
-package hillary
+package tm.hillary
+
+import tm.text.Preprocessor
 
 object BuildDictionary extends App {
     run()
 
     def run() = {
         import Converter._
+        import Preprocessor._
 
         println("Extracting bodies")
         val bodies = readEmails.map(_._3).toList.par

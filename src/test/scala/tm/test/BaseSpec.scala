@@ -1,4 +1,4 @@
-package hillary.test
+package tm.test
 
 import org.scalatest.Matchers
 import org.scalatest.GivenWhenThen

@@ -1,6 +1,6 @@
 // -*- mode: scala -*-
 
-name := "HillaryEmails"
+name := "TextMining"
 
 version := "1.0"
 
