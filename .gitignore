@@ -1,0 +1,10 @@
+.DS_Store
+.cache-main
+.cache-tests
+bin
+target
+project/target
+project/project/target
+converted
+*~
+.worksheet/bin

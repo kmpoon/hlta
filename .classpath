@@ -1,0 +1,67 @@
+<classpath>
+  <classpathentry kind="src" path="src/main/scala"/>
+  <classpathentry kind="src" path="src/main/java"/>
+  <classpathentry kind="src" path="src/main/resources"/>
+  <classpathentry kind="src" path="src/test/scala"/>
+  <classpathentry kind="src" path="src/test/java"/>
+  <classpathentry kind="src" path="src/test/resources"/>
+  <classpathentry kind="lib" path="./FastHLTA/bin"/>
+  <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.scalactic/scalactic_2.10/srcs/scalactic_2.10-2.2.6-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.scalactic/scalactic_2.10/bundles/scalactic_2.10-2.2.6.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.scalactic/scalactic_2.10/docs/scalactic_2.10-2.2.6-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.commons/commons-csv/srcs/commons-csv-1.2-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.commons/commons-csv/jars/commons-csv-1.2.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.commons/commons-csv/docs/commons-csv-1.2-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.opennlp/opennlp-tools/srcs/opennlp-tools-1.6.0-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.opennlp/opennlp-tools/bundles/opennlp-tools-1.6.0.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.opennlp/opennlp-tools/docs/opennlp-tools-1.6.0-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.opennlp/opennlp-maxent/srcs/opennlp-maxent-3.0.3-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.opennlp/opennlp-maxent/bundles/opennlp-maxent-3.0.3.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.opennlp/opennlp-maxent/docs/opennlp-maxent-3.0.3-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.lucene/lucene-core/srcs/lucene-core-5.5.0-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.lucene/lucene-core/jars/lucene-core-5.5.0.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.lucene/lucene-core/docs/lucene-core-5.5.0-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.lucene/lucene-analyzers-common/srcs/lucene-analyzers-common-5.5.0-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.lucene/lucene-analyzers-common/jars/lucene-analyzers-common-5.5.0.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.lucene/lucene-analyzers-common/docs/lucene-analyzers-common-5.5.0-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/pdfbox/srcs/pdfbox-1.8.10-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/pdfbox/bundles/pdfbox-1.8.10.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/pdfbox/docs/pdfbox-1.8.10-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/fontbox/srcs/fontbox-1.8.10-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/fontbox/bundles/fontbox-1.8.10.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/fontbox/docs/fontbox-1.8.10-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/commons-logging/commons-logging/srcs/commons-logging-1.1.1-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/commons-logging/commons-logging/jars/commons-logging-1.1.1.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/commons-logging/commons-logging/docs/commons-logging-1.1.1-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/jempbox/srcs/jempbox-1.8.10-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/jempbox/bundles/jempbox-1.8.10.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/jempbox/docs/jempbox-1.8.10-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.scalatest/scalatest_2.10/srcs/scalatest_2.10-2.2.6-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.scalatest/scalatest_2.10/bundles/scalatest_2.10-2.2.6.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.scalatest/scalatest_2.10/docs/scalatest_2.10-2.2.6-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+  <classpathentry kind="output" path="bin"/>
+</classpath>
