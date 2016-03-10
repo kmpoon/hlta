@@ -8,12 +8,12 @@ scalaVersion := "2.10.6"
 
 libraryDependencies ++= 
 	"org.scalatest" %% "scalatest" % "2.2.6" % "test" ::
-    "org.scalactic" %% "scalactic" % "2.2.6" ::
+    "org.scalactic" %% "scalactic" % "2.2.6" % "test" ::
     "org.apache.commons" % "commons-csv" % "1.2" ::
-    "org.apache.opennlp" % "opennlp-tools" % "1.6.0" ::
-    "org.apache.opennlp" % "opennlp-maxent" % "3.0.3" ::
-    "org.apache.lucene" % "lucene-core" % "5.5.0" ::
-    "org.apache.lucene" % "lucene-analyzers-common" % "5.5.0" ::
+//    "org.apache.opennlp" % "opennlp-tools" % "1.6.0" ::
+//    "org.apache.opennlp" % "opennlp-maxent" % "3.0.3" ::
+//    "org.apache.lucene" % "lucene-core" % "5.5.0" ::
+//    "org.apache.lucene" % "lucene-analyzers-common" % "5.5.0" ::
     "org.apache.pdfbox" % "pdfbox" % "1.8.10" ::
 	Nil
 
@@ -32,7 +32,7 @@ scalacOptions += "-target:jvm-1.6"
 EclipseKeys.preTasks := Seq(compile in Compile)
 
 // To skip test during assembly
-// test in assembly := {}
+test in assembly := {}
 
 unmanagedClasspath in Compile += baseDirectory.value / "FastHLTA" / "bin"
 
