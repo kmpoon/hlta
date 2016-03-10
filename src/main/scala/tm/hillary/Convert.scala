@@ -8,48 +8,38 @@ import scala.collection.mutable
 import scala.collection.GenSeq
 import tm.text.Preprocessor
 import tm.text.StopWords
+import tm.text.DataConverter
+
+import scala.collection.JavaConversions._
 
 object Convert extends App {
     run(println)
 
     def run(log: (String) => Any) = {
-        import Converter._
-        import Preprocessor._
-        import StopWords.implicits._
-
-        val maxN = 2
-        val minTf = 6
+        import DataConverter.implicits.default
 
         log("Extracting bodies")
         val bodies = readEmails.map(_._3).toList.par
+        
+        DataConverter.convert("hillary", bodies, log)
+    }
 
-        log("Extracting words")
-        val wordsByEmails = bodies.map(tokenizeBySpace)
+    def preprocess(subject: String, body: String) =
+        Preprocessor.preprocess(subject + "\n" + body)
 
-        log("Counting words in each email")
-        val wordCountsByEmails = wordsByEmails
-            .map(find1ToNGrams(_, maxN).flatten)
-            .map(countWords)
-
-        log("Building Dictionary")
-        val dictionary = buildDictionary(wordCountsByEmails).filter(_.tf >= minTf)
-
-        log("Saving dictionary")
-        dictionary.save("dictionary.csv")
-
-        val tokenCountsByEmails = wordsByEmails
-            .map(words =>
-                tokenizeWithoutConstituentTokens(words, dictionary.map.contains, 2))
-            .map(countWords)
-
-        log("Converting to bow")
-        val bow = convertToBow(tokenCountsByEmails, dictionary.map)
-
-        log("Saving in ARFF format")
-        saveAsArff("hillary", "bow.arff",
-            AttributeType.numeric, dictionary.words, bow.seq)
-        saveAsBinaryHlcm("hillary", "bow.txt", dictionary.words, bow.seq)
-
-        log("done")
+    def readEmails(): Iterable[(Int, Option[Date], String)] = {
+        val df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
+        val in = new FileReader("data/Emails.csv");
+        val records = CSVFormat.EXCEL.withHeader().parse(in);
+        records.view.map { r =>
+            val id = r.get("Id").toInt
+            val date = r.get("MetadataDateSent") match {
+                case "" => None
+                case d => Some(df.parse(d))
+            }
+            val text = preprocess(
+                r.get("ExtractedSubject"), r.get("ExtractedBodyText"))
+            (id, date, text)
+        }
     }
 }

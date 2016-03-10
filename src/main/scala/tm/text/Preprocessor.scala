@@ -26,8 +26,8 @@ object Preprocessor {
                 ("'", "") +:
                 ("[^\\p{Alpha}\\n]+" -> " ") +:
                 ("\\b\\w{1,3}\\b" -> " ") +: // remove words with fewer than 4 characters
-                ("^\\s+" -> "xxxxxxxxxxx") +:
-                ("\\s+$" -> "xxxxxxxxxs") +:
+                ("^\\s+" -> "") +:
+                ("\\s+$" -> "") +:
                 Nil
 
             conversions.foldLeft(original) {

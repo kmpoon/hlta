@@ -1,45 +1,55 @@
-package tm.hillary
-
-import java.io.FileReader
-import java.io.PrintWriter
-import java.text.SimpleDateFormat
-import java.util.Date
+package tm.text
 
 import scala.collection.GenSeq
-import scala.collection.JavaConversions.iterableAsScalaIterable
+import java.io.PrintWriter
 
-import org.apache.commons.csv.CSVFormat
-
-import tm.text.Preprocessor
-import tm.text.StopWords
-
-object Converter {
-
+object DataConverter {
     object AttributeType extends Enumeration {
         val binary, numeric = Value
     }
 
+    case class Settings(val maxN: Int, val minTf: Int)
+
+    object implicits {
+        implicit val default = new Settings(maxN = 2, minTf = 6)
+    }
+
     type WordCounts = Map[String, Int]
 
-    val stopWords = StopWords.read("stopwords-lewis.csv")
+    def convert(name: String, documents: GenSeq[String], log: (String) => Any)(implicit settings: Settings) = {
+        import Preprocessor._
+        import settings._
+        import StopWords.implicits.default
 
-    def preprocess(subject: String, body: String) =
-        Preprocessor.preprocess(subject + "\n" + body)
+        log("Extracting words")
+        val wordsByDocuments = documents.map(tokenizeBySpace)
 
-    def readEmails(): Iterable[(Int, Option[Date], String)] = {
-        val df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
-        val in = new FileReader("data/Emails.csv");
-        val records = CSVFormat.EXCEL.withHeader().parse(in);
-        records.view.map { r =>
-            val id = r.get("Id").toInt
-            val date = r.get("MetadataDateSent") match {
-                case "" => None
-                case d => Some(df.parse(d))
-            }
-            val text = preprocess(
-                r.get("ExtractedSubject"), r.get("ExtractedBodyText"))
-            (id, date, text)
-        }
+        log("Counting words in each email")
+        val wordCountsByEmails = wordsByDocuments
+            .map(find1ToNGrams(_, maxN).flatten)
+            .map(countWords)
+
+        log("Building Dictionary")
+        val dictionary = buildDictionary(wordCountsByEmails)
+            .filter(_.tf >= minTf)
+
+        log("Saving dictionary")
+        dictionary.save(s"${name}.dict.csv")
+
+        val tokenCountsByEmails = wordsByDocuments
+            .map(words =>
+                tokenizeWithoutConstituentTokens(words, dictionary.map.contains, 2))
+            .map(countWords)
+
+        log("Converting to bow")
+        val bow = convertToBow(tokenCountsByEmails, dictionary.map)
+
+        log("Saving in ARFF format")
+        saveAsArff(name, s"${name}.arff",
+            AttributeType.numeric, dictionary.words, bow.seq)
+        saveAsBinaryHlcm(name, s"${name}.txt", dictionary.words, bow.seq)
+
+        log("done")
     }
 
     /**

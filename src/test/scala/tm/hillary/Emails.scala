@@ -4,7 +4,7 @@ import tm.text.Preprocessor
 import tm.text.StopWords
 
 trait Emails {
-    val emails = Converter.readEmails()
+    val emails = Convert.readEmails()
     def bodies = emails.map(_._3)
 
     def countWordsInEmails(numberOfEmails: Int, n: Int = 1)(implicit stopWords: StopWords) =

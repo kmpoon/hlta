@@ -7,12 +7,11 @@ object BuildDictionary extends App {
     run()
 
     def run() = {
-        import Converter._
         import Preprocessor._
         import StopWords.implicits._
 
         println("Extracting bodies")
-        val bodies = readEmails.map(_._3).toList.par
+        val bodies = Convert.readEmails.map(_._3).toList.par
 
         println("Counting words in each email")
         val countsByEmails = bodies.map(tokenizeAndCount(_, 3)).par

@@ -5,14 +5,13 @@ import java.util.regex.Pattern
 import scala.annotation.tailrec
 import tm.text.Preprocessor
 import tm.text.StopWords
-
+import tm.text.DataConverter
 
 class ConvertSpec extends BaseSpec {
 
-    import Converter._
     import Preprocessor._
     implicit val stopwords = StopWords.read("stopwords.csv")
-    
+
     trait DictionaryFrom2ndEmail {
         val dictionary = Set("thursday", "aiding", "docx", "hillary",
             "libya", "march", "memo", "qaddafi", "syria",
@@ -179,7 +178,7 @@ class ConvertSpec extends BaseSpec {
 
                     When("The data is converted to bow")
                     val dictionary = buildDictionary(countsByEmails).filter(_.tf > 5)
-                    val bow = convertToBow(countsByEmails, dictionary.map).toVector
+                    val bow = DataConverter.convertToBow(countsByEmails, dictionary.map).toVector
 
                     Then("The words should be aiding, syria, and libya")
                     dictionary.words should contain theSameElementsAs Vector("aiding", "syria", "libya")
