@@ -39,9 +39,9 @@ object Preprocessor {
         convert(normalize(text.toLowerCase))
     }
 
-    def filter(counts: WordCounts): WordCounts = {
-        counts.filter(_._2 >= 5)
-    }
+//    def filter(counts: WordCounts): WordCounts = {
+//        counts.filter(_._2 >= 5)
+//    }
 
     def tokenizeBySpace(text: String)(implicit stopWords: StopWords): Seq[String] =
         // It needs to handle the case of an empty string, otherwise an array

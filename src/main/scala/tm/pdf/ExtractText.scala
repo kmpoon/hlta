@@ -6,6 +6,7 @@ import org.apache.pdfbox.util.PDFTextStripper
 import java.io.File
 import java.io.StringWriter
 import tm.text.Preprocessor
+import tm.util.FileHelpers
 
 object ExtractText extends App {
     run
@@ -36,9 +37,10 @@ object ExtractText extends App {
         println("ExtractText input_dir output_dir")
     }
 
-    def getPath(components: String*) = components.mkString(File.separator)
 
     def extractDirectory(inputDir: String, outputDir: String) = {
+        import FileHelpers.getPath
+        
         val directory = new File(inputDir)
         val files = directory.list().filter(_.endsWith(".pdf"))
         files.par.foreach { f =>

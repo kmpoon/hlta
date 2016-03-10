@@ -13,6 +13,8 @@ import tm.text.DataConverter
 import scala.collection.JavaConversions._
 
 object Convert extends App {
+    val df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
+    
     run(println)
 
     def run(log: (String) => Any) = {
@@ -20,7 +22,7 @@ object Convert extends App {
 
         log("Extracting bodies")
         val bodies = readEmails.map(_._3).toList.par
-        
+
         DataConverter.convert("hillary", bodies, log)
     }
 
@@ -28,7 +30,6 @@ object Convert extends App {
         Preprocessor.preprocess(subject + "\n" + body)
 
     def readEmails(): Iterable[(Int, Option[Date], String)] = {
-        val df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
         val in = new FileReader("data/Emails.csv");
         val records = CSVFormat.EXCEL.withHeader().parse(in);
         records.view.map { r =>

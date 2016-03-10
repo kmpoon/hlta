@@ -8,10 +8,10 @@ object DataConverter {
         val binary, numeric = Value
     }
 
-    case class Settings(val maxN: Int, val minTf: Int)
+    case class Settings(minCharacters: Int, maxN: Int, minTf: Int)
 
     object implicits {
-        implicit val default = new Settings(maxN = 2, minTf = 6)
+        implicit val default = new Settings(minCharacters = 3, maxN = 2, minTf = 6)
     }
 
     type WordCounts = Map[String, Int]
@@ -31,6 +31,7 @@ object DataConverter {
 
         log("Building Dictionary")
         val dictionary = buildDictionary(wordCountsByEmails)
+            .filter(_.word.length > minCharacters)
             .filter(_.tf >= minTf)
 
         log("Saving dictionary")
