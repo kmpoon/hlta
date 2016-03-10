@@ -1,6 +1,7 @@
 package tm.hillary
 
 import tm.text.Preprocessor
+import tm.text.StopWords
 
 object BuildDictionary extends App {
     run()
@@ -8,6 +9,7 @@ object BuildDictionary extends App {
     def run() = {
         import Converter._
         import Preprocessor._
+        import StopWords.implicits._
 
         println("Extracting bodies")
         val bodies = readEmails.map(_._3).toList.par

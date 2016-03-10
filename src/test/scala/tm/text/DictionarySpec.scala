@@ -6,6 +6,7 @@ import java.text.Normalizer
 import tm.hillary.Emails
 
 class DictionarySpec extends BaseSpec {
+    implicit val stopwords = StopWords.read("stopwords.csv")
 
     trait HillaryDictionary extends Emails {
         Given("The first 500 emails")

@@ -4,13 +4,15 @@ import tm.test.BaseSpec
 import java.util.regex.Pattern
 import scala.annotation.tailrec
 import tm.text.Preprocessor
+import tm.text.StopWords
 
 
 class ConvertSpec extends BaseSpec {
 
     import Converter._
     import Preprocessor._
-
+    implicit val stopwords = StopWords.read("stopwords.csv")
+    
     trait DictionaryFrom2ndEmail {
         val dictionary = Set("thursday", "aiding", "docx", "hillary",
             "libya", "march", "memo", "qaddafi", "syria",

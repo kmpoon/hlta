@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat
 import scala.collection.mutable
 import scala.collection.GenSeq
 import tm.text.Preprocessor
+import tm.text.StopWords
 
 object Convert extends App {
     run(println)
@@ -14,6 +15,7 @@ object Convert extends App {
     def run(log: (String) => Any) = {
         import Converter._
         import Preprocessor._
+        import StopWords.implicits._
 
         val maxN = 2
         val minTf = 6

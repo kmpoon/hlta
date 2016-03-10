@@ -15,34 +15,35 @@ import scala.collection.mutable
 object Preprocessor {
     type WordCounts = Map[String, Int]
 
-    val stopWords = StopWords.read("stopwords.csv")
-
-    def preprocess(subject: String, body: String): String = {
-        val text = (subject + "\n" + body).toLowerCase
-
+    def preprocess(text: String) = {
         // to remove accents
-        val normalized = Normalizer.normalize(text, Normalizer.Form.NFD)
-            .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+        def normalize(text: String) = text
+            Normalizer.normalize(text, Normalizer.Form.NFD)
+                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
 
-        val conversions = Seq(
-            "'" -> "",
-            "\\P{Alpha}+" -> " ",
-            "\\b\\w{1,3}\\b" -> " ", // remove words with fewer than 4 characters
-            "^\\s+" -> "",
-            "\\s+$" -> "")
+        def convert(original: String) = {
+            val conversions =
+                ("'", "") +:
+                ("[^\\p{Alpha}\\n]+" -> " ") +:
+                ("\\b\\w{1,3}\\b" -> " ") +: // remove words with fewer than 4 characters
+                ("^\\s+" -> "xxxxxxxxxxx") +:
+                ("\\s+$" -> "xxxxxxxxxs") +:
+                Nil
 
-        conversions.foldLeft(normalized) {
-            (text, rule) => text.replaceAll(rule._1, rule._2)
+            conversions.foldLeft(original) {
+                (text, rule) => text.replaceAll(rule._1, rule._2)
+            }
+
         }
+
+        convert(normalize(text.toLowerCase))
     }
 
     def filter(counts: WordCounts): WordCounts = {
-        counts
-            .filter(p => !stopWords.contains(p._1))
-            .filter(_._2 >= 5)
+        counts.filter(_._2 >= 5)
     }
 
-    def tokenizeBySpace(text: String): Seq[String] =
+    def tokenizeBySpace(text: String)(implicit stopWords: StopWords): Seq[String] =
         // It needs to handle the case of an empty string, otherwise an array
         // containing a single element of empty string will be returned.
         if (text.isEmpty) Array.empty[String]
@@ -73,7 +74,7 @@ object Preprocessor {
         }
     }
 
-    def tokenizeAndCount(text: String, n: Int = 1) =
+    def tokenizeAndCount(text: String, n: Int = 1)(implicit stopWords: StopWords) =
         countWords(find1ToNGrams(tokenizeBySpace(text), n).flatten)
 
     def add(p1: WordCounts, p2: WordCounts): WordCounts = {
@@ -120,7 +121,7 @@ object Preprocessor {
         Dictionary.buildFrom(info)
     }
 
-    /**
+    /*
      * Computes the TF-IDF of words.  The TF-IDF is given by:
      *
      * tf-idf(t, D) = tf(t, D) * log (N / n_t)
@@ -166,7 +167,7 @@ object Preprocessor {
 
     type NGram = Seq[String]
 
-    /**
+    /*
      * Tokenizes the text without including the constituent tokens.
      * For example, if "hong" and "kong" are two consecutive words, and
      * check "hong-kong" returns true, then "hong-kong" will be included in the

@@ -23,6 +23,9 @@ object Converter {
 
     val stopWords = StopWords.read("stopwords-lewis.csv")
 
+    def preprocess(subject: String, body: String) =
+        Preprocessor.preprocess(subject + "\n" + body)
+
     def readEmails(): Iterable[(Int, Option[Date], String)] = {
         val df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
         val in = new FileReader("data/Emails.csv");
@@ -33,12 +36,11 @@ object Converter {
                 case "" => None
                 case d => Some(df.parse(d))
             }
-            val text = Preprocessor.preprocess(
-                    r.get("ExtractedSubject"), r.get("ExtractedBodyText"))
+            val text = preprocess(
+                r.get("ExtractedSubject"), r.get("ExtractedBodyText"))
             (id, date, text)
         }
     }
-
 
     /**
      * Converts data to bag-of-words representation, based on the given word

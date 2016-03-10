@@ -5,6 +5,7 @@ import java.io.PrintWriter
 import org.apache.pdfbox.util.PDFTextStripper
 import java.io.File
 import java.io.StringWriter
+import tm.text.Preprocessor
 
 object ExtractText extends App {
     run
@@ -72,7 +73,7 @@ object ExtractText extends App {
         stripper.setEndPage(endPage);
         stripper.writeText(document, writer);
 
-        output.write(undoHyphenation(writer.toString))
+        output.write(Preprocessor.preprocess(undoHyphenation(writer.toString)))
 
         output.close
         document.close
