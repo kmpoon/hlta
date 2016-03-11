@@ -9,19 +9,21 @@ import scala.collection.GenSeq
 import tm.text.Preprocessor
 import tm.text.StopWords
 import tm.text.DataConverter
-
 import scala.collection.JavaConversions._
+import java.io.InputStream
+import java.io.InputStreamReader
+import java.io.FileInputStream
 
-object Convert extends App {
-    val df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
-    
-    run(println)
+object Convert {
+    def main(args: Array[String]) {
+        run(println)
+    }
 
     def run(log: (String) => Any) = {
         import DataConverter.implicits.default
 
         log("Extracting bodies")
-        val bodies = readEmails.map(_._3).toList.par
+        val bodies = readEmailsFromDefaultPath.map(_._3).toList.par
 
         DataConverter.convert("hillary", bodies, log)
     }
@@ -29,9 +31,15 @@ object Convert extends App {
     def preprocess(subject: String, body: String) =
         Preprocessor.preprocess(subject + "\n" + body)
 
-    def readEmails(): Iterable[(Int, Option[Date], String)] = {
-        val in = new FileReader("data/Emails.csv");
-        val records = CSVFormat.EXCEL.withHeader().parse(in);
+    def readEmailsFromDefaultPath() =
+        readEmails(new FileInputStream("data/Emails.csv"))
+
+    def readEmails(inputStream: InputStream): Iterable[(Int, Option[Date], String)] = {
+        // must be put here since it may not be thread-safe
+        val df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
+
+        val records = CSVFormat.EXCEL.withHeader()
+            .parse(new InputStreamReader(inputStream));
         records.view.map { r =>
             val id = r.get("Id").toInt
             val date = r.get("MetadataDateSent") match {
