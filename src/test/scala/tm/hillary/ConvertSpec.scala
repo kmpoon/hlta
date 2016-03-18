@@ -16,9 +16,11 @@ class ConvertSpec extends BaseSpec {
     implicit val stopwords = StopWords.read("stopwords.csv")
 
     trait DictionaryFrom2ndEmail {
-        val dictionary: Set[NGram] = Set("thursday", "aiding", "docx", "hillary",
-            "libya", "march", "memo", "qaddafi", "syria",
-            "syria-aiding", "libya-docx")
+        val dictionary: Set[NGram] =
+            Set("thursday", "aiding", "docx", "hillary",
+                "libya", "march", "memo", "qaddafi", "syria",
+                "syria-aiding", "libya-docx",
+                "march-syria-aiding", "memo-libya-docx", "libya-docx-march")
     }
 
     trait Words {
@@ -83,17 +85,14 @@ class ConvertSpec extends BaseSpec {
                     When("the tokens are produced and constituent tokens are removed")
                     val words = tokenizeBySpace(email).map(NGram(_))
 
-                    val tokens1 = tokenizeWithoutConstituentTokens(
-                        words, dictionary.contains, 1)
-                    val tokens2 = tokenizeWithoutConstituentTokens(
-                        words, dictionary.contains, 2)
-
                     //                    val tokens1 = tokenizeWithoutConstituentTokens(
                     //                        words, dictionary.contains, 1)
                     //                    val tokens2 = tokenizeWithoutConstituentTokens(
                     //                        words, dictionary.contains, 2)
 
                     Then("The token list containing 1-grams should be found correctly")
+                    val tokens1 = tokenizeWithoutConstituentTokens(
+                        words, dictionary.contains, 1)
                     tokens1 should contain theSameElementsAs Vector(
                         "thursday", "march", "syria", "aiding", "qaddafi",
                         "memo", "syria", "aiding", "libya", "docx", "memo",
@@ -101,11 +100,20 @@ class ConvertSpec extends BaseSpec {
                         .map(NGram(_))
 
                     Then("The tokens list containing 1-grams and 2-grams should be correct")
+                    val tokens2 = tokenizeWithoutConstituentTokens(
+                        words, dictionary.contains, 2)
                     tokens2 should contain theSameElementsAs Vector(
                         "thursday", "march", "syria-aiding", "qaddafi",
                         "memo", "syria-aiding", "libya-docx", "memo",
                         "syria-aiding", "libya-docx", "march", "hillary")
                         .map(NGram.fromConcatenatedString)
+
+                    val tokens3 = tokenizeWithoutConstituentTokens(
+                        words, dictionary.contains, 3)
+                    tokens3 should contain theSameElementsAs Vector(
+                        "thursday", "march-syria-aiding", "qaddafi",
+                        "memo", "syria-aiding", "libya-docx", "memo",
+                        "syria-aiding", "libya-docx-march", "hillary")
                 }
             }
         }

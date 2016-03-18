@@ -21,7 +21,7 @@ object Convert {
 
     def convert(source: String) = {
         val log = println(_: String)
-        import DataConverter.implicits.default
+        implicit val parameters = DataConverter.implicits.default.copy(maxN = 3)
 
         log("Read documents")
         val bodies = getFiles(source)
