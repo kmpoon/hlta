@@ -6,20 +6,23 @@ import scala.annotation.tailrec
 import tm.text.Preprocessor
 import tm.text.StopWords
 import tm.text.DataConverter
+import tm.text.NGram
 
 class ConvertSpec extends BaseSpec {
+    import scala.language.implicitConversions
+    implicit def stringToNGram(s: String) = NGram.fromConcatenatedString(s)
 
     import Preprocessor._
     implicit val stopwords = StopWords.read("stopwords.csv")
 
     trait DictionaryFrom2ndEmail {
-        val dictionary = Set("thursday", "aiding", "docx", "hillary",
+        val dictionary: Set[NGram] = Set("thursday", "aiding", "docx", "hillary",
             "libya", "march", "memo", "qaddafi", "syria",
             "syria-aiding", "libya-docx")
     }
 
     trait Words {
-        val words = List("aiding", "docx", "hillary")
+        val words: List[NGram] = List("aiding", "docx", "hillary")
         val counts = List(3, 2, 1)
         def wordCounts = words.zip(counts).toMap
         def singleCounts = words.map(w => Map(w -> 1))
@@ -78,7 +81,7 @@ class ConvertSpec extends BaseSpec {
             it("should produce tokens properly without constituent tokens") {
                 new SecondEmail with DictionaryFrom2ndEmail {
                     When("the tokens are produced and constituent tokens are removed")
-                    val words = tokenizeBySpace(email)
+                    val words = tokenizeBySpace(email).map(NGram(_))
 
                     val tokens1 = tokenizeWithoutConstituentTokens(
                         words, dictionary.contains, 1)
@@ -95,12 +98,14 @@ class ConvertSpec extends BaseSpec {
                         "thursday", "march", "syria", "aiding", "qaddafi",
                         "memo", "syria", "aiding", "libya", "docx", "memo",
                         "syria", "aiding", "libya", "docx", "march", "hillary")
+                        .map(NGram(_))
 
                     Then("The tokens list containing 1-grams and 2-grams should be correct")
                     tokens2 should contain theSameElementsAs Vector(
                         "thursday", "march", "syria-aiding", "qaddafi",
                         "memo", "syria-aiding", "libya-docx", "memo",
                         "syria-aiding", "libya-docx", "march", "hillary")
+                        .map(NGram.fromConcatenatedString)
                 }
             }
         }
@@ -226,26 +231,26 @@ class ConvertSpec extends BaseSpec {
             }
     }
 
-    def checkNumberOfWords(informer: (String) => Unit)(map: Map[String, _], size: Int) = {
+    def checkNumberOfWords(informer: (String) => Unit)(map: Map[NGram, _], size: Int) = {
         informer(s"there should be ${size} distinct non-stop-words")
         map.size should equal(size)
     }
 
     def checkDocumentFrequency(informer: (String) => Unit)(
-        df: Map[String, Int], word: String, frequency: Int) = {
+        df: Map[NGram, Int], word: String, frequency: Int) = {
         informer(s"The word ${word} should have appeared in ${frequency} documents")
-        df(word) should equal(frequency)
+        df(NGram(word)) should equal(frequency)
     }
 
     def checkWordOccurence(informer: (String) => Unit)(
-        counts: Map[String, Int], word: String, count: Int) = {
+        counts: Map[NGram, Int], word: String, count: Int) = {
         informer(s"The word ${word} should have ${count} occurences")
-        counts(word) should equal(count)
+        counts(NGram(word)) should equal(count)
     }
 
     def checkTfIdf(informer: (String) => Unit)(
-        tfidf: Map[String, Double], word: String, expected: Double) = {
+        tfidf: Map[NGram, Double], word: String, expected: Double) = {
         informer(s"The tf-idf of word ${word} should be correct")
-        tfidf(word) should equal(expected +- 5e-5)
+        tfidf(NGram(word)) should equal(expected +- 5e-5)
     }
 }

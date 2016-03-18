@@ -2,6 +2,7 @@ package tm.text
 
 import java.io.PrintWriter
 import scala.io.Source
+import tm.util.CompositeComparator
 
 /**
  * Info about a word.
@@ -9,26 +10,19 @@ import scala.io.Source
  * tf: term frequency (i.e. number of occurrences in all document.
  * df: document frequency (i.e. number of documents with
  */
-case class WordInfo(word: String, tf: Int, df: Int, tfidf: Double)
+case class WordInfo(token: NGram, tf: Int, df: Int, tfidf: Double)
 
 object Dictionary {
-    private def order(w1: WordInfo, w2: WordInfo) = {
-        val cmp1 = -w1.tfidf.compare(w2.tfidf)
-        val cmp2 =
-            if (cmp1 == 0)
-                w1.word.compareTo(w2.word)
-            else
-                cmp1
-
-        cmp2 < 0
-    }
+    private val comparator = CompositeComparator[WordInfo](
+        (w1, w2) => -w1.tfidf.compareTo(w2.tfidf),
+        (w1, w2) => w1.token.identifier.compareTo(w2.token.identifier))
 
     /**
      * Builds a dictionary from a collection of WordInfo objects.
      */
     def buildFrom(w: Iterable[WordInfo]) = {
-        val info = w.toVector.sortWith(order)
-        val map = info.zipWithIndex.map(p => (p._1.word -> p._2)).toMap
+        val info = w.toVector.sortWith(comparator(_, _) < 0)
+        val map = info.zipWithIndex.map(p => (p._1.token -> p._2)).toMap
         new Dictionary(info, map)
     }
 
@@ -42,20 +36,21 @@ object Dictionary {
                 .map(_.split(","))
                 .map(_ match {
                     case Array(w, tf, df, tfidf) =>
-                        WordInfo(w, tf.toInt, df.toInt, tfidf.toDouble)
+                        WordInfo(NGram.fromConcatenatedString(w),
+                            tf.toInt, df.toInt, tfidf.toDouble)
                 })
                 .toIterable)
     }
 }
 
-class Dictionary(val info: IndexedSeq[WordInfo], val map: Map[String, Int]) {
+class Dictionary(val info: IndexedSeq[WordInfo], val map: Map[NGram, Int]) {
 
-    def getInfo(word: String) = info(map(word))
+    def getInfo(token: NGram) = info(map(token))
 
     def filter(pred: (WordInfo) => Boolean) =
         Dictionary.buildFrom(info.filter(pred))
 
-    def words() = info.map(_.word)
+    def words() = info.map(_.token.identifier)
 
     def getMap[T](f: (WordInfo) => T) = map.mapValues(i => f(info(i)))
 
@@ -63,7 +58,7 @@ class Dictionary(val info: IndexedSeq[WordInfo], val map: Map[String, Int]) {
         val writer = new PrintWriter(filename)
 
         writer.println("word,tf,df,tfidf")
-        info.map(i => s"${i.word},${i.tf},${i.df},${i.tfidf}")
+        info.map(i => s"${i.token.identifier},${i.tf},${i.df},${i.tfidf}")
             .foreach(writer.println)
 
         writer.close

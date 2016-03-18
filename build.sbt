@@ -4,7 +4,7 @@ name := "TextMining"
 
 version := "1.0"
 
-scalaVersion := "2.10.6"
+scalaVersion := "2.11.7"
 
 libraryDependencies ++= 
 	"org.scalatest" %% "scalatest" % "2.2.6" % "test" ::
@@ -15,6 +15,7 @@ libraryDependencies ++=
 //    "org.apache.lucene" % "lucene-core" % "5.5.0" ::
 //    "org.apache.lucene" % "lucene-analyzers-common" % "5.5.0" ::
     "org.apache.pdfbox" % "pdfbox" % "1.8.10" ::
+//    "colt" % "colt" % "1.2.0" ::
 	Nil
 
 

@@ -12,7 +12,7 @@ class DictionarySpec extends BaseSpec {
         Given("The first 500 emails")
         val countsByEmails = countWordsInEmails(500)
 
-        When("The data is converted to bow")
+        When("The dictionary is built")
         val dictionary =
             Preprocessor.buildDictionary(countsByEmails).filter(_.tf > 5)
     }
