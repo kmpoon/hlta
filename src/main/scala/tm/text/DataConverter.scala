@@ -58,6 +58,7 @@ object DataConverter {
             log("Saving dictionary")
             dictionary.save(s"${name}.dict-${n}.csv")
 
+            log(s"Replacing constituent tokens by ${n}-grams")
             val tokensWithLargerNGrams =
                 tokens.map(tokenizeWithoutConstituentTokens(_, dictionary.map.contains, n))
 

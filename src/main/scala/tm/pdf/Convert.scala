@@ -21,13 +21,16 @@ object Convert {
 
     def convert(source: String) = {
         val log = println(_: String)
-        implicit val parameters = DataConverter.implicits.default.copy(maxN = 3)
 
         log("Read documents")
-        val bodies = getFiles(source)
+        val files = getFiles(source)
+        val bodies = files
             .map(f => Source.fromFile(f).getLines.mkString("\n"))
             .toList.par
 
+        implicit val parameters =
+            DataConverter.implicits.default.copy(
+                maxN = 3, minDf = files.length / 100)
         DataConverter.convert("aaai", bodies, log)
     }
 
