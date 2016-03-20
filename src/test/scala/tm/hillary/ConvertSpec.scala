@@ -114,6 +114,7 @@ class ConvertSpec extends BaseSpec {
                         "thursday", "march-syria-aiding", "qaddafi",
                         "memo", "syria-aiding", "libya-docx", "memo",
                         "syria-aiding", "libya-docx-march", "hillary")
+                        .map(NGram.fromConcatenatedString)
                 }
             }
         }
