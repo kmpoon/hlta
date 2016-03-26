@@ -15,3 +15,17 @@ object NGram {
 
     val separator = "-"
 }
+
+class Sentence(val tokens: Seq[NGram])
+
+object Sentence {
+    def apply(ts: Seq[NGram]): Sentence = new Sentence(ts)
+    def apply(text: String): Sentence =
+        new Sentence(Preprocessor.tokenizeBySpace(text).map(NGram.apply))
+}
+
+class Document(val sentences: Seq[Sentence])
+
+object Document {
+    def apply(text: String) = new Document(Seq(Sentence(text)))
+}

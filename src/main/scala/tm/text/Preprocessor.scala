@@ -19,17 +19,13 @@ object Preprocessor {
      * Performs normalization (removing accents), removes punctuation, words
      * shorter than 4 characters, and change letters to lower case.
      */
-    def preprocess(text: String) = {
-        // to remove accents
-        def normalize(text: String) =
-            Normalizer.normalize(text, Normalizer.Form.NFD)
-                .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+    def preprocess(text: String, minChar: Int = 4) = {
 
         def convert(original: String) = {
             val conversions =
                 ("'", "") +:
                     ("[^\\p{Alpha}\\n]+" -> " ") +:
-                    ("\\b\\w{1,3}\\b" -> " ") +: // remove words with fewer than 4 characters
+                    (s"\\b\\w{1,${minChar - 1}}\\b" -> " ") +: // remove words with fewer than 4 characters
                     ("^\\s+" -> "") +:
                     ("\\s+$" -> "") +:
                     Nil
@@ -37,21 +33,29 @@ object Preprocessor {
             conversions.foldLeft(original) {
                 (text, rule) => text.replaceAll(rule._1, rule._2)
             }
-
         }
 
         convert(normalize(text.toLowerCase))
     }
 
+    // to remove accents
+    def normalize(text: String) =
+        Normalizer.normalize(text, Normalizer.Form.NFD)
+            .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+
     //    def filter(counts: WordCounts): WordCounts = {
     //        counts.filter(_._2 >= 5)
     //    }
 
-    def tokenizeBySpace(text: String)(implicit stopWords: StopWords): Seq[String] =
+    def tokenizeBySpace(text: String): Seq[String] =
         // It needs to handle the case of an empty string, otherwise an array
         // containing a single element of empty string will be returned.
         if (text.isEmpty) Array.empty[String]
-        else text.split("\\s+").filter(!stopWords.contains(_))
+        else text.split("\\s+")
+
+    def tokenizeAndRemoveStopWords(text: String)(
+        implicit stopWords: StopWords): Seq[String] =
+        tokenizeBySpace(text).filterNot(stopWords.contains)
 
     /**
      * Returns a list of n-grams built from the sequence of words.
@@ -72,13 +76,13 @@ object Preprocessor {
      * n-grams are built from two consecutive tokens.  Only the combined n-grams
      * with the given length {@code n} are kept in the returned collection.
      */
-    def buildNextNGrams(tokens: Seq[NGram], n: Int) =
+    def buildNextNGrams(tokens: Seq[NGram], n: Int): Iterator[NGram] =
         tokens.sliding(2).map(NGram.fromNGrams(_)).filter(_.words.length == n)
 
     /**
-     * Counts number of words in the given sequence of words.
+     * Counts number of tokens in the given sequence of words.
      */
-    def countWords(tokens: Seq[NGram]): TokenCounts = {
+    def countTokens(tokens: Seq[NGram]): TokenCounts = {
         if (tokens.isEmpty) {
             Map.empty
         } else {
@@ -87,7 +91,7 @@ object Preprocessor {
     }
 
     def tokenizeAndCount(text: String, n: Int = 1)(implicit stopWords: StopWords) =
-        countWords(find1ToNGrams(tokenizeBySpace(text), n).flatten)
+        countTokens(find1ToNGrams(tokenizeAndRemoveStopWords(text), n).flatten)
 
     def add(p1: TokenCounts, p2: TokenCounts): TokenCounts = {
         type mutableMap = mutable.Map[NGram, Int]
@@ -179,19 +183,29 @@ object Preprocessor {
     //    }
 
     /*
-     * Tokenizes the text without including the constituent tokens.
-     * For example, if "hong" and "kong" are two consecutive words, and
-     * check "hong-kong" returns true, then "hong-kong" will be included in the
-     * resulting sequence but not two individual words "hong" and "kong".
+     * Replace the constituent tokens by n-grams, up to a specified 
+     * {@code maxN}. 
+     * 
+     * For example, if "hong" and "kong" are two consecutive 
+     * tokens, and check "hong-kong" returns true, then "hong-kong" will be 
+     * included in the resulting sequence but not two individual words "hong"
+     * and "kong".
      *
      * @param words sequence of words.
      * @param check used to check whether a n-gram will be used.
      * @param maxN the maximum n for which n-gram will be used.
      */
-    def tokenizeWithoutConstituentTokens(tokens: Seq[NGram],
+    def replaceConstituentTokensByNGrams(tokens: Seq[NGram],
         check: (NGram) => Boolean, maxN: Int): Seq[NGram] = {
 
         (maxN to 2 by -1).foldLeft(tokens)(replaceByNGrams(_, check, _))
+    }
+
+    def replaceConstituentTokensByNGrams(sentence: Sentence,
+        check: (NGram) => Boolean, maxN: Int): Sentence = {
+        val tokens = replaceConstituentTokensByNGrams(
+            sentence.tokens, check, maxN)
+        new Sentence(tokens)
     }
 
     /**

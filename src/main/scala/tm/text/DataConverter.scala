@@ -17,7 +17,7 @@ object DataConverter {
 
     type TokenCounts = Map[NGram, Int]
 
-    def convert(name: String, documents: GenSeq[String], log: (String) => Any)(
+    def convert(name: String, documents: GenSeq[Document], log: (String) => Any)(
         implicit settings: Settings) = {
         import settings._
 
@@ -35,42 +35,62 @@ object DataConverter {
         log("done")
     }
 
+    /**
+     * Counts the number of tokens with the consideration of n-grams for a n
+     * specified in the {@ code settings}.
+     */
     def countTokensWithNGrams(
-        name: String, documents: GenSeq[String], log: (String) => Any)(
-            implicit settings: Settings) = {
+        name: String, documents: GenSeq[Document], log: (String) => Any)(
+            implicit settings: Settings): (GenSeq[TokenCounts], Dictionary) = {
         import Preprocessor._
         import settings._
-        import StopWords.implicits.default
 
-        def rec(tokens: GenSeq[Seq[NGram]], n: Int): (GenSeq[Seq[NGram]], Dictionary) = {
+        def rec(documents: GenSeq[Document], n: Int): (GenSeq[Document], Dictionary) = {
             log(s"Counting n-grams (up to ${n}) in each document")
+
+            // construct a sequence with tokens including those in the original
+            // sentence and n-grams with specified n that are built from the
+            // original tokens
+            def appendNextNGram(sentence: Sentence): Seq[NGram] =
+                sentence.tokens ++ buildNextNGrams(sentence.tokens, n)
+
             // compute the counts of original tokens and new n-grams by 
             // documents
             val countsByDocuments =
-                tokens.map(t => t ++ buildNextNGrams(t, n)).map(countWords)
+                // convert each document to tokens
+                documents.map(_.sentences.flatMap(appendNextNGram))
+                    .map(countTokens)
 
             log("Building Dictionary")
-            val dictionary =
-                buildDictionary(countsByDocuments).filter(
-                    w => w.token.words.forall(_.length > minCharacters)
-                        && w.tf >= minTf && w.df >= minDf)
+            val dictionary = buildDictionary(countsByDocuments).filter(w =>
+                w.token.words.forall(_.length > minCharacters)
+                    && w.tf >= minTf
+                    && w.df >= minDf)
 
             log("Saving dictionary")
             dictionary.save(s"${name}.dict-${n}.csv")
 
             log(s"Replacing constituent tokens by ${n}-grams")
-            val tokensWithLargerNGrams =
-                tokens.map(tokenizeWithoutConstituentTokens(_, dictionary.map.contains, n))
+            val documentsWithLargerNGrams =
+                documents.map(_.sentences.map(s =>
+                    replaceConstituentTokensByNGrams(
+                        s, dictionary.map.contains(_), n)))
+                    .map(ss => new Document(ss))
 
-            if (n == maxN) (tokensWithLargerNGrams, dictionary)
-            else rec(tokensWithLargerNGrams, n + 1)
+            if (n == maxN) (documentsWithLargerNGrams, dictionary)
+            else rec(documentsWithLargerNGrams, n + 1)
         }
 
         log("Extracting words")
-        val words = documents.map(tokenizeBySpace(_).map(NGram(_)))
-
-        val (tokens, dictionary) = rec(words, 2)
-        (tokens.map(countWords), dictionary)
+        //        val words = documents.map(tokenizeBySpace(_).map(NGram(_)))
+        //
+        //        val (tokens, dictionary) = rec(words, 2)
+        //        (tokens.map(countWords), dictionary)
+        val (newDocuments, dictionary) = rec(documents, 2)
+        val countsByDocument =
+            newDocuments.map(_.sentences.flatMap(_.tokens))
+                .map(countTokens)
+        (countsByDocument, dictionary)
     }
 
     /**

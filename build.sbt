@@ -10,12 +10,16 @@ libraryDependencies ++=
 	"org.scalatest" %% "scalatest" % "2.2.6" % "test" ::
     "org.scalactic" %% "scalactic" % "2.2.6" % "test" ::
     "org.apache.commons" % "commons-csv" % "1.2" ::
+    "edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" ::
+    ("edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" classifier "models") ::
+    "com.google.protobuf" % "protobuf-java" % "2.6.1"  ::
 //    "org.apache.opennlp" % "opennlp-tools" % "1.6.0" ::
 //    "org.apache.opennlp" % "opennlp-maxent" % "3.0.3" ::
 //    "org.apache.lucene" % "lucene-core" % "5.5.0" ::
 //    "org.apache.lucene" % "lucene-analyzers-common" % "5.5.0" ::
     "org.apache.pdfbox" % "pdfbox" % "1.8.10" ::
 //    "colt" % "colt" % "1.2.0" ::
+    "nz.ac.waikato.cms.weka" % "weka-stable" % "3.6.13" ::
 	Nil
 
 

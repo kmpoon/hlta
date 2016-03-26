@@ -19,8 +19,8 @@ class ConvertSpec extends BaseSpec {
         val dictionary: Set[NGram] =
             Set("thursday", "aiding", "docx", "hillary",
                 "libya", "march", "memo", "qaddafi", "syria",
-                "syria-aiding", "libya-docx",
-                "march-syria-aiding", "memo-libya-docx", "libya-docx-march")
+                "syria_aiding", "libya_docx",
+                "march_syria_aiding", "memo_libya_docx", "libya_docx_march")
     }
 
     trait Words {
@@ -73,17 +73,17 @@ class ConvertSpec extends BaseSpec {
                     counts("aiding") should equal(3)
 
                     And("The bigram syria-aiding should have 3 occurences")
-                    counts("syria-aiding") should equal(3)
+                    counts("syria_aiding") should equal(3)
 
                     And("The trigram memo-syria-aiding should have 3 occurences")
-                    counts("memo-syria-aiding") should equal(2)
+                    counts("memo_syria_aiding") should equal(2)
                 }
             }
 
             it("should produce tokens properly without constituent tokens") {
                 new SecondEmail with DictionaryFrom2ndEmail {
                     When("the tokens are produced and constituent tokens are removed")
-                    val words = tokenizeBySpace(email).map(NGram(_))
+                    val words = tokenizeAndRemoveStopWords(email).map(NGram.apply)
 
                     //                    val tokens1 = tokenizeWithoutConstituentTokens(
                     //                        words, dictionary.contains, 1)
@@ -91,8 +91,8 @@ class ConvertSpec extends BaseSpec {
                     //                        words, dictionary.contains, 2)
 
                     Then("The token list containing 1-grams should be found correctly")
-                    val tokens1 = tokenizeWithoutConstituentTokens(
-                        words, dictionary.contains, 1)
+                    val tokens1 = replaceConstituentTokensByNGrams(
+                        words, dictionary.contains(_), 1)
                     tokens1 should contain theSameElementsAs Vector(
                         "thursday", "march", "syria", "aiding", "qaddafi",
                         "memo", "syria", "aiding", "libya", "docx", "memo",
@@ -100,20 +100,20 @@ class ConvertSpec extends BaseSpec {
                         .map(NGram(_))
 
                     Then("The tokens list containing 1-grams and 2-grams should be correct")
-                    val tokens2 = tokenizeWithoutConstituentTokens(
-                        words, dictionary.contains, 2)
+                    val tokens2 = replaceConstituentTokensByNGrams(
+                        words, dictionary.contains(_), 2)
                     tokens2 should contain theSameElementsAs Vector(
-                        "thursday", "march", "syria-aiding", "qaddafi",
-                        "memo", "syria-aiding", "libya-docx", "memo",
-                        "syria-aiding", "libya-docx", "march", "hillary")
+                        "thursday", "march", "syria_aiding", "qaddafi",
+                        "memo", "syria_aiding", "libya_docx", "memo",
+                        "syria_aiding", "libya_docx", "march", "hillary")
                         .map(NGram.fromConcatenatedString)
 
-                    val tokens3 = tokenizeWithoutConstituentTokens(
-                        words, dictionary.contains, 3)
+                    val tokens3 = replaceConstituentTokensByNGrams(
+                        words, dictionary.contains(_), 3)
                     tokens3 should contain theSameElementsAs Vector(
-                        "thursday", "march-syria-aiding", "qaddafi",
-                        "memo", "syria-aiding", "libya-docx", "memo",
-                        "syria-aiding", "libya-docx-march", "hillary")
+                        "thursday", "march_syria_aiding", "qaddafi",
+                        "memo", "syria_aiding", "libya_docx", "memo",
+                        "syria_aiding", "libya_docx_march", "hillary")
                         .map(NGram.fromConcatenatedString)
                 }
             }

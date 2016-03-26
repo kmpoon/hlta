@@ -3,10 +3,11 @@ package tm.hillary
 import tm.text.Dictionary
 
 object CheckDictionary extends App {
-    println("Welcome to the Scala worksheet")
     val dictionary = Dictionary.read(
-        "/Users/kmpoon/Documents/research/workspace/HillaryEmails/" +
-            "converted/hillary.20160226.dict.csv")
-    dictionary.info.filter(
-        w => w.token.words.head.endsWith("nt") && w.token.words.length <= 8).foreach(println)
+        "/Users/kmpoon/Documents/research/experiments/hlta/20160307-pdf/converted/" +
+            "aaai-ijcai.20160326.dict-3.csv")
+    val filtered = dictionary.info.filter(
+        w => w.token.words.find(w =>
+            !w.matches("[\\p{Alpha}_-]+")).isDefined)
+    filtered.foreach(println)
 }

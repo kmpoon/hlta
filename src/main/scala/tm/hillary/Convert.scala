@@ -13,6 +13,7 @@ import scala.collection.JavaConversions._
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.FileInputStream
+import tm.text.Document
 
 object Convert {
     def main(args: Array[String]) {
@@ -23,7 +24,8 @@ object Convert {
         import DataConverter.implicits.default
 
         log("Extracting bodies")
-        val bodies = readEmailsFromDefaultPath.map(_._3).toList.par
+        val bodies = readEmailsFromDefaultPath
+            .map(email => Document(email._3)).toList.par
 
         DataConverter.convert("hillary", bodies, log)
     }

@@ -5,6 +5,11 @@ import scala.collection.JavaConversions._
 import java.io.File
 import scala.io.Source
 import tm.util.FileHelpers
+import tm.text.Preprocessor
+import tm.text.StopWords
+import tm.text.Sentence
+import tm.text.Document
+import tm.text.NGram
 
 object Convert {
     def main(args: Array[String]) {
@@ -20,13 +25,21 @@ object Convert {
     }
 
     def convert(source: String) = {
+        import Preprocessor.tokenizeBySpace
+        import StopWords.implicits.default
+
         val log = println(_: String)
 
-        log("Read documents")
+        log("Reading documents")
         val files = getFiles(source)
-        val bodies = files
-            .map(f => Source.fromFile(f).getLines.mkString("\n"))
-            .toList.par
+        val bodies = files.toList.par.map { f =>
+            // each line is assumed to be a sentence containing tokens
+            // separated by space
+            
+            val sentences = Source.fromFile(f).getLines
+                .map(tokenizeBySpace).map(ts => new Sentence(ts.map(NGram(_))))
+            new Document(sentences.toList)
+        }
 
         implicit val parameters =
             DataConverter.implicits.default.copy(
