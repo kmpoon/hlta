@@ -44,3 +44,10 @@ unmanagedClasspath in Compile += baseDirectory.value / "FastHLTA" / "bin"
 unmanagedClasspath in Test += baseDirectory.value / "FastHLTA" / "bin"
 
 unmanagedClasspath in Runtime += baseDirectory.value / "FastHLTA" / "bin"
+
+assemblyMergeStrategy in assembly := {
+  case PathList("java_cup", "runtime", xs @ _* )   => MergeStrategy.first
+  case x =>
+    val oldStrategy = (assemblyMergeStrategy in assembly).value
+    oldStrategy(x)
+}
