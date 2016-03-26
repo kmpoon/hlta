@@ -14,6 +14,11 @@
       <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.commons/commons-csv/docs/commons-csv-1.2-javadoc.jar!/"/>
     </attributes>
   </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/commons-io/commons-io/srcs/commons-io-2.4-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/commons-io/commons-io/jars/commons-io-2.4.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/commons-io/commons-io/docs/commons-io-2.4-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
   <classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/edu.stanford.nlp/stanford-corenlp/jars/stanford-corenlp-3.6.0-models.jar"/>
   <classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/edu.stanford.nlp/stanford-corenlp/jars/stanford-corenlp-3.6.0.jar"/>
   <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/com.io7m.xom/xom/srcs/xom-1.2.10-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/com.io7m.xom/xom/jars/xom-1.2.10.jar">

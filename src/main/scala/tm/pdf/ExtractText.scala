@@ -120,13 +120,20 @@ object ExtractText extends App {
 
     def extractFile(inputFile: String, outputFile: String)(
         implicit stopwords: StopWords): Unit = {
-        val encoding = "UTF-8"
-        val output = new PrintWriter(outputFile, encoding)
+        try {
+            val encoding = "UTF-8"
+            val output = new PrintWriter(outputFile, encoding)
 
-        val sentences = preprocess(extractText(inputFile)).filter(_.size > 0)
-        output.write(sentences.map(_.mkString(" ")).mkString("\n"))
+            val sentences = preprocess(extractText(inputFile)).filter(_.size > 0)
+            output.write(sentences.map(_.mkString(" ")).mkString("\n"))
 
-        output.close
+            output.close
+        } catch {
+            case e: Exception =>
+                println(s"Error extracting file: ${inputFile}")
+                println(e.getMessage)
+        }
+
     }
 
     def undoHyphenation(text: String) =
