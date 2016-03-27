@@ -35,10 +35,15 @@ object Convert {
         val bodies = files.toList.par.map { f =>
             // each line is assumed to be a sentence containing tokens
             // separated by space
-            
-            val sentences = Source.fromFile(f).getLines
-                .map(tokenizeBySpace).map(ts => new Sentence(ts.map(NGram(_))))
-            new Document(sentences.toList)
+            val source = Source.fromFile(f)
+            try {
+                val sentences = source.getLines
+                    .map(tokenizeBySpace)
+                    .map(ts => new Sentence(ts.map(NGram(_))))
+                new Document(sentences.toList)
+            } finally {
+                source.close
+            }
         }
 
         implicit val parameters =
