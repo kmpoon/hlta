@@ -9,6 +9,7 @@ scalaVersion := "2.11.7"
 libraryDependencies ++= 
 	"org.scalatest" %% "scalatest" % "2.2.6" % "test" ::
     "org.scalactic" %% "scalactic" % "2.2.6" % "test" ::
+    "org.scalaz" %% "scalaz-core" % "7.2.1" ::
     "org.apache.commons" % "commons-csv" % "1.2" ::
     "commons-io" % "commons-io" % "2.4" ::
     "edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" ::

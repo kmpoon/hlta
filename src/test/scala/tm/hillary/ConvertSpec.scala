@@ -7,6 +7,7 @@ import tm.text.Preprocessor
 import tm.text.StopWords
 import tm.text.DataConverter
 import tm.text.NGram
+import scalaz.Scalaz._
 
 class ConvertSpec extends BaseSpec {
     import scala.language.implicitConversions
@@ -19,8 +20,8 @@ class ConvertSpec extends BaseSpec {
         val dictionary: Set[NGram] =
             Set("thursday", "aiding", "docx", "hillary",
                 "libya", "march", "memo", "qaddafi", "syria",
-                "syria_aiding", "libya_docx",
-                "march_syria_aiding", "memo_libya_docx", "libya_docx_march")
+                "syria-aiding", "libya-docx",
+                "march-syria-aiding", "memo-libya-docx", "libya-docx-march")
     }
 
     trait Words {
@@ -34,7 +35,7 @@ class ConvertSpec extends BaseSpec {
         they("should add up correctly") {
             new Words {
                 val aidingSingle = singleCounts(0)
-                val aidingCount1 = add(aidingSingle, aidingSingle)
+                val aidingCount1 = aidingSingle |+| aidingSingle
                 aidingCount1.size should equal(1)
                 aidingCount1("aiding") should equal(2)
             }
@@ -73,10 +74,10 @@ class ConvertSpec extends BaseSpec {
                     counts("aiding") should equal(3)
 
                     And("The bigram syria-aiding should have 3 occurences")
-                    counts("syria_aiding") should equal(3)
+                    counts("syria-aiding") should equal(3)
 
                     And("The trigram memo-syria-aiding should have 3 occurences")
-                    counts("memo_syria_aiding") should equal(2)
+                    counts("memo-syria-aiding") should equal(2)
                 }
             }
 
@@ -103,17 +104,17 @@ class ConvertSpec extends BaseSpec {
                     val tokens2 = replaceConstituentTokensByNGrams(
                         words, dictionary.contains(_), 2)
                     tokens2 should contain theSameElementsAs Vector(
-                        "thursday", "march", "syria_aiding", "qaddafi",
-                        "memo", "syria_aiding", "libya_docx", "memo",
-                        "syria_aiding", "libya_docx", "march", "hillary")
+                        "thursday", "march", "syria-aiding", "qaddafi",
+                        "memo", "syria-aiding", "libya-docx", "memo",
+                        "syria-aiding", "libya-docx", "march", "hillary")
                         .map(NGram.fromConcatenatedString)
 
                     val tokens3 = replaceConstituentTokensByNGrams(
                         words, dictionary.contains(_), 3)
                     tokens3 should contain theSameElementsAs Vector(
-                        "thursday", "march_syria_aiding", "qaddafi",
-                        "memo", "syria_aiding", "libya_docx", "memo",
-                        "syria_aiding", "libya_docx_march", "hillary")
+                        "thursday", "march-syria-aiding", "qaddafi",
+                        "memo", "syria-aiding", "libya-docx", "memo",
+                        "syria-aiding", "libya-docx-march", "hillary")
                         .map(NGram.fromConcatenatedString)
                 }
             }

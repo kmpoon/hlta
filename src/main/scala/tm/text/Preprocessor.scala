@@ -11,6 +11,7 @@ import scala.collection.JavaConversions._
 import scala.collection.immutable.Queue
 import scala.collection.immutable.Queue
 import scala.collection.mutable
+import scalaz.Scalaz._
 
 object Preprocessor {
     type TokenCounts = Map[NGram, Int]
@@ -86,30 +87,30 @@ object Preprocessor {
         if (tokens.isEmpty) {
             Map.empty
         } else {
-            tokens.par.map(w => Map(w -> 1)).reduce(add)
+            tokens.par.map(w => Map(w -> 1)).reduce(_ |+| _)
         }
     }
 
     def tokenizeAndCount(text: String, n: Int = 1)(implicit stopWords: StopWords) =
         countTokens(find1ToNGrams(tokenizeAndRemoveStopWords(text), n).flatten)
 
-    def add(p1: TokenCounts, p2: TokenCounts): TokenCounts = {
-        type mutableMap = mutable.Map[NGram, Int]
-        def add(m: mutableMap, p: (NGram, Int)): mutableMap = {
-            val (key, value) = p
-            m.get(key) match {
-                case Some(v) => m += (key -> (v + value))
-                case None => m += (key -> value)
-            }
-            m
-        }
-
-        val map: mutableMap = mutable.Map.empty ++= p1
-        p2.foldLeft(map)(add).toMap
-    }
+    //    def add(p1: TokenCounts, p2: TokenCounts): TokenCounts = {
+    //        type mutableMap = mutable.Map[NGram, Int]
+    //        def add(m: mutableMap, p: (NGram, Int)): mutableMap = {
+    //            val (key, value) = p
+    //            m.get(key) match {
+    //                case Some(v) => m += (key -> (v + value))
+    //                case None => m += (key -> value)
+    //            }
+    //            m
+    //        }
+    //
+    //        val map: mutableMap = mutable.Map.empty ++= p1
+    //        p2.foldLeft(map)(add).toMap
+    //    }
 
     def sumWordCounts(countsByDocuments: GenSeq[TokenCounts]) =
-        countsByDocuments.reduce(add)
+        countsByDocuments.reduce(_ |+| _)
 
     def computeDocumentFrequencies(countsByDocuments: GenSeq[TokenCounts]) = {
         def toBinary(c: Int) = if (c > 0) 1 else 0
@@ -117,7 +118,7 @@ object Preprocessor {
         // convert to binary and then add up
         countsByDocuments
             .map(_.map { wc => (wc._1, toBinary(wc._2)) })
-            .reduce(add)
+            .reduce(_ |+| _)
     }
 
     def computeTfIdf(tf: Int, df: Int, numberOfDocuments: Int): Double =
