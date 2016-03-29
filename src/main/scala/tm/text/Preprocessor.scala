@@ -12,8 +12,17 @@ import scala.collection.immutable.Queue
 import scala.collection.immutable.Queue
 import scala.collection.mutable
 import scalaz.Scalaz._
+import scala.util.matching.Regex
+import scala.util.matching.Regex.Match
 
 object Preprocessor {
+    val replaceNonAlnum = ("\\P{Alnum}".r, (m: Match) => "_")
+    val replaceStartingDigit = ("^(\\p{Digit})".r, (m: Match) => s"_${m.group(1)}")
+
+    def useRegexToReplace(pair: (Regex, (Match) => String)) = pair match {
+        case (r, m) => (input: String) => r.replaceAllIn(input, m)
+    }
+
     type TokenCounts = Map[NGram, Int]
 
     /**
@@ -39,6 +48,22 @@ object Preprocessor {
         convert(normalize(text.toLowerCase))
     }
 
+    /**
+     * Another way to preprocess.  This is probably the right way to do it.
+     */
+    def preprocess(minChars: Int)(s: Sentence)(
+        implicit stopwords: StopWords): Seq[String] = s.tokens
+        .map(_.toString.toLowerCase)
+        .map(normalize)
+        .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
+        .map(useRegexToReplace(replaceNonAlnum))
+        .map(useRegexToReplace(replaceStartingDigit))
+        .filter(withProperLength(minChars))
+        .filterNot(stopwords.contains)
+
+    def withProperLength(min: Int)(word: String) =
+        word.replaceAll("[^\\p{Alpha}\\n]+", "").length >= min
+
     // to remove accents
     def normalize(text: String) =
         Normalizer.normalize(text, Normalizer.Form.NFD)
@@ -56,7 +81,7 @@ object Preprocessor {
 
     def tokenizeAndRemoveStopWords(text: String)(
         implicit stopWords: StopWords): Seq[String] =
-        tokenizeBySpace(text).filterNot(stopWords.contains)
+        tokenizeBySpace(text).filterNot(_.isEmpty).filterNot(stopWords.contains)
 
     /**
      * Returns a list of n-grams built from the sequence of words.

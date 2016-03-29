@@ -17,40 +17,27 @@ import tm.text.Document
 
 object Convert {
     def main(args: Array[String]) {
-        run(println)
+        if (args.length < 2)
+            printUsage()
+        else {
+            import Parameters.implicits.settings
+
+            tm.text.Convert.convert(args(0), args(1))
+        }
+    }
+
+    def printUsage() = {
+        println("tm.hillary.Convert name source_directory")
     }
 
     def run(log: (String) => Any) = {
-        import DataConverter.implicits.default
+        import Parameters.implicits.settings
+        
 
         log("Extracting bodies")
-        val bodies = readEmailsFromDefaultPath
-            .map(email => Document(email._3)).toList.par
+        val bodies = Emails.readEmailsFromDefaultPath
+            .map(email => Document(email.content)).toList.par
 
         DataConverter.convert("hillary", bodies, log)
-    }
-
-    def preprocess(subject: String, body: String) =
-        Preprocessor.preprocess(subject + "\n" + body)
-
-    def readEmailsFromDefaultPath() =
-        readEmails(new FileInputStream("data/Emails.csv"))
-
-    def readEmails(inputStream: InputStream): Iterable[(Int, Option[Date], String)] = {
-        // must be put here since it may not be thread-safe
-        val df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX")
-
-        val records = CSVFormat.EXCEL.withHeader()
-            .parse(new InputStreamReader(inputStream));
-        records.view.map { r =>
-            val id = r.get("Id").toInt
-            val date = r.get("MetadataDateSent") match {
-                case "" => None
-                case d => Some(df.parse(d))
-            }
-            val text = preprocess(
-                r.get("ExtractedSubject"), r.get("ExtractedBodyText"))
-            (id, date, text)
-        }
     }
 }

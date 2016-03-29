@@ -14,14 +14,13 @@ class ConvertSpec extends BaseSpec {
     implicit def stringToNGram(s: String) = NGram.fromConcatenatedString(s)
 
     import Preprocessor._
-    implicit val stopwords = StopWords.read("stopwords.csv")
+    implicit val stopwords = StopWords.implicits.default
 
     trait DictionaryFrom2ndEmail {
         val dictionary: Set[NGram] =
             Set("thursday", "aiding", "docx", "hillary",
-                "libya", "march", "memo", "qaddafi", "syria",
-                "syria-aiding", "libya-docx",
-                "march-syria-aiding", "memo-libya-docx", "libya-docx-march")
+                "libya", "march", "memo", "qaddafi", "syria", "hrc-memo",
+                "syria-aid", "syria-aid-libya")
     }
 
     trait Words {
@@ -44,7 +43,7 @@ class ConvertSpec extends BaseSpec {
 
     describe("Hillary Emails") {
         describe("The second email") {
-            trait SecondEmail extends Emails {
+            trait SecondEmail extends TestEmails {
                 Given("The second email")
                 val email = bodies.drop(1).head
             }
@@ -54,11 +53,11 @@ class ConvertSpec extends BaseSpec {
                     When("the words are counted")
                     val counts = tokenizeAndCount(email)
 
-                    Then("there should be 9 distinct non-stop-words")
-                    counts.size should equal(9)
+                    Then("there should be 13 distinct non-stop-words")
+                    counts.size should equal(13)
 
-                    And("The word aiding should have 3 occurences")
-                    counts("aiding") should equal(3)
+                    And("The word aid should have 3 occurences")
+                    counts("aid") should equal(3)
                 }
             }
 
@@ -67,17 +66,17 @@ class ConvertSpec extends BaseSpec {
                     When("the words are counted")
                     val counts = tokenizeAndCount(email, 3)
 
-                    Then("there should be 32 distinct n-grams")
-                    counts.size should equal(32)
+                    Then("there should be 44 distinct n-grams")
+                    counts.size should equal(44)
 
                     And("The unigram aiding should have 3 occurences")
-                    counts("aiding") should equal(3)
+                    counts("aid") should equal(3)
 
                     And("The bigram syria-aiding should have 3 occurences")
-                    counts("syria-aiding") should equal(3)
+                    counts("syria-aid") should equal(3)
 
-                    And("The trigram memo-syria-aiding should have 3 occurences")
-                    counts("memo-syria-aiding") should equal(2)
+                    And("The trigram hrc-memo-syria should have 2 occurences")
+                    counts("hrc-memo-syria") should equal(2)
                 }
             }
 
@@ -95,26 +94,30 @@ class ConvertSpec extends BaseSpec {
                     val tokens1 = replaceConstituentTokensByNGrams(
                         words, dictionary.contains(_), 1)
                     tokens1 should contain theSameElementsAs Vector(
-                        "thursday", "march", "syria", "aiding", "qaddafi",
-                        "memo", "syria", "aiding", "libya", "docx", "memo",
-                        "syria", "aiding", "libya", "docx", "march", "hillary")
+                        "thursday", "march", "latest", "syria",
+                        "aid", "qaddafi", "sid",
+                        "hrc", "memo", "syria", "aid", "libya", "docx", "hrc",
+                        "memo", "syria", "aid", "libya", "_030311_docx",
+                        "march", "hillary")
                         .map(NGram(_))
 
                     Then("The tokens list containing 1-grams and 2-grams should be correct")
                     val tokens2 = replaceConstituentTokensByNGrams(
                         words, dictionary.contains(_), 2)
                     tokens2 should contain theSameElementsAs Vector(
-                        "thursday", "march", "syria-aiding", "qaddafi",
-                        "memo", "syria-aiding", "libya-docx", "memo",
-                        "syria-aiding", "libya-docx", "march", "hillary")
+                        "thursday", "march", "latest", "syria-aid", "qaddafi",
+                        "sid", "hrc-memo", "syria-aid", "libya", "docx",
+                        "hrc-memo", "syria-aid", "libya", "_030311_docx",
+                        "march", "hillary")
                         .map(NGram.fromConcatenatedString)
 
                     val tokens3 = replaceConstituentTokensByNGrams(
                         words, dictionary.contains(_), 3)
                     tokens3 should contain theSameElementsAs Vector(
-                        "thursday", "march-syria-aiding", "qaddafi",
-                        "memo", "syria-aiding", "libya-docx", "memo",
-                        "syria-aiding", "libya-docx-march", "hillary")
+                        "thursday", "march", "latest", "syria-aid", "qaddafi",
+                        "sid", "hrc-memo", "syria-aid-libya", "docx",
+                        "hrc-memo", "syria-aid-libya", "_030311_docx",
+                        "march", "hillary")
                         .map(NGram.fromConcatenatedString)
                 }
             }
@@ -122,21 +125,21 @@ class ConvertSpec extends BaseSpec {
 
         describe("The first 10 emails") {
             they("should allow number of words to be counted correctly") {
-                new Emails {
+                new TestEmails {
                     Given("The first 10 emails")
                     val countsByEmails = countWordsInEmails(10)
 
                     When("the term frequencies are computed")
                     val counts = sumWordCounts(countsByEmails)
 
-                    checkNumberOfWords(Then)(counts, 70)
-                    checkWordOccurence(And)(counts, "aiding", 7)
+                    checkNumberOfWords(Then)(counts, 84)
+                    checkWordOccurence(And)(counts, "aid", 7)
                     checkWordOccurence(And)(counts, "libya", 8)
                 }
             }
 
             they("should allow document frequencies to be computed correctly") {
-                new Emails {
+                new TestEmails {
                     Given("The first 10 emails")
                     val countsByEmails = countWordsInEmails(10)
 
@@ -144,30 +147,30 @@ class ConvertSpec extends BaseSpec {
                     val documentFrequencies =
                         computeDocumentFrequencies(countsByEmails)
 
-                    checkNumberOfWords(Then)(documentFrequencies, 70)
+                    checkNumberOfWords(Then)(documentFrequencies, 84)
 
-                    checkDocumentFrequency(And)(documentFrequencies, "aiding", 3)
+                    checkDocumentFrequency(And)(documentFrequencies, "aid", 3)
                     checkDocumentFrequency(And)(documentFrequencies, "libya", 5)
                 }
             }
 
             they("should allow tf-idf to be computed correctly") {
-                new Emails {
+                new TestEmails {
                     Given("The first 10 emails")
                     val countsByEmails = countWordsInEmails(10)
 
                     When("tf-idf are computed")
                     val tfidf = computeTfIdf(countsByEmails)
 
-                    checkNumberOfWords(Then)(tfidf, 70)
+                    checkNumberOfWords(Then)(tfidf, 84)
 
-                    checkTfIdf(And)(tfidf, "aiding", 8.4278)
+                    checkTfIdf(And)(tfidf, "aid", 8.4278)
                     checkTfIdf(And)(tfidf, "libya", 5.5452)
                 }
             }
 
             they("should allow correct selection of words over 5 occurrences") {
-                new Emails {
+                new TestEmails {
                     Given("The first 10 emails")
                     val countsByEmails = countWordsInEmails(10)
 
@@ -178,7 +181,7 @@ class ConvertSpec extends BaseSpec {
                     val tfidf = dictionary.getMap(_.tfidf)
                     checkNumberOfWords(Then)(tfidf, 3)
 
-                    checkTfIdf(And)(tfidf, "aiding", 8.4278)
+                    checkTfIdf(And)(tfidf, "aid", 8.4278)
                     checkTfIdf(And)(tfidf, "libya", 5.5452)
 
                     And("The word anti is filtered out")
@@ -187,7 +190,7 @@ class ConvertSpec extends BaseSpec {
             }
 
             they("should allow the proper building of bow representation") {
-                new Emails {
+                new TestEmails {
                     Given("The first 10 emails")
                     val countsByEmails = countWordsInEmails(10)
 
@@ -195,8 +198,8 @@ class ConvertSpec extends BaseSpec {
                     val dictionary = buildDictionary(countsByEmails).filter(_.tf > 5)
                     val bow = DataConverter.convertToBow(countsByEmails, dictionary.map).toVector
 
-                    Then("The words should be aiding, syria, and libya")
-                    dictionary.words should contain theSameElementsAs Vector("aiding", "syria", "libya")
+                    Then("The words should be aid, syria, and libya")
+                    dictionary.words should contain theSameElementsAs Vector("aid", "syria", "libya")
 
                     And("The first and third email should contain exactly three zero counts")
                     bow(0) should contain theSameElementsAs Vector(0, 0, 0)
@@ -214,13 +217,13 @@ class ConvertSpec extends BaseSpec {
 
     describe("Hillary Emails") {
         they("should contain only proper characters after preprocessing") {
-            new Emails {
+            new TestEmails {
                 Given("all emails")
                 When("the emails are preprocessed and are converted to words")
                 val words = super.bodies.flatMap(_.split("\\s+")).toSet
 
-                Then("there should not be any words with non-alphabet characters")
-                words.filter(_.matches(".*\\P{Alnum}+.*")) shouldBe empty
+                Then("The words should contain only alphanumeric characters or underscores")
+                words.filter(_.matches(".*[^\\p{Alnum}_]+.*")) shouldBe empty
             }
         }
     }

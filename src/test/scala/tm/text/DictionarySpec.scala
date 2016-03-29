@@ -3,12 +3,12 @@ package tm.text
 import tm.test.BaseSpec
 import java.util.regex.Pattern
 import java.text.Normalizer
-import tm.hillary.Emails
+import tm.hillary.TestEmails
 
 class DictionarySpec extends BaseSpec {
     implicit val stopwords = StopWords.read("stopwords.csv")
 
-    trait HillaryDictionary extends Emails {
+    trait HillaryDictionary extends TestEmails {
         Given("The first 500 emails")
         val countsByEmails = countWordsInEmails(500)
 
@@ -18,8 +18,8 @@ class DictionarySpec extends BaseSpec {
     }
 
     describe("Dictionary built from Hillary emails") {
-        it("should not contain any words with non-alphanumeric character") {
-            val pattern = Pattern.compile(".*\\P{Alnum}+.*")
+        it("should contain words with only alphanumeric characters or underscores") {
+            val pattern = Pattern.compile(".*[^\\p{Alnum}_]+.*")
             new HillaryDictionary {
                 dictionary.words.filter(
                     w => pattern.matcher(w).matches()) shouldBe empty

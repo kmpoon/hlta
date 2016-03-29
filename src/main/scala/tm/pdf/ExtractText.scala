@@ -1,22 +1,21 @@
 package tm.pdf
 
-import org.apache.pdfbox.pdmodel.PDDocument
-import java.io.PrintWriter
-import org.apache.pdfbox.util.PDFTextStripper
 import java.io.File
+import java.io.PrintWriter
 import java.io.StringWriter
-import tm.text.Preprocessor
-import tm.util.FileHelpers
-import tm.text.StanfordLemmatizer
-import tm.text.Sentence
-import tm.text.NGram
-import tm.text.StopWords
-import scala.util.matching.Regex.Match
 import scala.util.matching.Regex
+import scala.util.matching.Regex.Match
+import org.apache.pdfbox.pdmodel.PDDocument
+import org.apache.pdfbox.util.PDFTextStripper
+import tm.text.NGram
+import tm.text.Preprocessor
+import tm.text.Sentence
+import tm.text.StanfordLemmatizer
+import tm.text.StopWords
+import tm.util.FileHelpers
+import tm.text.DataConverter.Settings
 
 object ExtractText extends App {
-    val minChar = 3
-
     val replaceNonAlnum = ("\\P{Alnum}".r, (m: Match) => "_")
     val replaceStartingDigit = ("^(\\p{Digit})".r, (m: Match) => s"_${m.group(1)}")
 
@@ -33,6 +32,7 @@ object ExtractText extends App {
         }
 
         import StopWords.implicits.default
+        import Parameters.implicits.settings
 
         if (new File(args(0)).isDirectory()) {
             if (args.length < 2) {
@@ -55,7 +55,7 @@ object ExtractText extends App {
     }
 
     def extractDirectory(inputDir: String, outputDir: String)(
-        implicit stopwords: StopWords) = {
+        implicit stopwords: StopWords, settings: Settings) = {
         import FileHelpers.getPath
 
         val directory = new File(inputDir)
@@ -69,7 +69,8 @@ object ExtractText extends App {
 
     def getOutputFile(inputFile: String) = inputFile.replaceAll(".pdf$", ".txt")
 
-    def extractFile(inputFile: String)(implicit stopwords: StopWords): Unit =
+    def extractFile(inputFile: String)(
+        implicit stopwords: StopWords, settings: Settings): Unit =
         extractFile(inputFile, getOutputFile(inputFile))
 
     def extractText(inputFile: String)(implicit stopwords: StopWords): String = {
@@ -99,7 +100,8 @@ object ExtractText extends App {
         }
     }
 
-    def preprocess(text: String)(implicit stopwords: StopWords) = {
+    def preprocess(text: String)(
+        implicit stopwords: StopWords, settings: Settings) = {
         val document = StanfordLemmatizer.process(text)
 
         def preprocess(s: Sentence): Seq[String] = s.tokens
@@ -108,18 +110,18 @@ object ExtractText extends App {
             .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
             .map(useRegexToReplace(replaceNonAlnum))
             .map(useRegexToReplace(replaceStartingDigit))
-            .filter(withProperLength)
+            .filter(withProperLength(settings.minCharacters))
             .filterNot(stopwords.contains)
 
         document.sentences.map(preprocess)
     }
 
-    def withProperLength(word: String) = {
-        word.replaceAll("[^\\p{Alpha}\\n]+", "").length >= minChar
+    def withProperLength(minCharacters: Int)(word: String) = {
+        word.replaceAll("[^\\p{Alpha}\\n]+", "").length >= minCharacters
     }
 
     def extractFile(inputFile: String, outputFile: String)(
-        implicit stopwords: StopWords): Unit = {
+        implicit stopwords: StopWords, settings: Settings): Unit = {
         try {
             val encoding = "UTF-8"
             val output = new PrintWriter(outputFile, encoding)

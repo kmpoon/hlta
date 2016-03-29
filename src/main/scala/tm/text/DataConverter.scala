@@ -8,11 +8,15 @@ object DataConverter {
         val binary, numeric = Value
     }
 
-    case class Settings(minCharacters: Int, maxN: Int, minTf: Int, minDf: Int)
+    /**
+     * minDf is computed when the number of documents is given.
+     */
+    case class Settings(
+        minCharacters: Int, maxN: Int, minTf: Int, minDf: (Int) => Int)
 
     object implicits {
-        implicit val default =
-            Settings(minCharacters = 3, maxN = 2, minTf = 6, minDf = 6)
+        implicit val default = Settings(
+            minCharacters = 3, maxN = 2, minTf = 6, minDf = (Int) => 6)
     }
 
     type TokenCounts = Map[NGram, Int]
@@ -65,7 +69,7 @@ object DataConverter {
             val dictionary = buildDictionary(countsByDocuments).filter(w =>
                 w.token.words.forall(_.length > minCharacters)
                     && w.tf >= minTf
-                    && w.df >= minDf)
+                    && w.df >= minDf(documents.size))
 
             log("Saving dictionary")
             dictionary.save(s"${name}.dict-${n}.csv")

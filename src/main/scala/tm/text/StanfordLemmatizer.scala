@@ -39,4 +39,13 @@ object StanfordLemmatizer {
             .map(Sentence.apply)
         new Document(sentences.toSeq)
     }
+
+    def processAsSentence(s: String): Sentence = {
+        if (s.isEmpty)
+            Sentence(Seq.empty)
+        else {
+            val sentence = new edu.stanford.nlp.simple.Sentence(s)
+            Sentence(sentence.lemmas.map(NGram.apply))
+        }
+    }
 }

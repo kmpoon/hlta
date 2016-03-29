@@ -11,7 +11,7 @@ object BuildDictionary extends App {
         import StopWords.implicits._
 
         println("Extracting bodies")
-        val bodies = Convert.readEmailsFromDefaultPath.map(_._3).toList.par
+        val bodies = Emails.readEmailsFromDefaultPath.map(_.content).toList.par
 
         println("Counting words in each email")
         val countsByEmails = bodies.map(tokenizeAndCount(_, 3)).par
