@@ -4,6 +4,6 @@ import tm.text.DataConverter
 
 object Parameters {
   object implicits {
-    implicit val settings = DataConverter.implicits.default.copy(maxN = 3, minDf = (Int) => 6)
+    implicit val settings = DataConverter.Settings(maxN = 3, minDf = (Int) => 6)
   }
 }

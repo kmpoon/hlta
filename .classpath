@@ -59,9 +59,14 @@
       <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/javax.json/javax.json-api/docs/javax.json-api-1.0-javadoc.jar!/"/>
     </attributes>
   </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/srcs/slf4j-api-1.7.12-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/jars/slf4j-api-1.7.12.jar">
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-simple/srcs/slf4j-simple-1.7.21-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-simple/jars/slf4j-simple-1.7.21.jar">
     <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/docs/slf4j-api-1.7.12-javadoc.jar!/"/>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-simple/docs/slf4j-simple-1.7.21-javadoc.jar!/"/>
+    </attributes>
+  </classpathentry>
+  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/srcs/slf4j-api-1.7.21-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/jars/slf4j-api-1.7.21.jar">
+    <attributes>
+      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/docs/slf4j-api-1.7.21-javadoc.jar!/"/>
     </attributes>
   </classpathentry>
   <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/com.google.protobuf/protobuf-java/srcs/protobuf-java-2.6.1-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/com.google.protobuf/protobuf-java/bundles/protobuf-java-2.6.1.jar">

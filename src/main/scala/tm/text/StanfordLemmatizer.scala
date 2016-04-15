@@ -10,6 +10,7 @@ import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation
 import tm.pdf.ExtractText
 import scala.language.implicitConversions
 import scala.util.matching.Regex
+import java.nio.file.Paths
 
 /**
  * Used to split sentences, tag POS, and lemmatize.
@@ -28,7 +29,7 @@ object StanfordLemmatizer {
 
   def run(filename: String) = {
     import StopWords.implicits.default
-    val d = process(ExtractText.extractText(filename))
+    val d = process(ExtractText.extractText(Paths.get(filename)))
     println(d.sentences.map(_.tokens.mkString(", ")).mkString("\n"))
   }
 

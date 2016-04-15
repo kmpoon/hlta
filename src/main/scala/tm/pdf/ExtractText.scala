@@ -14,6 +14,9 @@ import tm.text.StanfordLemmatizer
 import tm.text.StopWords
 import tm.util.FileHelpers
 import tm.text.DataConverter.Settings
+import java.nio.file.Path
+import java.nio.file.Paths
+import java.nio.file.Files
 
 object ExtractText extends App {
   val replaceNonAlnum = ("\\P{Alnum}".r, (m: Match) => "_")
@@ -34,17 +37,19 @@ object ExtractText extends App {
     import StopWords.implicits.default
     import Parameters.implicits.settings
 
-    if (new File(args(0)).isDirectory()) {
+    val source = Paths.get(args(0))
+    if (Files.isDirectory(source)) {
       if (args.length < 2) {
         printUsage
         return
       }
 
-      new File(args(1)).mkdirs()
+      val dest = Paths.get(args(1))
+      Files.createDirectories(dest)
 
-      extractDirectory(args(0), args(1))
+      extractDirectory(source, dest)
     } else {
-      extractFile(args(0))
+      extractFile(source)
     }
 
   }
@@ -54,38 +59,52 @@ object ExtractText extends App {
     println("ExtractText input_dir output_dir")
   }
 
-  def extractDirectory(inputDir: String, outputDir: String)(
+  def extractDirectory(inputDir: Path, outputDir: Path)(
     implicit stopwords: StopWords, settings: Settings) = {
     import FileHelpers.getPath
 
-    val directory = new File(inputDir)
-    val files = directory.list().filter(_.endsWith(".pdf"))
+    val files = FileHelpers.findFiles(inputDir, "pdf").par
+
+    // create directories
+    files.map(_.getParent).distinct.filterNot(_ == null).foreach { d =>
+      Files.createDirectories(outputDir.resolve(d))
+    }
+
     files.par.foreach { f =>
-      val inputFile = getPath(inputDir, f)
-      val outputFile = getPath(outputDir, getOutputFile(f))
+      val inputFile = inputDir.resolve(f)
+      val outputFile = outputDir.resolve(getOutputFile(f))
       extractFile(inputFile, outputFile)
     }
+
+    //    val directory = new File(inputDir)
+    //    val files = directory.list().filter(_.endsWith(".pdf"))
+    //    files.par.foreach { f =>
+    //      val inputFile = getPath(inputDir, f)
+    //      val outputFile = getPath(outputDir, getOutputFile(f))
+    //      extractFile(inputFile, outputFile)
+    //    }
   }
 
-  def getOutputFile(inputFile: String) = inputFile.replaceAll(".pdf$", ".txt")
+  def getOutputFile(inputFile: Path) =
+    Paths.get(inputFile.toString.replaceAll(".pdf$", ".txt"))
 
-  def extractFile(inputFile: String)(
+  def extractFile(inputFile: Path)(
     implicit stopwords: StopWords, settings: Settings): Unit =
     extractFile(inputFile, getOutputFile(inputFile))
 
-  def extractText(inputFile: String)(implicit stopwords: StopWords): String = {
+  def extractText(inputFile: Path)(implicit stopwords: StopWords): String = {
     val force = false;
     val sort = false;
     val separateBeads = true;
-    val encoding = "UTF-8"
+    //     val encoding = "UTF-8"
     val startPage = 1;
     val endPage = Integer.MAX_VALUE;
 
-    val document = PDDocument.load(inputFile, false)
+    val document = PDDocument.load(inputFile.toFile)
     val writer = new StringWriter()
 
     try {
-      val stripper = new PDFTextStripper(encoding);
+      val stripper = new PDFTextStripper();
       stripper.setForceParsing(force);
       stripper.setSortByPosition(sort);
       stripper.setShouldSeparateByBeads(separateBeads);
@@ -120,11 +139,11 @@ object ExtractText extends App {
     word.replaceAll("[^\\p{Alpha}\\n]+", "").length >= minCharacters
   }
 
-  def extractFile(inputFile: String, outputFile: String)(
+  def extractFile(inputFile: Path, outputFile: Path)(
     implicit stopwords: StopWords, settings: Settings): Unit = {
     try {
       val encoding = "UTF-8"
-      val output = new PrintWriter(outputFile, encoding)
+      val output = new PrintWriter(outputFile.toFile, encoding)
 
       val sentences = preprocess(extractText(inputFile)).filter(_.size > 0)
       output.write(sentences.map(_.mkString(" ")).mkString("\n"))

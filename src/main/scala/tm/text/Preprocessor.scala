@@ -64,9 +64,10 @@ object Preprocessor {
   def withProperLength(min: Int)(word: String) =
     word.replaceAll("[^\\p{Alpha}\\n]+", "").length >= min
 
-  // to remove accents
+  // Perform compatibility decomposition, followed by canonical composition, 
+  // to convert ligature (fi) and remove accents
   def normalize(text: String) =
-    Normalizer.normalize(text, Normalizer.Form.NFD)
+    Normalizer.normalize(text, Normalizer.Form.NFKC)
       .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
 
   //    def filter(counts: WordCounts): WordCounts = {

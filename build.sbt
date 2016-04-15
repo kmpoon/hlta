@@ -14,7 +14,9 @@ libraryDependencies ++=
     "commons-io" % "commons-io" % "2.4" ::
     "edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" ::
     ("edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" classifier "models") ::
+    "org.slf4j" % "slf4j-simple" % "1.7.21" ::
     "com.google.protobuf" % "protobuf-java" % "2.6.1"  ::
+//    "org.jsoup" % "jsoup" % "1.8.3" ::
 //    "org.apache.opennlp" % "opennlp-tools" % "1.6.0" ::
 //    "org.apache.opennlp" % "opennlp-maxent" % "3.0.3" ::
 //    "org.apache.lucene" % "lucene-core" % "5.5.0" ::

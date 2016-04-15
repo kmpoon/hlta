@@ -14,6 +14,7 @@ import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.FileInputStream
 import tm.text.Document
+import java.nio.file.Paths
 
 object Convert {
   def main(args: Array[String]) {
@@ -22,7 +23,7 @@ object Convert {
     else {
       import Parameters.implicits.settings
 
-      tm.text.Convert.convert(args(0), args(1))
+      tm.text.Convert.convert(args(0), Paths.get(args(1)))
     }
   }
 

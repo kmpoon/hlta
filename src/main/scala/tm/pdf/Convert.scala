@@ -5,21 +5,26 @@ import scala.io.Source
 import tm.text.StopWords.implicits
 import tm.util.FileHelpers
 import tm.text.DataConverter
+import java.nio.file.Paths
+import tm.text.WordSelector
 
 object Convert {
   def main(args: Array[String]) {
-    if (args.length < 2)
+    if (args.length < 3)
       printUsage()
     else {
-      import Parameters.implicits.settings
+      val maxWords = args(1).toInt
+      implicit val settings =
+        DataConverter.Settings(maxN = 3, minCharacters = 3,
+          selectWords = WordSelector.byTfIdf(3, 0, .25, maxWords))
 
-      tm.text.Convert.convert(args(0), args(1))
+      tm.text.Convert.convert(args(0), Paths.get(args(2)))
     }
 
   }
 
   def printUsage() = {
-    println("tm.pdf.Convert name source_directory")
+    println("tm.pdf.Convert name max_number_of_words source_directory")
   }
 
 }

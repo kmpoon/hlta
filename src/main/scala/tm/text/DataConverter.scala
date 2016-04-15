@@ -11,12 +11,23 @@ object DataConverter {
   /**
    * minDf is computed when the number of documents is given.
    */
-  case class Settings(
-    minCharacters: Int, maxN: Int, minTf: Int, minDf: (Int) => Int)
+  class Settings(val maxN: Int, val minCharacters: Int,
+    val selectWords: WordSelector.Type)
+
+  object Settings {
+    def apply(maxN: Int = 2, minCharacters: Int = 3, minTf: Int = 6,
+      minDf: (Int) => Int = (Int) => 6): Settings =
+      new Settings(maxN, minCharacters,
+        WordSelector.basic(minCharacters, minTf, minDf))
+
+    def apply(maxN: Int, minCharacters: Int,
+      selectWords: WordSelector.Type): Settings =
+      new Settings(maxN, minCharacters, selectWords)
+  }
 
   object implicits {
     implicit val default = Settings(
-      minCharacters = 3, maxN = 2, minTf = 6, minDf = (Int) => 6)
+      maxN = 2, minCharacters = 3, minTf = 6, minDf = (Int) => 6)
   }
 
   type TokenCounts = Map[NGram, Int]
@@ -65,14 +76,21 @@ object DataConverter {
         documents.map(_.sentences.flatMap(appendNextNGram))
           .map(countTokens)
 
-      log("Building Dictionary")
-      val dictionary = buildDictionary(countsByDocuments).filter(w =>
-        w.token.words.forall(_.length > minCharacters)
-          && w.tf >= minTf
-          && w.df >= minDf(documents.size))
+      val dictionary = {
+        log("Building Dictionary")
+        val whole = buildDictionary(countsByDocuments)
 
-      log("Saving dictionary")
-      dictionary.save(s"${name}.dict-${n}.csv")
+        log("Saving dictionary before selection")
+        whole.save(s"${name}.whole_dict-${n}.csv")
+
+        log("Selecting words in dictionary")
+        val selected = settings.selectWords(whole, documents.size)
+
+        log("Saving dictionary after selection")
+        selected.save(s"${name}.dict-${n}.csv")
+
+        selected
+      }
 
       log(s"Replacing constituent tokens by ${n}-grams")
       val documentsWithLargerNGrams =
