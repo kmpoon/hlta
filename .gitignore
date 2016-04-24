@@ -8,3 +8,4 @@ project/project/target
 converted
 *~
 .worksheet
+/.classpath

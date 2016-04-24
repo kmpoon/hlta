@@ -1,120 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-  <classpathentry kind="src" path="src/main/scala"/>
-  <classpathentry kind="src" path="src/main/java"/>
-  <classpathentry kind="src" path="src/main/resources"/>
-  <classpathentry kind="src" path="src/test/scala"/>
-  <classpathentry kind="src" path="src/test/java"/>
-  <classpathentry kind="src" path="src/test/resources"/>
-  <classpathentry kind="lib" path="./lib/colt.jar"/>
-  <classpathentry kind="lib" path="./lib/DataConverter.jar"/>
-  <classpathentry kind="lib" path="./FastHLTA/bin"/>
-  <classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.scalaz/scalaz-core_2.11/srcs/scalaz-core_2.11-7.2.1-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.scalaz/scalaz-core_2.11/bundles/scalaz-core_2.11-7.2.1.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.scalaz/scalaz-core_2.11/docs/scalaz-core_2.11-7.2.1-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.commons/commons-csv/srcs/commons-csv-1.2-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.commons/commons-csv/jars/commons-csv-1.2.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.commons/commons-csv/docs/commons-csv-1.2-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/commons-io/commons-io/srcs/commons-io-2.4-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/commons-io/commons-io/jars/commons-io-2.4.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/commons-io/commons-io/docs/commons-io-2.4-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/edu.stanford.nlp/stanford-corenlp/jars/stanford-corenlp-3.6.0-models.jar"/>
-  <classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/edu.stanford.nlp/stanford-corenlp/jars/stanford-corenlp-3.6.0.jar"/>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/com.io7m.xom/xom/srcs/xom-1.2.10-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/com.io7m.xom/xom/jars/xom-1.2.10.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/com.io7m.xom/xom/docs/xom-1.2.10-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/xml-apis/xml-apis/jars/xml-apis-1.3.03.jar"/>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/xerces/xercesImpl/srcs/xercesImpl-2.8.0-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/xerces/xercesImpl/jars/xercesImpl-2.8.0.jar"/>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/xalan/xalan/srcs/xalan-2.7.0-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/xalan/xalan/jars/xalan-2.7.0.jar"/>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/joda-time/joda-time/srcs/joda-time-2.9-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/joda-time/joda-time/jars/joda-time-2.9.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/joda-time/joda-time/docs/joda-time-2.9-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/de.jollyday/jollyday/srcs/jollyday-0.4.7-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/de.jollyday/jollyday/jars/jollyday-0.4.7.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/de.jollyday/jollyday/docs/jollyday-0.4.7-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/javax.xml.bind/jaxb-api/srcs/jaxb-api-2.2.7-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/javax.xml.bind/jaxb-api/jars/jaxb-api-2.2.7.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/javax.xml.bind/jaxb-api/docs/jaxb-api-2.2.7-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/com.googlecode.efficient-java-matrix-library/ejml/srcs/ejml-0.23-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/com.googlecode.efficient-java-matrix-library/ejml/jars/ejml-0.23.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/com.googlecode.efficient-java-matrix-library/ejml/docs/ejml-0.23-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/javax.json/javax.json-api/srcs/javax.json-api-1.0-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/javax.json/javax.json-api/bundles/javax.json-api-1.0.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/javax.json/javax.json-api/docs/javax.json-api-1.0-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-simple/srcs/slf4j-simple-1.7.21-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-simple/jars/slf4j-simple-1.7.21.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-simple/docs/slf4j-simple-1.7.21-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/srcs/slf4j-api-1.7.21-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/jars/slf4j-api-1.7.21.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/docs/slf4j-api-1.7.21-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/com.google.protobuf/protobuf-java/srcs/protobuf-java-2.6.1-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/com.google.protobuf/protobuf-java/bundles/protobuf-java-2.6.1.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/com.google.protobuf/protobuf-java/docs/protobuf-java-2.6.1-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/pdfbox/srcs/pdfbox-1.8.10-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/pdfbox/bundles/pdfbox-1.8.10.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/pdfbox/docs/pdfbox-1.8.10-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/fontbox/srcs/fontbox-1.8.10-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/fontbox/bundles/fontbox-1.8.10.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/fontbox/docs/fontbox-1.8.10-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/commons-logging/commons-logging/srcs/commons-logging-1.1.1-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/commons-logging/commons-logging/jars/commons-logging-1.1.1.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/commons-logging/commons-logging/docs/commons-logging-1.1.1-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/jempbox/srcs/jempbox-1.8.10-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/jempbox/bundles/jempbox-1.8.10.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/jempbox/docs/jempbox-1.8.10-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/nz.ac.waikato.cms.weka/weka-stable/srcs/weka-stable-3.6.13-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/nz.ac.waikato.cms.weka/weka-stable/jars/weka-stable-3.6.13.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/nz.ac.waikato.cms.weka/weka-stable/docs/weka-stable-3.6.13-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/net.sf.squirrel-sql.thirdparty-non-maven/java-cup/srcs/java-cup-0.11a-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/net.sf.squirrel-sql.thirdparty-non-maven/java-cup/jars/java-cup-0.11a.jar"/>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.scalatest/scalatest_2.11/srcs/scalatest_2.11-2.2.6-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.scalatest/scalatest_2.11/bundles/scalatest_2.11-2.2.6.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.scalatest/scalatest_2.11/docs/scalatest_2.11-2.2.6-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/srcs/scala-xml_2.11-1.0.2-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/bundles/scala-xml_2.11-1.0.2.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/docs/scala-xml_2.11-1.0.2-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry sourcepath="/Users/kmpoon/.ivy2/cache/org.scalactic/scalactic_2.11/srcs/scalactic_2.11-2.2.6-sources.jar" kind="lib" path="/Users/kmpoon/.ivy2/cache/org.scalactic/scalactic_2.11/bundles/scalactic_2.11-2.2.6.jar">
-    <attributes>
-      <attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.scalactic/scalactic_2.11/docs/scalactic_2.11-2.2.6-javadoc.jar!/"/>
-    </attributes>
-  </classpathentry>
-  <classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
-  <classpathentry kind="output" path="bin"/>
+	<classpathentry kind="src" path="src/main/scala"/>
+	<classpathentry kind="src" path="src/main/java"/>
+	<classpathentry kind="src" path="src/main/resources"/>
+	<classpathentry kind="src" path="src/test/scala"/>
+	<classpathentry kind="src" path="src/test/java"/>
+	<classpathentry kind="src" path="src/test/resources"/>
+	<classpathentry kind="lib" path="lib/colt.jar"/>
+	<classpathentry kind="lib" path="lib/DataConverter.jar"/>
+	<classpathentry kind="lib" path="FastHLTA/bin" sourcepath="/FastHLTA/src"/>
+	<classpathentry kind="con" path="org.scala-ide.sdt.launching.SCALA_CONTAINER"/>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/org.scalaz/scalaz-core_2.11/bundles/scalaz-core_2.11-7.2.1.jar" sourcepath="/Users/kmpoon/.ivy2/cache/org.scalaz/scalaz-core_2.11/srcs/scalaz-core_2.11-7.2.1-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.scalaz/scalaz-core_2.11/docs/scalaz-core_2.11-7.2.1-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.commons/commons-csv/jars/commons-csv-1.2.jar" sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.commons/commons-csv/srcs/commons-csv-1.2-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.commons/commons-csv/docs/commons-csv-1.2-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/commons-io/commons-io/jars/commons-io-2.4.jar" sourcepath="/Users/kmpoon/.ivy2/cache/commons-io/commons-io/srcs/commons-io-2.4-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/commons-io/commons-io/docs/commons-io-2.4-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/edu.stanford.nlp/stanford-corenlp/jars/stanford-corenlp-3.6.0-models.jar"/>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/edu.stanford.nlp/stanford-corenlp/jars/stanford-corenlp-3.6.0.jar"/>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/com.io7m.xom/xom/jars/xom-1.2.10.jar" sourcepath="/Users/kmpoon/.ivy2/cache/com.io7m.xom/xom/srcs/xom-1.2.10-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/com.io7m.xom/xom/docs/xom-1.2.10-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/xml-apis/xml-apis/jars/xml-apis-1.3.03.jar"/>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/xerces/xercesImpl/jars/xercesImpl-2.8.0.jar" sourcepath="/Users/kmpoon/.ivy2/cache/xerces/xercesImpl/srcs/xercesImpl-2.8.0-sources.jar"/>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/xalan/xalan/jars/xalan-2.7.0.jar" sourcepath="/Users/kmpoon/.ivy2/cache/xalan/xalan/srcs/xalan-2.7.0-sources.jar"/>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/joda-time/joda-time/jars/joda-time-2.9.jar" sourcepath="/Users/kmpoon/.ivy2/cache/joda-time/joda-time/srcs/joda-time-2.9-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/joda-time/joda-time/docs/joda-time-2.9-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/de.jollyday/jollyday/jars/jollyday-0.4.7.jar" sourcepath="/Users/kmpoon/.ivy2/cache/de.jollyday/jollyday/srcs/jollyday-0.4.7-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/de.jollyday/jollyday/docs/jollyday-0.4.7-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/javax.xml.bind/jaxb-api/jars/jaxb-api-2.2.7.jar" sourcepath="/Users/kmpoon/.ivy2/cache/javax.xml.bind/jaxb-api/srcs/jaxb-api-2.2.7-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/javax.xml.bind/jaxb-api/docs/jaxb-api-2.2.7-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/com.googlecode.efficient-java-matrix-library/ejml/jars/ejml-0.23.jar" sourcepath="/Users/kmpoon/.ivy2/cache/com.googlecode.efficient-java-matrix-library/ejml/srcs/ejml-0.23-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/com.googlecode.efficient-java-matrix-library/ejml/docs/ejml-0.23-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/javax.json/javax.json-api/bundles/javax.json-api-1.0.jar" sourcepath="/Users/kmpoon/.ivy2/cache/javax.json/javax.json-api/srcs/javax.json-api-1.0-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/javax.json/javax.json-api/docs/javax.json-api-1.0-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-simple/jars/slf4j-simple-1.7.21.jar" sourcepath="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-simple/srcs/slf4j-simple-1.7.21-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-simple/docs/slf4j-simple-1.7.21-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/jars/slf4j-api-1.7.21.jar" sourcepath="/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/srcs/slf4j-api-1.7.21-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.slf4j/slf4j-api/docs/slf4j-api-1.7.21-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/com.google.protobuf/protobuf-java/bundles/protobuf-java-2.6.1.jar" sourcepath="/Users/kmpoon/.ivy2/cache/com.google.protobuf/protobuf-java/srcs/protobuf-java-2.6.1-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/com.google.protobuf/protobuf-java/docs/protobuf-java-2.6.1-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/pdfbox/bundles/pdfbox-1.8.10.jar" sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/pdfbox/srcs/pdfbox-1.8.10-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/pdfbox/docs/pdfbox-1.8.10-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/fontbox/bundles/fontbox-1.8.10.jar" sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/fontbox/srcs/fontbox-1.8.10-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/fontbox/docs/fontbox-1.8.10-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/commons-logging/commons-logging/jars/commons-logging-1.1.1.jar" sourcepath="/Users/kmpoon/.ivy2/cache/commons-logging/commons-logging/srcs/commons-logging-1.1.1-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/commons-logging/commons-logging/docs/commons-logging-1.1.1-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/jempbox/bundles/jempbox-1.8.10.jar" sourcepath="/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/jempbox/srcs/jempbox-1.8.10-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.apache.pdfbox/jempbox/docs/jempbox-1.8.10-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/nz.ac.waikato.cms.weka/weka-stable/jars/weka-stable-3.6.13.jar" sourcepath="/Users/kmpoon/.ivy2/cache/nz.ac.waikato.cms.weka/weka-stable/srcs/weka-stable-3.6.13-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/nz.ac.waikato.cms.weka/weka-stable/docs/weka-stable-3.6.13-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/net.sf.squirrel-sql.thirdparty-non-maven/java-cup/jars/java-cup-0.11a.jar" sourcepath="/Users/kmpoon/.ivy2/cache/net.sf.squirrel-sql.thirdparty-non-maven/java-cup/srcs/java-cup-0.11a-sources.jar"/>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/org.scalatest/scalatest_2.11/bundles/scalatest_2.11-2.2.6.jar" sourcepath="/Users/kmpoon/.ivy2/cache/org.scalatest/scalatest_2.11/srcs/scalatest_2.11-2.2.6-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.scalatest/scalatest_2.11/docs/scalatest_2.11-2.2.6-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/bundles/scala-xml_2.11-1.0.2.jar" sourcepath="/Users/kmpoon/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/srcs/scala-xml_2.11-1.0.2-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.scala-lang.modules/scala-xml_2.11/docs/scala-xml_2.11-1.0.2-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="lib" path="/Users/kmpoon/.ivy2/cache/org.scalactic/scalactic_2.11/bundles/scalactic_2.11-2.2.6.jar" sourcepath="/Users/kmpoon/.ivy2/cache/org.scalactic/scalactic_2.11/srcs/scalactic_2.11-2.2.6-sources.jar">
+		<attributes>
+			<attribute name="javadoc_location" value="jar:file:/Users/kmpoon/.ivy2/cache/org.scalactic/scalactic_2.11/docs/scalactic_2.11-2.2.6-javadoc.jar!/"/>
+		</attributes>
+	</classpathentry>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
+	<classpathentry kind="output" path="bin"/>
 </classpath>
