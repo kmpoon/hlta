@@ -1,0 +1,1 @@
+../resources/jquery/jquery-2.2.3.min.js

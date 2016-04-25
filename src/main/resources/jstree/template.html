@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Topic Tree</title>
+  <!-- 2 load the theme CSS file -->
+  <link rel="stylesheet" href="lib/style.min.css" />
+</head>
+<body>
+  <!-- 3 setup a container element -->
+  <div id="jstree">
+    <ul>
+<!-- template-placeholder -->
+    </ul>
+  </div>
+
+  <!-- 4 include the jQuery library -->
+  <script src="lib/jquery.min.js"></script>
+  <!-- 5 include the minified jstree source -->
+  <script src="lib/jstree.min.js"></script>
+  <script>
+  $(function () {
+    // 6 create an instance when the DOM is ready
+    $('#jstree').jstree();
+    // 7 bind to events triggered on the tree
+    $('#jstree').on("changed.jstree", function (e, data) {
+      console.log(data.selected);
+    });
+  });
+  </script>
+</body>
+</html>
