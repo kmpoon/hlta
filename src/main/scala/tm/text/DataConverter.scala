@@ -39,13 +39,17 @@ object DataConverter {
     val (countsByDocuments, dictionary) =
       countTokensWithNGrams(name, documents, log)
 
-    log("Converting to bow")
-    val bow = convertToBow(countsByDocuments, dictionary.map)
+    //    log("Converting to bow")
+    //    val bow = convertToBow(countsByDocuments, dictionary.map)
 
-    log("Saving in ARFF format")
-    saveAsArff(name, s"${name}.arff",
-      AttributeType.numeric, dictionary.words, bow.seq)
-    saveAsBinaryHlcm(name, s"${name}.txt", dictionary.words, bow.seq)
+    val bowConverter = toBow(dictionary.map)(_)
+
+    log("Saving in ARFF format (count data)")
+    saveAsArff(name, s"${name}.arff", AttributeType.numeric,
+      dictionary.words, countsByDocuments.seq, bowConverter)
+    log("Saving in HLCM format (binary data)")
+    saveAsBinaryHlcm(name, s"${name}.txt",
+      dictionary.words, countsByDocuments.seq, bowConverter)
 
     log("done")
   }
@@ -119,21 +123,25 @@ object DataConverter {
    * Converts data to bag-of-words representation, based on the given word
    * counts and dictionary.
    */
-  def convertToBow(countsByDocuments: GenSeq[TokenCounts], indices: Map[NGram, Int]) = {
-    def convert(counts: TokenCounts) = {
-      val values = Array.fill(indices.size)(0)
-      counts.foreach { wc =>
-        indices.get(wc._1).foreach { i => values(i) = wc._2 }
-      }
-      values
+  def toBow(indices: Map[NGram, Int])(counts: TokenCounts): Array[Int] = {
+    val values = Array.fill(indices.size)(0)
+    counts.foreach { wc =>
+      indices.get(wc._1).foreach { i => values(i) = wc._2 }
     }
+    values
+  }
 
-    countsByDocuments.map(convert)
+  /**
+   * Converts data to bag-of-words representation, based on the given word
+   * counts and dictionary.
+   */
+  def convertToBow(countsByDocuments: GenSeq[TokenCounts], indices: Map[NGram, Int]) = {
+    countsByDocuments.map(toBow(indices))
   }
 
   def saveAsArff(name: String, filename: String,
     attributeType: AttributeType.Value, words: Seq[String],
-    bow: Seq[Array[Int]]) = {
+    countsByDocuments: Seq[TokenCounts], toBow: (TokenCounts) => Array[Int]) = {
 
     val at = attributeType match {
       case AttributeType.binary => "{0, 1}"
@@ -148,13 +156,13 @@ object DataConverter {
 
     writer.println("\n@DATA")
 
-    bow.foreach { values => writer.println(values.mkString(",")) }
+    countsByDocuments.foreach { vs => writer.println(toBow(vs).mkString(",")) }
 
     writer.close
   }
 
-  def saveAsBinaryHlcm(name: String, filename: String,
-    words: Seq[String], bow: Seq[Array[Int]]) = {
+  def saveAsBinaryHlcm(name: String, filename: String, words: Seq[String],
+    countsByDocuments: Seq[TokenCounts], toBow: (TokenCounts) => Array[Int]) = {
     def binarize(v: Int) = if (v > 0) 1 else 0
 
     val writer = new PrintWriter(filename)
@@ -166,11 +174,10 @@ object DataConverter {
     words.foreach { w => writer.println(s"${w}: s0 s1") }
     writer.println
 
-    bow.foreach { values =>
-      writer.println(values.map(binarize).mkString(" ") + " 1.0")
+    countsByDocuments.foreach { vs =>
+      writer.println(toBow(vs).map(binarize).mkString(" ") + " 1.0")
     }
 
     writer.close
   }
-
 }
