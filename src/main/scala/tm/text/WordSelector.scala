@@ -26,7 +26,8 @@ object WordSelector {
               && w.df >= minDfFraction * df)
             .sortBy(w => (-w.tfidf, w.token.identifier))
         val selected = if (filteredAndSortedWords.size > maxWords) {
-          val minTfIdf = filteredAndSortedWords(maxWords + 1).tfidf
+          // using the tfidf of the (maxWords+1)-th word as minimum 
+          val minTfIdf = filteredAndSortedWords(maxWords).tfidf
           filteredAndSortedWords.takeWhile(_.tfidf > minTfIdf)
         } else
           filteredAndSortedWords
