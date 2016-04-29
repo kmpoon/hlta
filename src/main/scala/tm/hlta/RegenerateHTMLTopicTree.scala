@@ -11,32 +11,38 @@ import tm.util.Tree
 import java.nio.file.Paths
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
+import java.nio.file.Path
 
-object ReorderTopics {
+object RegenerateHTMLTopicTree {
   case class Topic(name: String, level: Int, indent: Int,
     percentage: Double, mi: Double, words: Seq[String])
 
   val lineRegex = """<p level ="([^"]*)" name ="([^"]*)" parent = "([^"]*)" percentage ="([^"]*)" (?:MI = "([^"]*)" )?style="text-indent:(.+?)em;"> ([.0-9]+) (.*?)</p>""".r
 
   def main(args: Array[String]) {
-    if (args.length < 1) {
+    if (args.length < 4) {
       printUsage()
     } else {
-      val topLevelDataName = "top"
+      val modelFile = args(0)
+      val dataFile = args(1)
+      val topicsFile = args(2)
+      val outputName = args(3)
+      val topLevelDataName = s"${outputName}-top"
+      val islandsFile = s"${outputName}-islands.txt"
       val outputHtmlFileName = "tree.html"
-      // computeTopLevelTopic(args(0), args(1), topLevelDataName)
-      // findTopLevelSiblings(topLevelDataName + ".txt", "islands.txt")
-      val order = readIslands("islands.txt")
+      computeTopLevelTopic(modelFile, dataFile, topLevelDataName)
+      findAndSaveTopLevelSiblings(topLevelDataName + ".txt", islandsFile)
+      val order = readIslands(islandsFile)
       copyAssetFiles(outputHtmlFileName)
-      generateTopicTree(args(0), "tree.html", order)
+      generateTopicTree(topicsFile, outputName, order)
     }
   }
 
   def printUsage() = {
     //    println("ReorderTopics model_file data_file")
-    println("ReorderTopics topics_file")
+    println("ReorderTopics model_file data_file topics_file output_name")
     println
-    println("topics_file: e.g. TopicsTable.html")
+    println("e.g. ReorderTopics model.bif data.txt TopicsTable.html output")
   }
 
   def readModelAndData(modelFile: String, dataFile: String) = {
@@ -47,35 +53,50 @@ object ReorderTopics {
     (model, data)
   }
 
-  def findTopLevelSiblings(dataFile: String, outputFile: String) = {
-    val data = new DataSet(dataFile)
-    val finder = new IslandFinder
-    val ltms = finder.find(data)
-    val leaves = ltms.map(_.getLeafVars)
-    val output = leaves.map(_.map(_.getName).mkString(",")).mkString("\n")
+  def findAndSaveTopLevelSiblings(dataFile: String, outputFile: String) = {
+    if (fileExists(outputFile)) {
+      println(s"Islands file (${outputFile}) exists. " +
+        "Skipped finding top-level silbing clusters.")
+    } else {
+      val data = new DataSet(dataFile)
+      val finder = new IslandFinder
+      val ltms = finder.find(data)
+      val leaves = ltms.map(_.getLeafVars)
+      val output = leaves.map(_.map(_.getName).mkString(",")).mkString("\n")
 
-    println(output)
+      println(output)
 
-    val writer = new PrintWriter(outputFile)
-    writer.println(output)
-    writer.close
+      val writer = new PrintWriter(outputFile)
+      writer.println(output)
+      writer.close
+    }
   }
 
+  def fileExists(s: String) = Files.exists(Paths.get(s))
+
   def computeTopLevelTopic(modelFile: String, dataFile: String, outputName: String) = {
-    val (model, data) = readModelAndData(modelFile, dataFile)
+    val hlcmDataFile = outputName + ".txt"
+    val arffDataFile = outputName + ".arff"
 
-    println(data.getVariables.length)
-    println(data.getData.size())
+    if (fileExists(hlcmDataFile) && fileExists(arffDataFile)) {
+      println(s"Both data files (${hlcmDataFile} and ${arffDataFile}) exist. " +
+        "Skipped computing top level topic assignments.")
+    } else {
+      val (model, data) = readModelAndData(modelFile, dataFile)
 
-    val levels = HLTA.readLatentVariableLevels(model).toList.groupBy(_._2)
-    val top = levels(levels.keys.max).map(_._1)
+      println(data.getVariables.length)
+      println(data.getData.size())
 
-    //    val topLevelData = PEMTools.HardAssignment(data, model, top.toArray)
-    val topLevelData = HLTA.hardAssignment(data, model, top.toArray)
-    topLevelData.save(outputName + ".txt")
-    topLevelData.saveAsArff(outputName + ".arff", false)
+      val levels = HLTA.readLatentVariableLevels(model).toList.groupBy(_._2)
+      val top = levels(levels.keys.max).map(_._1)
 
-    println(top.map(_.getName).mkString(", "))
+      //    val topLevelData = PEMTools.HardAssignment(data, model, top.toArray)
+      val topLevelData = HLTA.hardAssignment(data, model, top.toArray)
+      topLevelData.save(outputName + ".txt")
+      topLevelData.saveAsArff(outputName + ".arff", false)
+
+      println(top.map(_.getName).mkString(", "))
+    }
   }
 
   def readTopics(topicsFile: String) = {
@@ -109,7 +130,7 @@ object ReorderTopics {
   }
 
   def generateTopicTree(topicsFile: String,
-    outputFile: String, topLevelOrder: Map[String, Int]) = {
+    outputName: String, topLevelOrder: Map[String, Int]) = {
     val topics = readTopics(topicsFile)
     val ltmTrees = buildLTMTrees(topics)
     val topLevelTrees =
@@ -117,22 +138,30 @@ object ReorderTopics {
     val parents = topLevelTrees.map(t =>
       topLevelTrees.find(_.getChild(t.value).isDefined)
         .map(_.value.name).getOrElse("none"))
-    val content = topLevelTrees.zip(parents).foldLeft("") {
-      (s, p) => s + treeToHtml(p._1, p._2, 4)
-    }
+    //    val content = topLevelTrees.zip(parents).foldLeft("") {
+    //      (s, p) => s + treeToHtml(p._1, p._2, 4)
+    //    }
 
-    writeHtmlOutput(content, outputFile)
+    writeJsonOutput(topLevelTrees, outputName + ".js")
+    writeHtmlOutput(outputName + ".js", outputName + ".html")
   }
 
-  def writeHtmlOutput(content: String, outputFile: String) = {
+  def writeHtmlOutput(treeFile: String, outputFile: String) = {
     val template = Source.fromInputStream(
       this.getClass.getResourceAsStream("/jstree/template.html"))
       .getLines.mkString("\n")
 
     val writer = new PrintWriter(outputFile)
-    writer.println(template.replace("<!-- template-placeholder -->", content))
+    writer.print(template.replace("\"tree.js\"", treeFile))
     writer.close
+  }
 
+  def writeJsonOutput(trees: Seq[Tree[Topic]], outputFile: String) = {
+    val writer = new PrintWriter(outputFile)
+    writer.print("var nodes = [")
+    writer.println(trees.map(treeToJson(_, "none", 0)).mkString(", "))
+    writer.println("];")
+    writer.close
   }
 
   def buildLTMTrees(topics: List[(Topic, String)]): List[Tree[Topic]] = {
@@ -177,15 +206,20 @@ object ReorderTopics {
     if (!Files.exists(assetDir))
       Files.createDirectories(assetDir)
 
-    def copy(source: String, target: String) = {
+    def copy(dir: Path)(source: String, target: String) = {
       val input = this.getClass.getResourceAsStream(source)
-      Files.copy(input, assetDir.resolve(target), StandardCopyOption.REPLACE_EXISTING)
+      println(s"Copying from ${input} to ${dir.resolve(target)}")
+      Files.copy(input, dir.resolve(target), StandardCopyOption.REPLACE_EXISTING)
     }
-    copy("/jquery/jquery-2.2.3.min.js", "jquery.min.js")
-    copy("/jstree/jstree.min.js", "jstree.min.js")
-    copy("/jstree/themes/default/style.min.css", "style.min.css")
-    copy("/jstree/themes/default/32px.png", "32px.png")
-    copy("/jstree/themes/default/40px.png", "40px.png")
+
+    Seq(("/jquery/jquery-2.2.3.min.js", "jquery.min.js"),
+      ("/jstree/jstree.min.js", "jstree.min.js"),
+      ("/jstree/custom.js", "custom.js"),
+      ("/jstree/themes/default/style.min.css", "style.min.css"),
+      ("/jstree/themes/default/32px.png", "32px.png"),
+      ("/jstree/themes/default/40px.png", "40px.png"),
+      ("/jstree/themes/default/throbber.gif", "throbber.gif"))
+      .foreach(p => copy(assetDir)(p._1, p._2))
   }
 
   def treeToHtml(tree: Tree[Topic], parent: String, indent: Int): String = {
@@ -209,4 +243,22 @@ object ReorderTopics {
         " " * indent + end + "\n"
     }
   }
+
+  def treeToJson(tree: Tree[Topic], parent: String, indent: Int): String = {
+    import tree.value
+    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
+    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+
+    val label = f"${value.percentage}%.2f ${value.words.mkString(" ")}"
+    val data = f"""name: "${value.name}", level: ${value.level}, indent: ${value.indent}, percentage: ${value.percentage}, mi: ${value.mi}"""
+    val children = tree.children.map(treeToJson(_, value.name, indent + 4))
+
+    val json = """{
+      |  id: "%s", text: "%s", state: { opened: true, disabled: false, selected: false}, data: { %s }, li_attr: {}, a_attr: {}, children: [%s]
+      |}""".format(value.name, label, data, children.mkString(", "))
+      .replaceAll(" +\\|", " " * indent)
+
+    json
+  }
+
 }
