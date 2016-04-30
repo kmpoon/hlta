@@ -208,7 +208,7 @@ object RegenerateHTMLTopicTree {
 
     def copy(dir: Path)(source: String, target: String) = {
       val input = this.getClass.getResourceAsStream(source)
-      println(s"Copying from ${input} to ${dir.resolve(target)}")
+      println(s"Copying from resource ${source} to file ${dir.resolve(target)}")
       Files.copy(input, dir.resolve(target), StandardCopyOption.REPLACE_EXISTING)
     }
 
