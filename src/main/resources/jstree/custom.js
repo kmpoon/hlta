@@ -28,13 +28,19 @@ $.each(nodes, function(i, v) {
 });
 
 function constructTree(n) {
-	$('#jstree').jstree({
-		'core' : {
-			'data' : n,
-			'themes' : {
-				'icons' : false
+	$("#jstree").jstree({
+		"core" : {
+			"data" : n,
+			"themes" : {
+				"icons" : false
 			}
-		}
+		},
+		"search": {
+            "case_insensitive": true,
+            "show_only_matches" : true,
+            "show_only_matches_children": true
+        },
+        "plugins": ["search"]
 	});
 }
 
@@ -74,4 +80,14 @@ $(function() {
       var bottom = getInputValue('#bottom-input', 1)
       showLevels(top, bottom);
     })
+    
+    $("#filter-button").click( function() {
+        var searchString = $("#search-input").val();
+        $('#jstree').jstree('search', searchString);
+    });
+
+    $("#clear-button").click( function() {
+        $('#jstree').jstree(true).clear_search();
+    	$("#search-input").val("");
+    });
 });
