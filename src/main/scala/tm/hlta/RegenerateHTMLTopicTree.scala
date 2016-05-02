@@ -45,14 +45,6 @@ object RegenerateHTMLTopicTree {
     println("e.g. ReorderTopics model.bif data.txt TopicsTable.html output")
   }
 
-  def readModelAndData(modelFile: String, dataFile: String) = {
-    val model = new LTM()
-    new BifParser(new FileInputStream(modelFile), "UTF-8").parse(model)
-
-    val data = new DataSet(dataFile).synchronize(model)
-    (model, data)
-  }
-
   def findAndSaveTopLevelSiblings(dataFile: String, outputFile: String) = {
     if (fileExists(outputFile)) {
       println(s"Islands file (${outputFile}) exists. " +
@@ -82,7 +74,7 @@ object RegenerateHTMLTopicTree {
       println(s"Both data files (${hlcmDataFile} and ${arffDataFile}) exist. " +
         "Skipped computing top level topic assignments.")
     } else {
-      val (model, data) = readModelAndData(modelFile, dataFile)
+      val (model, data) = Reader.readLTMAndData(modelFile, dataFile)
 
       println(data.getVariables.length)
       println(data.getData.size())
@@ -142,17 +134,25 @@ object RegenerateHTMLTopicTree {
     //      (s, p) => s + treeToHtml(p._1, p._2, 4)
     //    }
 
-    writeJsonOutput(topLevelTrees, outputName + ".js")
-    writeHtmlOutput(outputName + ".js", outputName + ".html")
+    writeJsonOutput(topLevelTrees, outputName + ".nodes.js")
+    writeHtmlOutput(outputName, outputName + ".html")
   }
 
-  def writeHtmlOutput(treeFile: String, outputFile: String) = {
+  def writeHtmlOutput(outputName: String, outputFile: String) = {
     val template = Source.fromInputStream(
-      this.getClass.getResourceAsStream("/jstree/template.html"))
+      this.getClass.getResourceAsStream("/tm/hlta/template.html"))
       .getLines.mkString("\n")
 
     val writer = new PrintWriter(outputFile)
-    writer.print(template.replace("\"tree.js\"", treeFile))
+
+    def replace(s: String, target: String) = {
+      s.replaceAll(s""""${target}"""", s""""${outputName}.${target}"""")
+    }
+
+    val content = Seq("nodes.js", "topics.js", "titles.js")
+      .foldLeft(template)(replace)
+
+    writer.print(content)
     writer.close
   }
 
@@ -206,20 +206,38 @@ object RegenerateHTMLTopicTree {
     if (!Files.exists(assetDir))
       Files.createDirectories(assetDir)
 
-    def copy(dir: Path)(source: String, target: String) = {
+    def copyTo(source: String, dir: Path, target: String) = {
       val input = this.getClass.getResourceAsStream(source)
       println(s"Copying from resource ${source} to file ${dir.resolve(target)}")
       Files.copy(input, dir.resolve(target), StandardCopyOption.REPLACE_EXISTING)
     }
 
-    Seq(("/jquery/jquery-2.2.3.min.js", "jquery.min.js"),
-      ("/jstree/jstree.min.js", "jstree.min.js"),
-      ("/jstree/custom.js", "custom.js"),
-      ("/jstree/themes/default/style.min.css", "style.min.css"),
-      ("/jstree/themes/default/32px.png", "32px.png"),
-      ("/jstree/themes/default/40px.png", "40px.png"),
-      ("/jstree/themes/default/throbber.gif", "throbber.gif"))
-      .foreach(p => copy(assetDir)(p._1, p._2))
+    def copy(obj: Object, dir: Path) = obj match {
+      case (source: String, target: String) => copyTo(source, dir, target)
+      case (source: String) => {
+        val index = source.lastIndexOf("/")
+        val name = if (index < 0) source else source.substring(index + 1)
+        copyTo(source, dir, name)
+      }
+    }
+
+    Seq(
+      ("/tm/hlta/jquery-2.2.3.min.js", "jquery.min.js"),
+      "/tm/hlta/jstree.min.js",
+      "/tm/hlta/jquery.magnific-popup.min.js",
+      "/tm/hlta/jquery.tablesorter.min.js",
+      "/tm/hlta/magnific-popup.css",
+      "/tm/hlta/custom.js",
+      "/tm/hlta/custom.css",
+      "/tm/hlta/tablesorter/blue/asc.gif",
+      "/tm/hlta/tablesorter/blue/bg.gif",
+      "/tm/hlta/tablesorter/blue/desc.gif",
+      ("/tm/hlta/tablesorter/blue/style.css", "tablesorter.css"),
+      "/tm/hlta/jstree/themes/default/style.min.css",
+      "/tm/hlta/jstree/themes/default/32px.png",
+      "/tm/hlta/jstree/themes/default/40px.png",
+      "/tm/hlta/jstree/themes/default/throbber.gif")
+      .foreach(p => copy(p, assetDir))
   }
 
   def treeToHtml(tree: Tree[Topic], parent: String, indent: Int): String = {

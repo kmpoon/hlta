@@ -156,7 +156,7 @@ object DataConverter {
 
     writer.println("\n@DATA")
 
-    countsByDocuments.foreach { vs => writer.println(toBow(vs).mkString(",")) }
+    countsByDocuments.foreach { xs => writer.println(toBow(xs).mkString(",")) }
 
     writer.close
   }
