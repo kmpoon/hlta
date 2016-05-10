@@ -12,8 +12,25 @@ import org.latlab.util.Variable
 
 import collection.JavaConversions._
 import tm.util.Data
+import org.latlab.model.BayesNet
+import weka.core.Attribute
+import java.util.ArrayList
 
 object Reader {
+  implicit final class ARFFToData(val d: Instances) {
+    def toData() = {
+      def convert(a: Attribute) = {
+        val states = (0 until a.numValues).map(a.value)
+        new Variable(a.name, new ArrayList(states))
+      }
+
+      val attributes = getAttributes(d)
+      val instances = getDataCases(d)
+
+      Data(attributes.map(convert), instances)
+    }
+  }
+
   def readLTMAndData(modelFile: String, dataFile: String) = {
     val model = readLTM(modelFile)
 
@@ -53,11 +70,22 @@ object Reader {
     println("Getting instances")
     val instances = getDataCases(arffData)
 
+    formDataWithVariablesInModel(attributes.map(_.name), instances, model)
+  }
+
+  def replaceVariablesInDataByModel[M <: BayesNet](data: Data, model: M) = {
+    formDataWithVariablesInModel(
+      data.variables.map(_.getName), data.instances, model)
+  }
+
+  def formDataWithVariablesInModel[M <: BayesNet](
+    variableNames: IndexedSeq[String], instances: Seq[Data.Instance],
+    model: M) = {
     // use the variables in the model
     val nameToVariableMap =
       model.getVariables.toSeq.map(v => (v.getName, v)).toMap
 
-    val variables = attributes.map(_.name).map(nameToVariableMap)
+    val variables = variableNames.map(nameToVariableMap)
 
     (model, Data(variables, instances))
   }
