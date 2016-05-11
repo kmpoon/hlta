@@ -9,16 +9,24 @@
 <link rel="stylesheet" href="lib/custom.css">
 </head>
 <body>
+    <h1>Instructions</h1>
+    <ol>
+        <li>Click on the arrow on the left to collapse/expand a topic hierarchy.
+        <li>Click on a topic to show the documents belonging to that topic and the counts by year.
+        <li>It may take a minute to load the data and the page.
+    </ol>
+    <h1>Controls</h1>
     <p>
         <input type="text" id="search-input"/>
-        <input type="submit" value="Filter" id="filter-button"/> 
-        <input type="submit" value="Clear" id="clear-button"/>
+        <button type="button" id="filter-button">Filter</button> 
+        <button type="button" id="clear-button">Clear</button> 
     </p>
-	<p>
-		Top level: <input type="text" id="top-input" /> 
-		Bottom level: <input type="text" id="bottom-input" />
-		<input type="submit" id="level-button" value="Show Levels" />
-	</p>
+    <p>
+        Top level: <input type="text" id="top-input" /> 
+        Bottom level: <input type="text" id="bottom-input" />
+        <button type="button" id="level-button">Show Levels</button> 
+    </p>
+    <h1>Topic Tree</h1>
 	<div id="jstree"></div>
 	<script src="lib/jquery.min.js"></script>
     <script src="lib/jquery.magnific-popup.min.js"></script>

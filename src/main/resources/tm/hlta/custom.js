@@ -86,7 +86,7 @@ function constructTree(n) {
 		// show a pop-up when a node has been selected
         if (data.action == "select_node") {
             var content = $("<div class='white-popup'/>");
-            content.append($("<h3 class='popup-heading'>" + data.node.text + "</h3>"))
+            content.append($("<h3 class='popup-heading'>" + data.node.text + " (" + data.node.id + ")</h3>"));
 
             var topicDocuments = topicMap[data.node.id]
 
