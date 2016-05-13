@@ -236,7 +236,11 @@ object RegenerateHTMLTopicTree {
       "/tm/hlta/jstree/themes/default/style.min.css",
       "/tm/hlta/jstree/themes/default/32px.png",
       "/tm/hlta/jstree/themes/default/40px.png",
-      "/tm/hlta/jstree/themes/default/throbber.gif")
+      "/tm/hlta/jstree/themes/default/throbber.gif",
+      "/tm/hlta/ie10-viewport-bug-workaround.css",
+      "/tm/hlta/ie10-viewport-bug-workaround.js",
+      "/tm/hlta/bootstrap.min.css",
+      "/tm/hlta/bootstrap.min.js")
       .foreach(p => copy(p, assetDir))
   }
 

@@ -2,36 +2,80 @@
 <html>
 <head>
 <meta charset="utf-8">
-<title>Topic Tree</title>
+<title>IJCAI/AAAI (2000-15) Topic Tree</title>
+<link rel="stylesheet" href="lib/bootstrap.min.css" />
+<link rel="stylesheet" href="lib/ie10-viewport-bug-workaround.css">
 <link rel="stylesheet" href="lib/style.min.css" />
 <link rel="stylesheet" href="lib/magnific-popup.css">
 <link rel="stylesheet" href="lib/tablesorter.css">
 <link rel="stylesheet" href="lib/custom.css">
 </head>
 <body>
-    <h1>Instructions</h1>
-    <ol>
-        <li>Click on the arrow on the left to collapse/expand a topic hierarchy.
-        <li>Click on a topic to show the documents belonging to that topic and the counts by year.
-        <li>It may take a minute to load the data and the page.
-    </ol>
-    <h1>Controls</h1>
-    <p>
-        <input type="text" id="search-input"/>
-        <button type="button" id="filter-button">Filter</button> 
-        <button type="button" id="clear-button">Clear</button> 
-    </p>
-    <p>
-        Top level: <input type="text" id="top-input" /> 
-        Bottom level: <input type="text" id="bottom-input" />
-        <button type="button" id="level-button">Show Levels</button> 
-    </p>
-    <h1>Topic Tree</h1>
+    <nav class="navbar navbar-default navbar-fixed-top">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar" aria-expanded="false" aria-controls="navbar">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Home</a>
+        </div>
+        <div id="navbar" class="navbar-collapse collapse">
+            <div class="navbar-form navbar-left">
+                <div class="form-group">
+                    <input type="text" class="form-control" id="top-input"> 
+                    <input type="text" class="form-control" id="bottom-input"> 
+                </div>
+                <button type="button" id="level-button" class="btn btn-default">Show Levels</button>
+            </div>
+            <div class="navbar-form navbar-left">
+                <div class="form-group">
+                    <input type="text" id="search-input" class="form-control" placeholder="Keyword">
+                </div>
+                <button type="button" id="filter-button" class="btn btn-default">Filter</button> 
+                <button type="button" id="clear-button" class="btn btn-default">Clear</button> 
+            </div>
+            <ul class="nav navbar-nav navbar-right">
+                <li><a href="#instructions-modal" data-toggle="modal">Help</a></li>
+            </ul>
+
+        </div><!--/.navbar-collapse -->
+      </div>
+    </nav>
+
+    <div class="container">
+        <div class="page-header">
+            <h1>IJCAI/AAAI (2000-15) Topic Tree</h1>
+        </div>
+    <div id="jstree"></div>
+    </div>
+    <div class="modal fade" tabindex="-1" role="dialog" id="instructions-modal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            <h4 class="modal-title">Instructions</h4>
+          </div>
+          <div class="modal-body">
+            <ol>
+              <li>Click on the arrow on the left to collapse/expand a topic hierarchy.
+              <li>Click on a topic to show the documents belonging to that topic and the counts by year.
+              <li>Use the "Show Levels" button to select the levels (top-bottom) that you want to show.
+              <li>Use the "Filter" button to show only topics that contain the keyword along with their acestors and decendents.  Use the "Clear" button to show all topics.
+            </ol>
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
 	<div id="jstree"></div>
 	<script src="lib/jquery.min.js"></script>
     <script src="lib/jquery.magnific-popup.min.js"></script>
     <script src="lib/jquery.tablesorter.min.js"></script>
 	<script src="lib/jstree.min.js"></script>
+    <script src="lib/bootstrap.min.js"></script>
+    <script src="lib/ie10-viewport-bug-workaround.js"></script>
     <script src="nodes.js"></script>
     <script src="topics.js"></script>
     <script src="titles.js"></script>
