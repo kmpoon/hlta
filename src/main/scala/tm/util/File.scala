@@ -8,6 +8,7 @@ import java.nio.file.FileVisitResult._
 import java.nio.file.Files
 import java.util.EnumSet
 import java.nio.file.FileVisitOption
+import java.nio.file.Paths
 
 object FileHelpers {
   val filenameRegex = "(?s)(.*?)(?:\\.([^.]+))?".r
@@ -37,4 +38,6 @@ object FileHelpers {
       EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, visitor)
     files.toVector
   }
+  
+  def exists(s: String) = Files.exists(Paths.get(s))
 }

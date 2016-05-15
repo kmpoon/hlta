@@ -12,6 +12,7 @@ import java.nio.file.Paths
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.nio.file.Path
+import tm.util.FileHelpers
 
 object RegenerateHTMLTopicTree {
   case class Topic(name: String, level: Int, indent: Int,
@@ -20,75 +21,28 @@ object RegenerateHTMLTopicTree {
   val lineRegex = """<p level ="([^"]*)" name ="([^"]*)" parent = "([^"]*)" percentage ="([^"]*)" (?:MI = "([^"]*)" )?style="text-indent:(.+?)em;"> ([.0-9]+) (.*?)</p>""".r
 
   def main(args: Array[String]) {
-    if (args.length < 4) {
+    if (args.length < 2) {
       printUsage()
     } else {
-      val modelFile = args(0)
-      val dataFile = args(1)
-      val topicsFile = args(2)
-      val outputName = args(3)
-      val topLevelDataName = s"${outputName}-top"
-      val islandsFile = s"${outputName}-islands.txt"
-      val outputHtmlFileName = "tree.html"
-      computeTopLevelTopic(modelFile, dataFile, topLevelDataName)
-      findAndSaveTopLevelSiblings(topLevelDataName + ".txt", islandsFile)
-      val order = readIslands(islandsFile)
-      copyAssetFiles(outputHtmlFileName)
-      generateTopicTree(topicsFile, outputName, order)
+      val topicsFile = args(0)
+      val outputName = args(1)
+
+      val title = if (args.length > 2) args(2) else "Topic Tree"
+
+      val order = readIslands(
+        FindTopLevelSiblingClusters.getIslandsFileName(outputName))
+      copyAssetFiles(Paths.get("."))
+      generateTopicTree(topicsFile, title, outputName, order)
     }
   }
 
   def printUsage() = {
     //    println("ReorderTopics model_file data_file")
-    println("ReorderTopics model_file data_file topics_file output_name")
+    println("ReorderTopics topics_file output_name [title]")
     println
-    println("e.g. ReorderTopics model.bif data.txt TopicsTable.html output")
-  }
-
-  def findAndSaveTopLevelSiblings(dataFile: String, outputFile: String) = {
-    if (fileExists(outputFile)) {
-      println(s"Islands file (${outputFile}) exists. " +
-        "Skipped finding top-level silbing clusters.")
-    } else {
-      val data = new DataSet(dataFile)
-      val finder = new IslandFinder
-      val ltms = finder.find(data)
-      val leaves = ltms.map(_.getLeafVars)
-      val output = leaves.map(_.map(_.getName).mkString(",")).mkString("\n")
-
-      println(output)
-
-      val writer = new PrintWriter(outputFile)
-      writer.println(output)
-      writer.close
-    }
-  }
-
-  def fileExists(s: String) = Files.exists(Paths.get(s))
-
-  def computeTopLevelTopic(modelFile: String, dataFile: String, outputName: String) = {
-    val hlcmDataFile = outputName + ".txt"
-    val arffDataFile = outputName + ".arff"
-
-    if (fileExists(hlcmDataFile) && fileExists(arffDataFile)) {
-      println(s"Both data files (${hlcmDataFile} and ${arffDataFile}) exist. " +
-        "Skipped computing top level topic assignments.")
-    } else {
-      val (model, data) = Reader.readLTMAndData(modelFile, dataFile)
-
-      println(data.getVariables.length)
-      println(data.getData.size())
-
-      val levels = HLTA.readLatentVariableLevels(model).toList.groupBy(_._2)
-      val top = levels(levels.keys.max).map(_._1)
-
-      //    val topLevelData = PEMTools.HardAssignment(data, model, top.toArray)
-      val topLevelData = HLTA.hardAssignment(data, model, top.toArray)
-      topLevelData.save(outputName + ".txt")
-      topLevelData.saveAsArff(outputName + ".arff", false)
-
-      println(top.map(_.getName).mkString(", "))
-    }
+    println("e.g. ReorderTopics TopicsTable.html output \"Topic Tree\"")
+    println("It generates the ${output_name}.nodes.js file and uses " +
+      "${output_name}.topics.js and ${output_name}.titles.js if they exist.")
   }
 
   def readTopics(topicsFile: String) = {
@@ -116,12 +70,18 @@ object RegenerateHTMLTopicTree {
    * by reading the islands file.
    */
   def readIslands(islandsFileName: String) = {
-    Source.fromFile(islandsFileName).getLines
-      .flatMap(_.split(","))
-      .zipWithIndex.toMap
+    if (FileHelpers.exists(islandsFileName)) {
+      Source.fromFile(islandsFileName).getLines
+        .flatMap(_.split(","))
+        .zipWithIndex.toMap
+    } else {
+      println(s"Islands file ${islandsFileName} not found.  " +
+        "It uses default ordering of top level topics.")
+      Map.empty[String, Int].withDefaultValue(0)
+    }
   }
 
-  def generateTopicTree(topicsFile: String,
+  def generateTopicTree(topicsFile: String, title: String,
     outputName: String, topLevelOrder: Map[String, Int]) = {
     val topics = readTopics(topicsFile)
     val ltmTrees = buildLTMTrees(topics)
@@ -135,10 +95,10 @@ object RegenerateHTMLTopicTree {
     //    }
 
     writeJsonOutput(topLevelTrees, outputName + ".nodes.js")
-    writeHtmlOutput(outputName, outputName + ".html")
+    writeHtmlOutput(title, outputName, outputName + ".html")
   }
 
-  def writeHtmlOutput(outputName: String, outputFile: String) = {
+  def writeHtmlOutput(title: String, outputName: String, outputFile: String) = {
     val template = Source.fromInputStream(
       this.getClass.getResourceAsStream("/tm/hlta/template.html"))
       .getLines.mkString("\n")
@@ -149,8 +109,9 @@ object RegenerateHTMLTopicTree {
       s.replaceAll(s""""${target}"""", s""""${outputName}.${target}"""")
     }
 
-    val content = Seq("nodes.js", "topics.js", "titles.js")
+    var content = Seq("nodes.js", "topics.js", "titles.js")
       .foldLeft(template)(replace)
+    content = content.replaceAll("<!-- title-placeholder -->", title)
 
     writer.print(content)
     writer.close
@@ -199,9 +160,8 @@ object RegenerateHTMLTopicTree {
     topLevelTrees.map(filterSameLevelChildren)
   }
 
-  def copyAssetFiles(outputFile: String) = {
-    val path = Paths.get(outputFile)
-    val assetDir = Option(path.getParent).getOrElse(Paths.get(".")).resolve("lib")
+  def copyAssetFiles(basePath: Path) = {
+    val assetDir = Option(basePath).getOrElse(Paths.get(".")).resolve("lib")
 
     if (!Files.exists(assetDir))
       Files.createDirectories(assetDir)

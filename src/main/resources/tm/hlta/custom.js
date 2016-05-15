@@ -28,14 +28,18 @@ $.each(nodes, function(i, v) {
 });
 
 //find the min and max year in the documents
-var minYear = 1000000;
-var maxYear = 0;
-$.each(documents, function(i, d) {
- if (d.year > maxYear)
-     maxYear = d.year;
- if (d.year < minYear)
-     minYear = d.year;
-})
+var showTopicDocuments = typeof documents != "undefined" && typeof topicMap != "undefined"
+
+if (showTopicDocuments) {
+    var minYear = 1000000;
+    var maxYear = 0;
+    $.each(documents, function(i, d) {
+     if (d.year > maxYear)
+         maxYear = d.year;
+     if (d.year < minYear)
+         minYear = d.year;
+    })
+}
 
 function generateTopicDocumentTable(topic) {
     var topicDocuments = topicMap[topic];
@@ -88,10 +92,14 @@ function constructTree(n) {
             var content = $("<div class='white-popup'/>");
             content.append($("<h3 class='popup-heading'>" + data.node.text + " (" + data.node.id + ")</h3>"));
 
-            var topicDocuments = topicMap[data.node.id]
+            if (showTopicDocuments) {
+                var topicDocuments = topicMap[data.node.id]
 
-            content.append(generateCountTable(data.node.id));
-            content.append(generateTopicDocumentTable(data.node.id));
+                content.append(generateCountTable(data.node.id));
+                content.append(generateTopicDocumentTable(data.node.id));
+            } else {
+                content.append("<p>Document information is not available.</p>")
+            }
 
             $.magnificPopup.open({
                 items: {

@@ -11,3 +11,11 @@ body {
   padding-top: 50px;
 }
 
+div#jstree {
+  font-size: 18px;
+}
+
+.jstree-default .jstree-anchor {
+  line-height: 28px;
+  height: 28px;
+}
