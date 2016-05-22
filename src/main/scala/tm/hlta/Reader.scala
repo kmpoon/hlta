@@ -48,6 +48,8 @@ object Reader {
 
   def readARFFData(dataFile: String) = new DataSource(dataFile).getDataSet
 
+  def readData(dataFile: String) = readARFFData(dataFile).toData
+
   def getAttributes(instances: Instances) =
     Range(0, instances.numAttributes).map(instances.attribute)
 

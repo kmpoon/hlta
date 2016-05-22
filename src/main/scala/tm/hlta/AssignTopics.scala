@@ -27,7 +27,7 @@ object AssignTopics {
     println("AssignTopics model_file data_file outputName")
     println
     println("E.g. AssignTopics model.bif data.arff output")
-    println("The output file will be output.topics.txt and output.topics.arff")
+    println("The output file will be output.topics.js and output.topics.arff")
   }
 
   def run(modelFile: String, dataFile: String, outputName: String): Unit = {
@@ -106,7 +106,7 @@ object AssignTopics {
 
     writer.println(map.map { p =>
       val variable = p._1
-      val documents = p._2.map(p => s"[${p._2}, ${p._1}]").mkString(", ")
+      val documents = p._2.map(p => f"[${p._2}%s, ${p._1}%.2f]").mkString(", ")
       s"  ${variable.getName}: [${documents}]"
     }.mkString(",\n"))
 

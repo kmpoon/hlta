@@ -14,11 +14,40 @@ import java.nio.file.StandardCopyOption
 import java.nio.file.Path
 import tm.util.FileHelpers
 
-object RegenerateHTMLTopicTree {
+object TopicTable {
   case class Topic(name: String, level: Int, indent: Int,
     percentage: Double, mi: Double, words: Seq[String])
 
   val lineRegex = """<p level ="([^"]*)" name ="([^"]*)" parent = "([^"]*)" percentage ="([^"]*)" (?:MI = "([^"]*)" )?style="text-indent:(.+?)em;"> ([.0-9]+) (.*?)</p>""".r
+
+  /**
+   *  Reads topics and their parents from the specified file.  It returns a list
+   *  in which each element is a pair of topic and its parent.
+   */
+  def read(topicsFile: String) = {
+    val input = Source.fromFile(topicsFile)
+    val lines = input.getLines
+      .dropWhile(_ != """<div class="div">""").drop(1)
+    try {
+      lines.map {
+        _ match {
+          case lineRegex(level, name, parent, percentage, mi,
+            indent, percent1, words) =>
+            val miDouble = if (mi == null) Double.NaN else mi.toDouble
+            (Topic(name = name, level = level.toInt, indent = indent.toInt,
+              percentage = percentage.toDouble, mi = miDouble,
+              words = words.split("\\s+")), parent)
+        }
+      }.toList
+    } finally {
+      input.close
+    }
+  }
+
+}
+
+object RegenerateHTMLTopicTree {
+  import TopicTable.Topic
 
   def main(args: Array[String]) {
     if (args.length < 2) {
@@ -44,27 +73,6 @@ object RegenerateHTMLTopicTree {
     println("It generates the ${output_name}.nodes.js file and uses " +
       "${output_name}.topics.js and ${output_name}.titles.js if they exist.")
   }
-
-  def readTopics(topicsFile: String) = {
-    val input = Source.fromFile(topicsFile)
-    val lines = input.getLines
-      .dropWhile(_ != """<div class="div">""").drop(1)
-    try {
-      lines.map {
-        _ match {
-          case lineRegex(level, name, parent, percentage, mi,
-            indent, percent1, words) =>
-            val miDouble = if (mi == null) Double.NaN else mi.toDouble
-            (Topic(name = name, level = level.toInt, indent = indent.toInt,
-              percentage = percentage.toDouble, mi = miDouble,
-              words = words.split("\\s+")), parent)
-        }
-      }.toList
-    } finally {
-      input.close
-    }
-  }
-
   /**
    * Constructs a variable to index mapping for ordering the top level variables
    * by reading the islands file.
@@ -83,7 +91,7 @@ object RegenerateHTMLTopicTree {
 
   def generateTopicTree(topicsFile: String, title: String,
     outputName: String, topLevelOrder: Map[String, Int]) = {
-    val topics = readTopics(topicsFile)
+    val topics = TopicTable.read(topicsFile)
     val ltmTrees = buildLTMTrees(topics)
     val topLevelTrees =
       buildTopicTree(ltmTrees).sortBy { t => topLevelOrder(t.value.name) }
@@ -94,8 +102,20 @@ object RegenerateHTMLTopicTree {
     //      (s, p) => s + treeToHtml(p._1, p._2, 4)
     //    }
 
-    writeJsonOutput(topLevelTrees, outputName + ".nodes.js")
+    import Implicits.topicToNode
+    
+    JSONTreeWriter.writeJSONOutput(topLevelTrees, outputName + ".nodes.js")
     writeHtmlOutput(title, outputName, outputName + ".html")
+  }
+
+  object Implicits {
+    import JSONTreeWriter.Node
+
+    implicit val topicToNode: (Topic) => Node = (topic: Topic) => {
+      val label = f"${topic.percentage}%.2f ${topic.words.mkString(" ")}"
+      val data = f"""name: "${topic.name}", level: ${topic.level}, percentage: ${topic.percentage}, mi: ${topic.mi}"""
+      Node(topic.name, label, data)
+    }
   }
 
   def writeHtmlOutput(title: String, outputName: String, outputFile: String) = {
@@ -114,14 +134,6 @@ object RegenerateHTMLTopicTree {
     content = content.replaceAll("<!-- title-placeholder -->", title)
 
     writer.print(content)
-    writer.close
-  }
-
-  def writeJsonOutput(trees: Seq[Tree[Topic]], outputFile: String) = {
-    val writer = new PrintWriter(outputFile)
-    writer.print("var nodes = [")
-    writer.println(trees.map(treeToJson(_, "none", 0)).mkString(", "))
-    writer.println("];")
     writer.close
   }
 
@@ -147,10 +159,16 @@ object RegenerateHTMLTopicTree {
     roots.map(constructLTMTree)
   }
 
+  /**
+   * Builds topic trees such that all top-level topics are used as roots.
+   */
   def buildTopicTree(ltmTrees: List[Tree[Topic]]): List[Tree[Topic]] = {
+    // find all top-level topics
     val topLevel = ltmTrees.map(_.value.level).max
     val topLevelTrees = ltmTrees.flatMap(_.findSubTrees { _.level == topLevel })
 
+    // Filter away children of the same level.  This happens when the top level
+    // topics are connected as a tree.
     def filterSameLevelChildren(tree: Tree[Topic]): Tree[Topic] = {
       import tree.{ value => v }
       Tree(v, tree.children.filter(_.value.level < v.level)
@@ -204,43 +222,53 @@ object RegenerateHTMLTopicTree {
       .foreach(p => copy(p, assetDir))
   }
 
-  def treeToHtml(tree: Tree[Topic], parent: String, indent: Int): String = {
-    import tree.value
-    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
-    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+  //  def treeToHtml(tree: Tree[Topic], parent: String, indent: Int): String = {
+  //    import tree.value
+  //    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
+  //    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+  //
+  //    val start = """<li class="jstree-open" id="%s" >""".format(value.name)
+  //    val content = f"${value.percentage}%.2f ${value.words.mkString(" ")}"
+  //    val end = "</li>"
+  //
+  //    if (tree.children.isEmpty)
+  //      " " * indent + start + content + end + "\n"
+  //    else {
+  //      val childIndent = indent + 2
+  //
+  //      " " * indent + start + content + "\n" +
+  //        " " * childIndent + "<ul>" + "\n" +
+  //        tree.children.map(treeToHtml(_, value.name, childIndent)).reduce(_ + _) +
+  //        " " * childIndent + "</ul>" + "\n" +
+  //        " " * indent + end + "\n"
+  //    }
+  //  }
 
-    val start = """<li class="jstree-open" id="%s" >""".format(value.name)
-    val content = f"${value.percentage}%.2f ${value.words.mkString(" ")}"
-    val end = "</li>"
+}
 
-    if (tree.children.isEmpty)
-      " " * indent + start + content + end + "\n"
-    else {
-      val childIndent = indent + 2
+object JSONTreeWriter {
+  case class Node(id: String, label: String, data: String)
 
-      " " * indent + start + content + "\n" +
-        " " * childIndent + "<ul>" + "\n" +
-        tree.children.map(treeToHtml(_, value.name, childIndent)).reduce(_ + _) +
-        " " * childIndent + "</ul>" + "\n" +
-        " " * indent + end + "\n"
-    }
+  def writeJSONOutput[T](trees: Seq[Tree[T]], outputFile: String)(implicit convert: (T) => Node) = {
+    val writer = new PrintWriter(outputFile)
+    writer.print("var nodes = [")
+    writer.println(trees.map(treeToJson(_, 0)).mkString(", "))
+    writer.println("];")
+    writer.close
   }
 
-  def treeToJson(tree: Tree[Topic], parent: String, indent: Int): String = {
-    import tree.value
+  def treeToJson[T](tree: Tree[T], indent: Int)(implicit convert: (T) => Node): String = {
+    val node = convert(tree.value)
     //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
     //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
 
-    val label = f"${value.percentage}%.2f ${value.words.mkString(" ")}"
-    val data = f"""name: "${value.name}", level: ${value.level}, indent: ${value.indent}, percentage: ${value.percentage}, mi: ${value.mi}"""
-    val children = tree.children.map(treeToJson(_, value.name, indent + 4))
+    val children = tree.children.map(treeToJson(_, indent + 4))
 
     val json = """{
       |  id: "%s", text: "%s", state: { opened: true, disabled: false, selected: false}, data: { %s }, li_attr: {}, a_attr: {}, children: [%s]
-      |}""".format(value.name, label, data, children.mkString(", "))
+      |}""".format(node.id, node.label, node.data, children.mkString(", "))
       .replaceAll(" +\\|", " " * indent)
 
     json
   }
-
 }

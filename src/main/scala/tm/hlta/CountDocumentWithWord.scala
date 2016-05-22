@@ -1,16 +1,19 @@
 package tm.hlta
 
 import org.latlab.model.LTM
-import ConvertTitlesToJSON.Document
+import TitleFile.Document
 import tm.util.Data
 import scala.collection.immutable.TreeMap
 
+/**
+ * Contains methods for counting the documents containing a particular word.
+ */
 object CountDocumentWithWord {
   case class State(model: LTM, data: Data, titles: Vector[Document])
 
   def read(modelFile: String, dataFile: String, titlesFile: String) = {
     val (model, data) = Reader.readLTMAndARFFData(modelFile, dataFile)
-    val titles = ConvertTitlesToJSON.readDocuments(titlesFile).toVector
+    val titles = TitleFile.readDocuments(titlesFile).toVector
 
     State(model, data, titles)
   }
