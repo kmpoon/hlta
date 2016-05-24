@@ -26,8 +26,12 @@
 			<div id="navbar" class="navbar-collapse collapse">
 				<div class="navbar-form navbar-left">
 					<div class="form-group">
-						<input type="text" class="form-control" id="top-input"> <input
-							type="text" class="form-control" id="bottom-input">
+						<input type="text" class="form-control" id="top-input"
+						  data-toggle="tooltip" title="Topmost level"
+						  data-placement="bottom"> 
+						<input type="text" class="form-control" id="bottom-input"
+						  data-toggle="tooltip" title="Bottommost level"
+						  data-placement="bottom">
 					</div>
 					<button type="button" id="level-button" class="btn btn-default">Show
 						Levels</button>
@@ -55,40 +59,67 @@
 		</div>
 		<div id="jstree"></div>
 	</div>
-	<div class="modal fade" tabindex="-1" role="dialog"
-		id="instructions-modal">
-		<div class="modal-dialog">
-			<div class="modal-content">
-				<div class="modal-header">
-					<button type="button" class="close" data-dismiss="modal"
-						aria-label="Close">
-						<span aria-hidden="true">&times;</span>
-					</button>
-					<h4 class="modal-title">Instructions</h4>
-				</div>
-				<div class="modal-body">
-					<ol>
-						<li>Click on the arrow on the left to collapse/expand a topic
-							hierarchy.
-						<li>Click on a topic to show the documents belonging to that
-							topic and the counts by year.
-						<li>Use the "Show Levels" button to select the levels
-							(top-bottom) that you want to show.
-						<li>Use the "Filter" button to show only topics that contain
-							the keyword along with their ancestors and descendants. Use the
-							"Clear" button to show all topics.
-					</ol>
-				</div>
-			</div>
-			<!-- /.modal-content -->
-		</div>
-		<!-- /.modal-dialog -->
-	</div>
-	<!-- /.modal -->
-	<div id="jstree"></div>
+    <div class="modal" tabindex="-1" role="dialog"
+        id="instructions-modal">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal"
+                        aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                    <h4 class="modal-title">Instructions</h4>
+                </div>
+                <div class="modal-body">
+                    <ol>
+                        <li>Click on the arrow on the left to collapse/expand a topic
+                            hierarchy.
+                        <li>Click on a topic to show the documents belonging to that
+                            topic and the counts by year.
+                        <li>Use the "Show Levels" button to select the levels
+                            (top-bottom) that you want to show.
+                        <li>Use the "Filter" button to show only topics that contain
+                            the keyword along with their ancestors and descendants. Use the
+                            "Clear" button to show all topics.
+                    </ol>
+                </div>
+            </div>
+            <!-- /.modal-content -->
+        </div>
+        <!-- /.modal-dialog -->
+    </div>
+    <!-- /.modal -->
+    <div class="modal" tabindex="-1" role="dialog" id="alert-modal">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <h4 class="modal-title">Error!</h4>
+          </div>
+          <div class="modal-body" id="alert-modal-message">
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
+    <div class="modal" tabindex="-1" role="dialog" id="topic-modal">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                <span aria-hidden="true">&times;</span>
+            </button>
+            <h3 class="modal-title" id="topic-modal-title"></h3>
+          </div>
+          <div class="modal-body" id="topic-modal-body">
+          </div>
+        </div><!-- /.modal-content -->
+      </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
 	<script src="lib/jquery.min.js"></script>
-	<script src="lib/jquery.magnific-popup.min.js"></script>
 	<script src="lib/jquery.tablesorter.min.js"></script>
+	<script src="lib/jquery.tablesorter.widgets.js"></script>
 	<script src="lib/jstree.min.js"></script>
 	<script src="lib/bootstrap.min.js"></script>
 	<script src="lib/ie10-viewport-bug-workaround.js"></script>

@@ -2,21 +2,27 @@ package tm.hlta
 
 import scala.io.Source
 import java.io.PrintWriter
+import scala.language.higherKinds
+import scala.collection.generic.CanBuildFrom
 
 object TitleFile {
   case class Document(title: String, conference: String, year: Int)
 
   val pathRegex = """(?:(?:.*?)/)?(aaai|ijcai)-(\d+)/(?:(?:.*?)/)?([^/]*)\.txt""".r
 
-  def readDocuments(titleFile: String) =
-    Source.fromFile(titleFile).getLines.map {
+  def readDocuments(lines: Iterator[String]) = {
+    lines.map(
       _ match {
         case pathRegex(conference, year, title) =>
           Document(title, conference, year.toInt)
-      }
-    }
+      })
+  }
 
-  def writeDocumentsAsJSON(documents: Iterator[Document], outputFile: String) = {
+  def readDocuments(titleFile: String): Iterator[Document] =
+    readDocuments(Source.fromFile(titleFile).getLines)
+
+  def writeDocumentsAsJSON(
+    documents: TraversableOnce[Document], outputFile: String) = {
     val writer = new PrintWriter(outputFile)
     writer.println("var documents = [")
 
@@ -46,7 +52,7 @@ object ConvertTitlesToJSON {
 
   def run(titleFile: String, outputName: String) = {
     import TitleFile._
-    
+
     val documents = readDocuments(titleFile)
     writeDocumentsAsJSON(documents, outputName + ".titles.js")
   }

@@ -24,7 +24,7 @@ object TopicTable {
    *  Reads topics and their parents from the specified file.  It returns a list
    *  in which each element is a pair of topic and its parent.
    */
-  def read(topicsFile: String) = {
+  def read(topicsFile: String): List[(Topic, String)] = {
     val input = Source.fromFile(topicsFile)
     val lines = input.getLines
       .dropWhile(_ != """<div class="div">""").drop(1)
@@ -103,7 +103,7 @@ object RegenerateHTMLTopicTree {
     //    }
 
     import Implicits.topicToNode
-    
+
     JSONTreeWriter.writeJSONOutput(topLevelTrees, outputName + ".nodes.js")
     writeHtmlOutput(title, outputName, outputName + ".html")
   }
@@ -179,10 +179,15 @@ object RegenerateHTMLTopicTree {
   }
 
   def copyAssetFiles(basePath: Path) = {
-    val assetDir = Option(basePath).getOrElse(Paths.get(".")).resolve("lib")
+    val baseDir = Option(basePath).getOrElse(Paths.get("."))
+    val assetDir = baseDir.resolve("lib")
+    val fontsDir = baseDir.resolve("fonts")
 
     if (!Files.exists(assetDir))
       Files.createDirectories(assetDir)
+
+    if (!Files.exists(fontsDir))
+      Files.createDirectories(fontsDir)
 
     def copyTo(source: String, dir: Path, target: String) = {
       val input = this.getClass.getResourceAsStream(source)
@@ -202,15 +207,19 @@ object RegenerateHTMLTopicTree {
     Seq(
       ("/tm/hlta/jquery-2.2.3.min.js", "jquery.min.js"),
       "/tm/hlta/jstree.min.js",
-      "/tm/hlta/jquery.magnific-popup.min.js",
+//      "/tm/hlta/jquery.magnific-popup.min.js",
       "/tm/hlta/jquery.tablesorter.min.js",
+      "/tm/hlta/jquery.tablesorter.widgets.js",
       "/tm/hlta/magnific-popup.css",
       "/tm/hlta/custom.js",
       "/tm/hlta/custom.css",
-      "/tm/hlta/tablesorter/blue/asc.gif",
-      "/tm/hlta/tablesorter/blue/bg.gif",
-      "/tm/hlta/tablesorter/blue/desc.gif",
-      ("/tm/hlta/tablesorter/blue/style.css", "tablesorter.css"),
+      //      "/tm/hlta/tablesorter/blue/asc.gif",
+      //      "/tm/hlta/tablesorter/blue/bg.gif",
+      //      "/tm/hlta/tablesorter/blue/desc.gif",
+      //      ("/tm/hlta/tablesorter/blue/style.css", "tablesorter.css"),
+      ("/tm/hlta/tablesorter/themes/theme.bootstrap.css", "tablesorter.css"),
+      //      "/tm/hlta/tablesorter/themes/bootstrap-black-unsorted.png",
+      //      "/tm/hlta/tablesorter/themes/bootstrap-white-unsorted.png",
       "/tm/hlta/jstree/themes/default/style.min.css",
       "/tm/hlta/jstree/themes/default/32px.png",
       "/tm/hlta/jstree/themes/default/40px.png",
@@ -220,6 +229,13 @@ object RegenerateHTMLTopicTree {
       "/tm/hlta/bootstrap.min.css",
       "/tm/hlta/bootstrap.min.js")
       .foreach(p => copy(p, assetDir))
+
+    Seq("/tm/hlta/bootstrap/fonts/glyphicons-halflings-regular.eot",
+      "/tm/hlta/bootstrap/fonts/glyphicons-halflings-regular.svg",
+      "/tm/hlta/bootstrap/fonts/glyphicons-halflings-regular.ttf",
+      "/tm/hlta/bootstrap/fonts/glyphicons-halflings-regular.woff",
+      "/tm/hlta/bootstrap/fonts/glyphicons-halflings-regular.woff2")
+      .foreach(p => copy(p, fontsDir))
   }
 
   //  def treeToHtml(tree: Tree[Topic], parent: String, indent: Int): String = {
