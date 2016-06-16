@@ -9,4 +9,7 @@ converted
 *~
 .worksheet
 /.classpath
+/.settings/org.eclipse.core.resources.prefs
+/.settings/org.scala-ide.sdt.core.prefs
+/.settings/org.eclipse.jdt.core.prefs
 /exp/
