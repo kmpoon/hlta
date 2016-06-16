@@ -15,10 +15,22 @@ import java.nio.file.Path
 import tm.util.FileHelpers
 
 object TopicTable {
+  case class Word(w: String, probability: Option[Double]) {
+    override def toString = probability match {
+      case Some(p) => f"$w ($p%.03f)"
+      case None => w
+    }
+  }
+
+  object Word {
+    def apply(w: String): Word = Word(w, None)
+  }
+
   case class Topic(name: String, level: Int, indent: Int,
-    percentage: Double, mi: Double, words: Seq[String])
+    percentage: Double, mi: Double, words: Seq[Word])
 
   val lineRegex = """<p level ="([^"]*)" name ="([^"]*)" parent = "([^"]*)" percentage ="([^"]*)" (?:MI = "([^"]*)" )?style="text-indent:(.+?)em;"> ([.0-9]+) (.*?)</p>""".r
+  val wordsWithProbRegex = """\s*(([^ ]+) ([.0-9]+)\s*)*""".r
 
   /**
    *  Reads topics and their parents from the specified file.  It returns a list
@@ -27,16 +39,25 @@ object TopicTable {
   def read(topicsFile: String): List[(Topic, String)] = {
     val input = Source.fromFile(topicsFile)
     val lines = input.getLines
-      .dropWhile(_ != """<div class="div">""").drop(1)
+      .dropWhile(_ != """<div class="div">""")
+      .drop(1) // drop the above <div> line
+      .takeWhile(_ != """</div>""")
+
     try {
       lines.map {
         _ match {
           case lineRegex(level, name, parent, percentage, mi,
             indent, percent1, words) =>
             val miDouble = if (mi == null) Double.NaN else mi.toDouble
+            val ws = words match {
+              case wordsWithProbRegex(_*) =>
+                words.split("\\s+").grouped(2)
+                  .map(xs => Word(xs(0), Some(xs(1).toDouble))).toVector
+              case _ => words.split("\\s+").map(Word.apply).toVector
+            }
             (Topic(name = name, level = level.toInt, indent = indent.toInt,
               percentage = percentage.toDouble, mi = miDouble,
-              words = words.split("\\s+")), parent)
+              words = ws), parent)
         }
       }.toList
     } finally {
@@ -67,9 +88,9 @@ object RegenerateHTMLTopicTree {
 
   def printUsage() = {
     //    println("ReorderTopics model_file data_file")
-    println("ReorderTopics topics_file output_name [title]")
+    println("RegenerateHTMLTopicTree topics_file output_name [title]")
     println
-    println("e.g. ReorderTopics TopicsTable.html output \"Topic Tree\"")
+    println("e.g. RegenerateHTMLTopicTree TopicsTable.html output \"Topic Tree\"")
     println("It generates the ${output_name}.nodes.js file and uses " +
       "${output_name}.topics.js and ${output_name}.titles.js if they exist.")
   }
@@ -207,7 +228,7 @@ object RegenerateHTMLTopicTree {
     Seq(
       ("/tm/hlta/jquery-2.2.3.min.js", "jquery.min.js"),
       "/tm/hlta/jstree.min.js",
-//      "/tm/hlta/jquery.magnific-popup.min.js",
+      //      "/tm/hlta/jquery.magnific-popup.min.js",
       "/tm/hlta/jquery.tablesorter.min.js",
       "/tm/hlta/jquery.tablesorter.widgets.js",
       "/tm/hlta/magnific-popup.css",

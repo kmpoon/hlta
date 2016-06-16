@@ -18,7 +18,7 @@ import java.nio.file.Path
 import java.nio.file.Paths
 import java.nio.file.Files
 
-object ExtractText extends App {
+object ExtractText {
   val replaceNonAlnum = ("\\P{Alnum}".r, (m: Match) => "_")
   val replaceStartingDigit = ("^(\\p{Digit})".r, (m: Match) => s"_${m.group(1)}")
 
@@ -26,9 +26,7 @@ object ExtractText extends App {
     case (r, m) => (input: String) => r.replaceAllIn(input, m)
   }
 
-  run
-
-  def run() {
+  def main(args: Array[String]) {
     if (args.length < 1) {
       printUsage
       return
@@ -51,7 +49,6 @@ object ExtractText extends App {
     } else {
       extractFile(source)
     }
-
   }
 
   def printUsage() = {

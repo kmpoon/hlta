@@ -24,6 +24,13 @@ sealed case class Tree[+A](value: A, children: List[Tree[A]]) {
   def map[B](f: (A) => B): Tree[B] = {
     Tree(f(value), children.map(_.map(f)))
   }
+
+  def foldLeft[B](z: B)(op: (B, A) => B): B = {
+    val c = children.foldLeft(z)((x, t) => t.foldLeft(x)(op))
+    op(c, value)
+  }
+
+  def toList(): List[A] = foldLeft(List.empty[A])(_ :+ _)
 }
 
 object Tree {

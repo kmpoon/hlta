@@ -25,10 +25,10 @@ object DataConverter {
       new Settings(maxN, minCharacters, selectWords)
   }
 
-  object implicits {
-    implicit val default = Settings(
-      maxN = 2, minCharacters = 3, minTf = 6, minDf = (Int) => 6)
-  }
+//  object implicits {
+//    implicit val default = Settings(
+//      maxN = 2, minCharacters = 3, minTf = 6, minDf = (Int) => 6)
+//  }
 
   type TokenCounts = Map[NGram, Int]
 

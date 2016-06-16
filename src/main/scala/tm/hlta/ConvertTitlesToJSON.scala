@@ -2,19 +2,17 @@ package tm.hlta
 
 import scala.io.Source
 import java.io.PrintWriter
-import scala.language.higherKinds
-import scala.collection.generic.CanBuildFrom
 
 object TitleFile {
-  case class Document(title: String, conference: String, year: Int)
+  case class Document(title: String, conference: String, year: Int, path: String)
 
   val pathRegex = """(?:(?:.*?)/)?(aaai|ijcai)-(\d+)/(?:(?:.*?)/)?([^/]*)\.txt""".r
 
   def readDocuments(lines: Iterator[String]) = {
     lines.map(
       _ match {
-        case pathRegex(conference, year, title) =>
-          Document(title, conference, year.toInt)
+        case p @ pathRegex(conference, year, title)  =>
+          Document(title, conference, year.toInt, p)
       })
   }
 

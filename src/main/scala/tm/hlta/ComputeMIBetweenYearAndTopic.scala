@@ -6,6 +6,8 @@ import org.latlab.util.Function
 import java.util.ArrayList
 import java.util.Arrays
 import java.io.PrintWriter
+import tm.util.MIComputer.MutualInformation
+import tm.util.MIComputer
 
 object ComputeMIBetweenYearAndTopic {
   def main(args: Array[String]) {
@@ -15,10 +17,6 @@ object ComputeMIBetweenYearAndTopic {
       val outputFile = if (args.length > 3) Some(args(3)) else None
       run(args(0), args(1), args(2), outputFile)
     }
-  }
-
-  case class MutualInformation(mi: Double, entropies: IndexedSeq[Double]) {
-    def toCSV(delimiter: String) = (mi +: entropies).mkString(delimiter)
   }
 
   val yearVariable = new Variable("year",
@@ -40,13 +38,13 @@ object ComputeMIBetweenYearAndTopic {
     val discretizedYears = documents.map(_.year).map(discretize)
 
     val counts = computeCounts(documentTopics, discretizedYears, 0.5)
-    val mi = counts.par.map(computeMI).seq
+    val mi = counts.par.map(MIComputer.compute).seq
 
     val delimiter = "\t"
     val output = documentTopics.variables.zip(mi).map { p =>
       val topic = topics(p._1.getName)
       Seq(topic.name, topic.level, topic.words.mkString(","),
-        p._2.toCSV(delimiter)).mkString(delimiter)
+        miToCSV(delimiter)(p._2)).mkString(delimiter)
     }
 
     output.foreach(println)
@@ -84,38 +82,6 @@ object ComputeMIBetweenYearAndTopic {
     counts
   }
 
-  def computeMI(counts: Array[Array[Double]]) = {
-    val prob1 = getMarginal(counts.map(_.sum))
-    val prob2 = getMarginal(counts.reduce((a1, a2) => a1.zip(a2).map(p => p._1 + p._2)))
-
-    val sum = counts.map(_.sum).sum
-
-    val values = (for {
-      i <- (0 until counts.size)
-      j <- (0 until counts(i).size)
-    } yield {
-      val p = counts(i)(j) / sum
-      if (p > 0)
-        multiply(p, log(p / (prob1(i) * prob2(j))))
-      else
-        0
-    })
-
-    MutualInformation(values.sum,
-      IndexedSeq(computeEntropy(prob1), computeEntropy(prob2)))
-  }
-
-  def multiply(x1: Double, x2: Double) = if (x1 == 0 || x2 == 0) 0 else x1 * x2
-  
-  def log(x: Double, base: Double = 2) = Math.log(x) / Math.log(base)
-
-  def getMarginal(counts: Array[Double]) = {
-    val sum = counts.sum
-    counts.map(_ / sum)
-  }
-
-  def computeEntropy(values: Seq[Double]) = {
-    -values.map(v => multiply(v, log(v))).sum
-  }
-
+  def miToCSV(delimiter: String)(mi: MutualInformation) =
+    (mi.mi +: mi.entropies).mkString(delimiter)
 }

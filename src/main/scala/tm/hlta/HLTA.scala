@@ -90,4 +90,13 @@ object HLTA {
 
     variablesToLevels.toMap
   }
+
+  /**
+   * Gets the top level topic variables.
+   */
+  def getTopLevelVariables(model: LTM): List[Variable] = {
+    val levels = HLTA.readLatentVariableLevels(model).toList
+      .groupBy(_._2).mapValues(_.map(_._1))
+    levels(levels.keys.max)
+  }
 }

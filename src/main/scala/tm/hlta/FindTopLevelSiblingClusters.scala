@@ -45,8 +45,7 @@ object FindTopLevelSiblingClusters {
       println(data.getVariables.length)
       println(data.getData.size())
 
-      val levels = HLTA.readLatentVariableLevels(model).toList.groupBy(_._2)
-      val top = levels(levels.keys.max).map(_._1)
+      val top = HLTA.getTopLevelVariables(model)
 
       //    val topLevelData = PEMTools.HardAssignment(data, model, top.toArray)
       val topLevelData = HLTA.hardAssignment(data, model, top.toArray)

@@ -21,7 +21,6 @@ object Convert {
 
       tm.text.Convert.convert(args(0), Paths.get(args(3)))
     }
-
   }
 
   def printUsage() = {

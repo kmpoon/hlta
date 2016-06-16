@@ -40,7 +40,9 @@ object AssignTopics {
 
       println("Saving topic data")
       outputName + "-topics"
-      saveTopicData(outputName + "-topics", topicDataFile, topicData)
+
+      topicData.saveAsArff(outputName + "-topics",
+        topicDataFile, new DecimalFormat("#0.##"))
       (model, topicData)
     }
 
@@ -51,18 +53,12 @@ object AssignTopics {
     writeTopicMap(map, outputName + ".topics.js")
   }
 
-  def binarizeData(data: Data) = {
-    def binarize(value: Double) = if (value > 0) 1.0 else 0.0
-    data.copy(instances = data.instances.view.map(
-      i => i.copy(values = i.values.map(binarize))))
-  }
-
   def readModelAndComputeTopicData(modelFile: String, dataFile: String) = {
     println("reading model and data")
     val (model, data) = Reader.readLTMAndARFFData(modelFile, dataFile)
 
     println("binarizing data")
-    val binaryData = binarizeData(data)
+    val binaryData = data.binary
 
     val variables = model.getInternalVars.toIndexedSeq
 
@@ -72,14 +68,7 @@ object AssignTopics {
       HLTA.computeProbabilities(model, binaryData, variables)
         .map(p => Data.Instance(p._1.toArray.map(_(1)), p._2))
 
-    (model, Data(variables, topicProbabilities))
-  }
-
-  def saveTopicData(name: String, filename: String, data: Data) = {
-    val df = new DecimalFormat("#0.##")
-    ArffWriter.write(name, filename,
-      ArffWriter.AttributeType.numeric,
-      data.variables.map(_.getName), data.instances, df.format)
+    (model, Data(variables, topicProbabilities.toIndexedSeq))
   }
 
   /**

@@ -1,6 +1,5 @@
 package tm.util
 
-import java.nio.file.Path
 import java.io.PrintWriter
 
 object ArffWriter {

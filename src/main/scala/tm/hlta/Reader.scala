@@ -15,6 +15,7 @@ import tm.util.Data
 import org.latlab.model.BayesNet
 import weka.core.Attribute
 import java.util.ArrayList
+import scala.collection.LinearSeq
 
 object Reader {
   implicit final class ARFFToData(val d: Instances) {
@@ -81,7 +82,7 @@ object Reader {
   }
 
   def formDataWithVariablesInModel[M <: BayesNet](
-    variableNames: IndexedSeq[String], instances: Seq[Data.Instance],
+    variableNames: IndexedSeq[String], instances: IndexedSeq[Data.Instance],
     model: M) = {
     // use the variables in the model
     val nameToVariableMap =

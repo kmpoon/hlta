@@ -12,7 +12,6 @@ import java.nio.file.Path
 object Convert {
   def convert(name: String, source: Path)(implicit settings: Settings) = {
     import Preprocessor.tokenizeBySpace
-    import StopWords.implicits.default
 
     val log = println(_: String)
 
