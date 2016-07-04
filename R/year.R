@@ -131,16 +131,91 @@ plot.years <- function(topic) {
     plot(compute.fraction(topic))
 }
 
-plot.fraction.years <- function(topic) {
-    quartz(title=topic, width=5, height=5)
+plot.fraction.years <- function(topic, new=TRUE, use.words=FALSE, ylim=50) {
+    if (use.words) 
+        title <- topics[topics$name==topic,]$words
+    else
+        title <- topic
+    
+    
+    if (new)
+        quartz(title=title, width=5, height=5)
+    
     m <- compute.fraction.matrix(topic)
 
     ## convert to percentage
     m[,2] <- m[,2] * 100
     
     plot(m[,1], m[,2], pch=16, col="blue",
-         main=topic, ylab="Documents (%)", xlab="Year", ylim=c(0,50))
-    abline(lm(fraction ~ year, as.data.frame(m)))
+         main=title, ylab="Documents (%)", xlab="Year", ylim=c(0,ylim))
+    abline(lm(fraction ~ year, as.data.frame(m)), col=gray(0.5))
+
+    if (new) {
+        filename <- paste(topic, "-trend.pdf", sep="")
+        quartz.save(filename, type="pdf")
+    }
+}
+
+plot.years.separate <- function(topics) {
+    for (t in topics) {
+        plot.fraction.years(t)
+    }
+}
+
+run <- function() {
+    plot.fraction.years("Z1321", ylim=12)
+    plot.fraction.years("Z1327", ylim=10)
+    plot.fraction.years("Z1315", ylim=8)
+    plot.fraction.years("Z12311", ylim=12)
+    plot.fraction.years("Z13032", ylim=10)
+    plot.fraction.years("Z2995", ylim=8)
+}
+
+plot.downward <- function() {
+    yl <- 15
+    plot.fraction.years("Z3159", ylim=yl)
+    plot.fraction.years("Z3384", ylim=yl)
+    plot.fraction.years("Z3302", ylim=yl)
+    plot.fraction.years("Z3192", ylim=yl)
+    plot.fraction.years("Z3158", ylim=yl)
+}
+
+plot.upward <- function() {
+    yl <- 15
+    plot.fraction.years("Z370", ylim=yl)
+    plot.fraction.years("Z344", ylim=yl)
+    plot.fraction.years("Z3207", ylim=yl)
+    plot.fraction.years("Z326", ylim=yl)
+    plot.fraction.years("Z3204", ylim=yl)
+}
+
+
+plot.toplevel.years <- function() {
+    plot.topic.years(c("Z77", "Z72", "Z79", "Z711", "Z73", "Z74", "Z71",
+                       "Z713", "Z76", "Z712", "Z75", "Z78", "Z710"),
+                     TRUE)
+}
+
+plot.topic.years <- function(ts, use.words=FALSE) {
+    quartz(title="Topic Trend", width=15, height=9)
+
+    nrows <- ceiling(length(ts) / 5)
+    opar <- par(no.readonly=TRUE)
+    par(mfrow=c(nrows, 5), mar=c(2,2,2,1))
+    
+    for (topic in ts) {
+        m <- compute.fraction.matrix(topic)
+        words <- topics[topics$name==topic,]$words
+
+        ## convert to percentage
+        m[,2] <- m[,2] * 100
+    
+        plot(m[,1], m[,2], pch=16, col="blue",
+             ylim=c(0,50),ann=FALSE)
+        abline(lm(fraction ~ year, as.data.frame(m)), col=gray(0.5))
+        title(main=topic)
+    }
+    par(opar)
 }
 
 ## Computes regression coefficients for topics.  The data is saved if a filename
@@ -152,7 +227,8 @@ compute.coefficients <- function(filename=NULL, topics.selected=NULL) {
     coefficients <- find.coefficients(topics.selected)
     lines <- fit.fraction.lm.topics(topics.selected)
 
-    indices <- sapply(rownames(coefficients), function(t) { which(topics$name==t) })
+    indices <- sapply(rownames(coefficients),
+                      function(t) { which(topics$name==t) })
     data <- cbind(topics[indices,], coefficients, lines)
 
     if (!is.null(filename)) {
