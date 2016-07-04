@@ -1,0 +1,75 @@
+/**
+ * Function0D.java 
+ * Copyright (C) 2006 Tao Chen, Kin Man Poon, Yi Wang, and Nevin L. Zhang
+ */
+package org.latlab.util;
+
+/**
+ * This class provides an implementation for zero-dimensional tabular functions,
+ * namely, scalors.
+ * 
+ * @author Yi Wang
+ * 
+ */
+class Function0D extends Function {
+
+	/**
+	 * <p>
+	 * Constructs a zero-dimensional function of the specified array of variables.
+	 * </p>
+	 * 
+	 * <p>
+	 * Note: Only function classes are supposed to call this method.
+	 * </p>
+	 * 
+	 * @param variables
+	 *            array of variables to be involved.
+	 */
+	protected Function0D(Variable[] variables) {
+		super(variables);
+	}
+
+	/**
+	 * <p>
+	 * Constructs a function with all its internal data structures specified.
+	 * </p>
+	 * 
+	 * <p>
+	 * Note: Only function classes are supposed to call this method.
+	 * </p>
+	 * 
+	 * @param variables
+	 *            array of variables in new function.
+	 * @param cells
+	 *            array of cells in new function.
+	 * @param magnitudes
+	 *            array of magnitudes for variables in new function.
+	 */
+	protected Function0D(Variable[] variables, double[] cells, int[] magnitudes) {
+		super(variables, cells, magnitudes);
+	}
+
+	/**
+	 * <p>
+	 * Returns the product between this function and the specified function. In
+	 * case of zero-dimensional function, the multiplication reduces to scale
+	 * product.
+	 * </p>
+	 * 
+	 * <p>
+	 * This method is time critical. It is intensively used in inference
+	 * algorithms.
+	 * </p>
+	 * 
+	 * @param function
+	 *            multiplier function.
+	 * @return the product between this function and the specified function.
+	 */
+	public final Function times(Function function) {
+		Function product = function.clone();
+		product.times(_cells[0]);
+
+		return product;
+	}
+
+}

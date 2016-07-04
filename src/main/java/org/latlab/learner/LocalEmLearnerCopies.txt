@@ -1,0 +1,345 @@
+/**
+ * LocalEmLearner.java 
+ * Copyright (C) 2006 Tao Chen, Kin Man Poon, Yi Wang, and Nevin L. Zhang
+ */
+package org.latlab.learner;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
+
+import org.latlab.model.BayesNet;
+import org.latlab.model.HLCM;
+import org.latlab.model.BeliefNode;
+import org.latlab.reasoner.CliqueTreePropagation;
+import org.latlab.reasoner.CliqueTree;
+import org.latlab.reasoner.CliqueNode;
+import org.latlab.util.DataSet;
+import org.latlab.util.Function;
+import org.latlab.util.Variable;
+import org.latlab.util.DataSet.DataCase;
+import org.latlab.graph.Edge;
+
+/**
+ * This class provides an implementation for the local version of the EM
+ * algorithm for BNs. Chickering and Heckerman's restarting strategy will be
+ * used to avoid local maxima. In this version of EM, not all parameters but
+ * those for a subset of belief nodes can change. Consequently, in each E-step,
+ * we only need to recompute sufficient statistics for those mutable nodes.
+ * Moreover, for a given data case, messages from immutable cliques will not
+ * change between EM steps. Thus we can reuse them. To achieve both goal, we
+ * build a CTP for each data case and deploy a partial propagation on it.
+ * 
+ * @author Yi Wang
+ * 
+ */
+public final class LocalEmLearnerCopies extends EmLearner {
+
+	/*
+	 * A repository of messages. For each dataCase, the corresponding
+	 * cliqueTreePropagation
+	 */
+	private HashMap<DataCase, CliqueTree> _repository;
+
+	/**
+	 * Selects a good starting point using Chickering and Heckerman's strategy.
+	 * Note that this restating phase will terminate midway if the maximum
+	 * number of steps is reached. However, it will not terminate if the EM
+	 * algorithm already converges on some starting point. That makes things
+	 * complicated.
+	 * 
+	 * @param bayesNet
+	 *            BN to be optimized.
+	 * @param mutableNodes
+	 *            collection of belief nodes whose parameters can change.
+	 * @param dataSet
+	 *            data set to be used.
+	 * @return the CTPs for the best starting point.
+	 */
+	@SuppressWarnings("unchecked")
+	private HashMap<DataCase, CliqueTreePropagation> chickeringHeckermanRestart(
+			BayesNet bayesNet, Collection<BeliefNode> mutableNodes,
+			DataSet dataSet) {
+		// generates random starting points and CTPs for them
+		HashMap<DataCase, CliqueTreePropagation>[] ctps = new HashMap[_nRestarts];
+
+		// This block is knid of important since it construct the em engine for
+		// every random restarts. Therefore there are ah-hoc codes for HLCM and
+		// for copying already-computed messages from a repository.
+		for (int i = 0; i < _nRestarts; i++) {
+			BayesNet bayesNetCopy = bayesNet.clone();
+
+			// finds mutable nodes in new BN
+			ArrayList<BeliefNode> mutableNodesCopy = new ArrayList<BeliefNode>();
+			for (BeliefNode node : mutableNodes) {
+				mutableNodesCopy.add(bayesNetCopy.getNode(node.getVariable()));
+			}
+
+			// in case we reuse the parameters of the input BN as a starting
+			// point, we put it at the first place.
+			if (!_reuse || i != 0) {
+				bayesNetCopy.randomlyParameterize(mutableNodesCopy);
+			}
+
+			ctps[i] = new HashMap<DataCase, CliqueTreePropagation>();
+
+			// builds a CTP for each data case and fixes the evidence
+
+			// These codes are kind of ad-hoc
+			CliqueTreePropagation ctp;
+			if (bayesNetCopy instanceof HLCM) {
+				ctp = new CliqueTreePropagation((HLCM) bayesNetCopy,
+						mutableNodesCopy);
+			} else {
+				ctp = new CliqueTreePropagation(bayesNetCopy, mutableNodesCopy);
+			}
+
+			for (DataCase dataCase : dataSet.getData()) {
+				CliqueTreePropagation copy = ctp.clone();
+				// fixes evidence
+				copy.setEvidence(dataSet.getVariables(), dataCase.getStates());
+
+				if (_repository != null)
+					copyMessages(_repository.get(dataCase), copy);
+
+				// maps data case to clique tree propagation engine
+				ctps[i].put(dataCase, copy);
+			}
+		}
+
+		// We run several steps of LocalEm.emStep before killing starting points
+		// for two
+		// reasons: 1. the loglikelihood computed is always that of previous
+		// model. 2. When reuse, the reused model is kind of dominant because
+		// maybe it has alreay EMed.
+		for (int j = 0; j < _numInitIterations; j++) {
+			for (int i = 0; i < _nRestarts; i++) {
+				emStep(ctps[i], dataSet);
+			}
+			_nSteps++;
+			// if( _nSteps >= _nMaxSteps ) break;
+			// We can ignore this judgement as long as require that
+			// _numInitIterations<_nMaxSteps
+		}
+
+		// game starts, half ppl die in each round :-)
+		int nCandidates = _nRestarts;
+		int nStepsPerRound = 1;
+
+		while (nCandidates > 1 && _nSteps < _nMaxSteps) {
+			// runs EM on all starting points for several steps
+			for (int j = 0; j < nStepsPerRound; j++) {
+				for (int i = 0; i < nCandidates; i++) {
+					emStep(ctps[i], dataSet);
+				}
+				_nSteps++;
+			}
+
+			// sorts BNs in descending order with respect to loglikelihoods
+			for (int i = 0; i < nCandidates - 1; i++) {
+				for (int j = i + 1; j < nCandidates; j++) {
+					BayesNet bayesNet1 = ctps[i].values().iterator().next()
+							.getBayesNet();
+					BayesNet bayesNet2 = ctps[j].values().iterator().next()
+							.getBayesNet();
+					if (bayesNet1.getLoglikelihood(dataSet) < bayesNet2
+							.getLoglikelihood(dataSet)) {
+						HashMap<DataCase, CliqueTreePropagation> tempCtps = ctps[i];
+						ctps[i] = ctps[j];
+						ctps[j] = tempCtps;
+					}
+				}
+			}
+
+			// retains top half
+			nCandidates /= 2;
+
+			// doubles EM steps subject to maximum step constraint
+			nStepsPerRound = Math.min(nStepsPerRound * 2, _nMaxSteps - _nSteps);
+		}
+
+		// returns the CTPs for the best starting point
+		return ctps[0];
+	}
+
+	/**
+	 * Copy usefull messages from the CliqueTree repository to the
+	 * CliqueTreePropagation. <b>This method is exclusively for accelate the
+	 * HLCM localEM.</b> The CliqueTreePropagation is for inference in localEM.
+	 * Therefore there are focused part and non-focused part. In our
+	 * application, the "usefullness" of a message means that it is a message
+	 * along the edge from non-focused to focused.
+	 * 
+	 * @param ctRepository
+	 *            A CliqueTree which stores "useful" messages.
+	 * @param ctp
+	 *            The CliqueTreePropagation for inference in localEM.
+	 */
+	private void copyMessages(CliqueTree ctRepository, CliqueTreePropagation ctp) {
+		CliqueTree ctInCtp = ctp.getCliqueTree();
+		for (Edge edge : ctInCtp.getEdges()) {
+			CliqueNode head = (CliqueNode) edge.getHead();
+			CliqueNode tail = (CliqueNode) edge.getTail();
+			Variable hVar;
+			Variable tVar;
+			Function message;
+			if (ctInCtp.inFocusedSubtree(head)
+					&& !ctp.getCliqueTree().inFocusedSubtree(tail)) {
+				hVar = ctInCtp.getFamilyBelief(head).iterator().next()
+						.getVariable();
+				tVar = ctInCtp.getFamilyBelief(tail).iterator().next()
+						.getVariable();
+
+				CliqueNode headInRepository = ctRepository
+						.getFamilyClique(ctRepository.getBayesNet().getNode(
+								hVar));
+				CliqueNode tailInRepository = ctRepository
+						.getFamilyClique(ctRepository.getBayesNet().getNode(
+								tVar));
+
+				message = tailInRepository.getMessageTo(headInRepository);
+
+				assert message != null;
+
+				tail.setMessageTo(head, message);
+			} else if (ctInCtp.inFocusedSubtree(tail)
+					&& !ctp.getCliqueTree().inFocusedSubtree(head)) {
+				hVar = ctInCtp.getFamilyBelief(head).iterator().next()
+						.getVariable();
+				tVar = ctInCtp.getFamilyBelief(tail).iterator().next()
+						.getVariable();
+
+				CliqueNode headInRepository = ctRepository
+						.getFamilyClique(ctRepository.getBayesNet().getNode(
+								hVar));
+				CliqueNode tailInRepository = ctRepository
+						.getFamilyClique(ctRepository.getBayesNet().getNode(
+								tVar));
+
+				message = headInRepository.getMessageTo(tailInRepository);
+
+				assert message != null;
+				head.setMessageTo(tail, message);
+			}
+		}
+	}
+
+	/**
+	 * Returns an optimized BN with respect to the specified data set. Note that
+	 * the argument BN will not change.
+	 * 
+	 * @param bayesNet
+	 *            BN to be optimized.
+	 * @param mutableNodes
+	 *            collection of belief nodes whose parameters can change.
+	 * @param dataSet
+	 *            data set to be used.
+	 * @return an optimized BN.
+	 */
+	public BayesNet em(BayesNet bayesNet, Collection<BeliefNode> mutableNodes,
+			DataSet dataSet) {
+		// resets the number of EM steps
+		_nSteps = 0;
+
+		// System.out.println("nStepsNow:" + _nSteps);
+
+		// selects starting point
+		HashMap<DataCase, CliqueTreePropagation> ctps = chickeringHeckermanRestart(
+				bayesNet, mutableNodes, dataSet);
+
+		emStep(ctps, dataSet);
+		_nSteps++;
+
+		// runs EM until convergence
+		double loglikelihood;
+		bayesNet = ctps.values().iterator().next().getBayesNet();
+		do {
+			loglikelihood = bayesNet.getLoglikelihood(dataSet);
+			emStep(ctps, dataSet);
+			_nSteps++;
+		} while (bayesNet.getLoglikelihood(dataSet) - loglikelihood > _threshold
+				&& _nSteps < _nMaxSteps);
+
+		// System.out.println(": " + bayesNet.getLoglikelihood(dataSet));
+		// System.out.println("nStepsNow:" + _nSteps);
+
+		return bayesNet;
+	}
+
+	/**
+	 * Runs one EM step on the specified BN using the specified collection of
+	 * CTPs as the inference algorithm and returns the increase in
+	 * loglikelihood.
+	 * 
+	 * @param ctps
+	 *            collection of CTPs for the BN to be optimized.
+	 * @param dataSet
+	 *            data set to be used.
+	 */
+	private void emStep(HashMap<DataCase, CliqueTreePropagation> ctps,
+			DataSet dataSet) {
+		// gets the BN to be optimized and the mutable nodes
+		CliqueTreePropagation ctp = ctps.values().iterator().next();
+		BayesNet bayesNet = ctp.getBayesNet();
+		ArrayList<BeliefNode> mutableNodes = ctp.getFocusNodes();
+
+		// sufficient statistics for each node
+		HashMap<BeliefNode, Function> suffStats = new HashMap<BeliefNode, Function>();
+
+		double loglikelihood = 0.0;
+
+		// computes datum by datum
+		for (DataCase dataCase : dataSet.getData()) {
+			double weight = dataCase.getWeight();
+
+			// propagates
+			ctp = ctps.get(dataCase);
+			double likelihood = ctp.propagate();
+
+			// updates sufficient statistics for each mutable node
+			for (BeliefNode node : mutableNodes) {
+				Function fracWeight = ctp.computeFamilyBelief(node);
+				fracWeight.times(weight);
+
+				if (suffStats.containsKey(node)) {
+					suffStats.get(node).plus(fracWeight);
+				} else {
+					suffStats.put(node, fracWeight);
+				}
+			}
+
+			// updates loglikelihood
+			loglikelihood += Math.log(likelihood) * weight;
+		}
+
+		// updates parameters
+		for (BeliefNode node : mutableNodes) {
+			Function cpt = suffStats.get(node);
+			cpt.normalize(node.getVariable());
+			node.setCpt(cpt);
+		}
+
+		// System.out.println("ll of " + _nSteps + ": " + loglikelihood );
+
+		// updates loglikelihood of argument BN
+		bayesNet.setLoglikelihood(dataSet, loglikelihood);
+	}
+
+	/**
+	 * Get the message of repository.
+	 */
+	public HashMap<DataCase, CliqueTree> getRepository() {
+		return _repository;
+	}
+
+	/**
+	 * Set the message of repository. It is a mapping from every dataCase to a
+	 * CliqueTree. Useful messages are stored in the CliqueNodes. When calling
+	 * this method, make sure that the messages are properly set.
+	 * 
+	 * @param repository
+	 */
+	public void setRepository(HashMap<DataCase, CliqueTree> repository) {
+		_repository = repository;
+	}
+}

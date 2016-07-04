@@ -1,0 +1,449 @@
+/**
+ * JavaCC file
+ */
+
+options {
+  JDK_VERSION = "1.5";
+  STATIC = false;
+  UNICODE_INPUT = true;
+}
+PARSER_BEGIN(BifParser)
+package org.latlab.io.bif;
+
+import org.latlab.io.AbstractParser;
+import org.latlab.io.BeliefNodeProperty;
+import org.latlab.io.DependencyEdgeProperty;
+import org.latlab.io.Properties;
+
+import java.util.ArrayList;
+import java.awt.Point;
+import java.awt.Color;
+
+import org.latlab.io.BeliefNodeProperty.ConnectionConstraint;
+import org.latlab.model.BayesNet;
+import org.latlab.model.BeliefNode;
+import org.latlab.util.Function;
+import org.latlab.util.Variable;
+import org.latlab.graph.Edge;
+
+public class BifParser extends AbstractParser {
+	public void parse(BayesNet network) throws org.latlab.io.ParseException {
+		try {
+			properties = new Properties();
+			Network(network);
+		}
+		catch (Throwable e) {
+			throw new org.latlab.io.ParseException(e);
+		}
+	}
+
+
+	public Properties getProperties() {
+		return properties;
+	}
+	
+	private static int computeNumberOfCells(ArrayList<Variable> variables) {
+		if (variables.size() == 0)
+			return 0;
+
+		int product = 1;
+		for (Variable v : variables) {
+			product *= v.getStates().size();
+		}
+		
+		return product;
+	}
+	
+	private Properties properties;
+}
+
+PARSER_END(BifParser)
+
+<DEFAULT> SPECIAL_TOKEN:
+{
+	<NEWLINE: "\r" | "\n" | "\r\n">
+}
+
+<*> TOKEN:
+{
+	<#DIGIT: ["0"-"9"]>
+|	<#ALPHA: ["a"-"z","A"-"Z"]>
+|	<#UNICODE_CHAR: ["\u0080"-"\uFFFF"]>
+|	<#ALPHA_DASH: <ALPHA> | <UNICODE_CHAR> | ["-", "_"]>
+|	<#ALPHA_DASH_SPACE: <ALPHA_DASH> | " ">
+|	<UTF8_INDICATOR: "\ufeff">
+}
+
+<*> SKIP: // white space
+{
+ 	" "
+|	"\t"
+}
+
+<*> SPECIAL_TOKEN: // comments
+{
+	<SINGLE_LINE_COMMENT: "//" (~["\n","\r"])* (<NEWLINE>)>
+}
+
+<DEFAULT> TOKEN: // keywords
+{
+	<NETWORK: "network">
+|	<VARIABLE: "variable">
+| 	<EDGE: "edge">
+| 	<HEAD: "head">
+| 	<TAIL: "tail">
+|	<PROBABILITY: "probability">
+|	<TYPE: "type">
+|	<DISCRETE: "discrete">
+|	<DEFAULT_VALUE: "default">
+|	<TABLE: "table">
+|	<PROPERTY: "property"> : PROPERTY_STATE
+}
+
+<*> TOKEN:
+{
+	<#EXPONENT: ["e","E"] ["+","-"] (<DIGIT>)+>
+|	<NON_NEGATIVE_INTEGER: (<DIGIT>)+>
+|	<NON_NEGATIVE_FLOAT: (<DIGIT>)+ 
+	| (<DIGIT>)* "." (<DIGIT>)+
+	| (<DIGIT>)* ("."(<DIGIT>)+)? <EXPONENT>
+	>
+}
+
+<DEFAULT> TOKEN:
+{
+	<IDENTIFIER: "\"" (~["\""])* "\"">
+// |	<IDENTIFIER: "\"" (<ALPHA_DASH>)+ (<ALPHA_DASH> | <DIGIT>)* "\"">
+}
+
+<PROPERTY_STATE> TOKEN:
+{
+	<PROPERTY_DOUBLE_QUOTE: "\"">
+|	<POSITION: "position">
+|	<ROTATION: "rotation">
+|	<FRAME: "frame">
+|	<LABEL: "label">
+|	<FORECOLOR: "foreColor">
+|	<BACKCOLOR: "backColor">
+|	<LINECOLOR: "lineColor">
+|	<FONT: "font">
+|	<FONTSIZE: "fontSize">
+|	<CONNECTION_CONSTRAINT: "connectionConstraint">
+|	<NONE: "none">
+|	<OVAL: "oval">
+|	<RECTANGLE: "rectangle">
+|	<PROPERTY_EQUAL: "=">
+|	<PROPERTY_LPARENTHESE: "(">
+|	<PROPERTY_RPARENTHESE: ")">
+|	<PROPERTY_COMMA: ",">
+|	<PROPERTY_END_CHAR: ";"> : DEFAULT
+|	<SINGLE_QUOTED_STRING: "'" (~["'"])* "'">
+}
+
+void Network(BayesNet network ) :
+{ 
+}
+{
+	(<UTF8_INDICATOR>)? // this indicator exists on Windows
+	NetworkDeclaration(network) 
+	(VariableDeclaration(network))*
+	(EdgeDeclaration(network))* 
+	(ProbabilityDeclaration(network))* 
+	<EOF> 
+}
+
+void NetworkDeclaration(BayesNet network) :
+{ String name = null; }
+{
+	<NETWORK> name=IdentifierValue() "{" "}" { network.setName(name); }
+}
+
+void VariableDeclaration(BayesNet network) :
+{ 
+	String name;
+	ArrayList<String> states;
+	BeliefNode node = null;
+}
+{
+	<VARIABLE> name=IdentifierValue()
+	"{"	
+		states=VariableStatesDeclaration() 
+		{ node = network.addNode(new Variable(name, states)); } 
+		(VariableProperty(node, properties))*
+	"}"
+}
+
+void EdgeDeclaration(BayesNet network):
+{
+  String head;
+  String tail;
+  BeliefNode headNode = null;
+  BeliefNode tailNode = null;
+  Edge edge = null;
+}
+{
+	<EDGE>
+	"("
+		<HEAD> "=" head = IdentifierValue() ";"
+		<TAIL> "=" tail = IdentifierValue() ";"
+		{
+		  headNode = (BeliefNode)network.getNode(head);
+		  tailNode = (BeliefNode)network.getNode(tail);
+		  edge = network.addEdge(headNode,tailNode);
+		}	
+	")"
+	"{"
+       (EdgeProperty(edge, properties))*
+	"}"
+}
+
+void ProbabilityDeclaration(BayesNet network) :
+{ 
+	ArrayList<Variable> variables = new ArrayList<Variable>();
+	String childName = null;
+	String parentName = null;
+	BeliefNode node = null;
+	Function function = null;
+}
+{
+	<PROBABILITY> "(" 
+	childName=IdentifierValue() 
+	{ 
+		node = (BeliefNode) network.getNode(childName); 
+		variables.add(node.getVariable());
+	}
+	( (","|"|")? parentName=IdentifierValue() 
+		{ 
+			BeliefNode parentNode = (BeliefNode) network.getNode(parentName);
+			if(node.getEdge(parentNode)== null)
+				network.addEdge(node, parentNode);
+			variables.add(parentNode.getVariable());
+		}
+	)* 
+	")" "{" 
+		function=ProbabilityDefinition(variables) 
+		{ node.setCpt(function); }
+	"}"
+}
+
+/**
+	Reads a probability definition for a given node.
+	The first variable in the argument is the node variable, and the
+	remaining variables (if exist) are the parent variables.
+	The probabilities specified in the file depend on the order 
+	of these variables.
+*/
+Function ProbabilityDefinition(ArrayList<Variable> variables) :
+{
+	double probability;
+	Function function = Function.createFunction(variables);
+}
+{
+	<TABLE> 
+	{ 
+		int numberOfCells = computeNumberOfCells(variables);
+		ArrayList<Double> cells = new ArrayList<Double>(numberOfCells);
+	} 
+	( 
+		probability=NonNegativeFloat()
+		{ cells.add(probability); }
+	)+ ";" 
+	{
+		function.setCells(variables, cells);
+		return function; 
+	}
+|	("(" 
+		{ 
+			ArrayList<Integer> states = 
+				new ArrayList<Integer>(variables.size());
+			states.add(0);	// start the child state from zero
+			int stateIndex;
+		}
+		( 
+			// the states.size() indicate the index of the next parent
+			stateIndex = State(variables.get(states.size()))
+			{ 
+				states.add(stateIndex);
+			}
+		)+ 
+			
+	")" 
+		{ 
+			if (states.size() != variables.size())
+				throw new ParseException(
+					"The parent states are not completed specified.");
+		}
+	(
+		probability=NonNegativeFloat()
+		{
+			function.setCell(variables, states, probability);
+			states.set(0, states.get(0) + 1);
+		}
+	)+ 
+		{
+			if (states.get(0) != variables.get(0).getStates().size())
+				throw new ParseException(
+					"The probabilities are not specified for all of the states.");
+		}
+	";")+ { return function; }
+}
+
+ArrayList<String> VariableStatesDeclaration() :
+{ 
+	int numberOfStates;
+	String state;
+	ArrayList<String> states;
+}
+{
+	<TYPE> <DISCRETE> "[" numberOfStates=NonNegativeInteger() "]" 
+		{ states = new ArrayList<String>(numberOfStates); }
+	"{" (state=IdentifierValue() { states.add(state); } (",")? )+ "}" (";")?
+	{ 
+		if (numberOfStates != states.size()) {
+			String message = String.format(
+				"The number of states (%d)" +
+					" does not match that declared (%d)",
+				states.size(), numberOfStates);
+			throw new ParseException(message);
+		}
+		return states; 
+	}
+}
+
+void VariableProperty(BeliefNode node, Properties properties) :
+{ BeliefNodeProperty property = properties.getBeliefNodeProperty(node); }
+{
+	<PROPERTY> VariablePropertyString(property) <PROPERTY_END_CHAR>
+}
+
+void EdgeProperty(Edge edge, Properties properties):
+{
+  int x;
+  int y;
+  DependencyEdgeProperty property = properties.getDependencyEdgeProperty(edge);
+}
+{
+  "("
+  x=NonNegativeInteger() "," y=NonNegativeInteger()
+  ")"
+  {
+		property.addPoint(new Point(x,y));
+  }
+}
+  
+// Reads a property string from the input and put it into the property object.
+void VariablePropertyString(BeliefNodeProperty property) :
+{ 
+	int x;
+	int y;
+	int angle;
+	BeliefNodeProperty.FrameType frame;
+	String text;
+	Color color;
+}
+{
+	(
+	<PROPERTY_DOUBLE_QUOTE> (
+	(<POSITION> <PROPERTY_EQUAL> <PROPERTY_LPARENTHESE> 
+		x=NonNegativeInteger() <PROPERTY_COMMA> 
+		y=NonNegativeInteger() <PROPERTY_RPARENTHESE>)
+	{
+		property.setPosition(new Point(x,y));
+	}
+| 	(<ROTATION> <PROPERTY_EQUAL> angle=NonNegativeInteger())
+	{
+		property.setRotation(angle);
+	}
+|	(<FRAME> <PROPERTY_EQUAL> frame= FrameType())
+	{
+		property.setFrame(frame);
+	}
+|	(<LABEL> <PROPERTY_EQUAL> text=QuotedStringValue())
+	{
+		property.setLabel(text);
+	}
+|	(<FORECOLOR> <PROPERTY_EQUAL> color=ColorValue())
+	{
+		property.setForeColor(color);
+	}
+|	(<BACKCOLOR> <PROPERTY_EQUAL> color=ColorValue())
+	{
+		property.setBackColor(color);
+	}
+|   (<LINECOLOR> <PROPERTY_EQUAL> color=ColorValue())
+	{
+		property.setLineColor(color);
+	}
+|	(<FONT> <PROPERTY_EQUAL> text=QuotedStringValue())
+	{
+		property.setFontName(text);
+	}
+|	(<FONTSIZE> <PROPERTY_EQUAL> x=NonNegativeInteger())
+	{
+		property.setFontSize(x);
+	}
+|	(<CONNECTION_CONSTRAINT> <PROPERTY_EQUAL> text=QuotedStringValue())
+	{
+		property.setConnectionConstraint(
+			Enum.valueOf(ConnectionConstraint.class, text));
+	}
+	) <PROPERTY_DOUBLE_QUOTE>
+	)
+}
+
+String IdentifierValue() :
+{ Token t; }
+{
+	t = <IDENTIFIER> {
+		return t.image.substring(1, t.image.length() - 1);
+	}
+}
+
+String QuotedStringValue() :
+{ Token t; }
+{
+	t = <SINGLE_QUOTED_STRING> { 
+		// trim the quotes
+		return t.image.substring(1, t.image.length() - 1); 
+	}
+}
+
+int State(Variable variable) :
+{
+	String name;
+}
+{
+	name=IdentifierValue() { return variable.indexOf(name); }
+}
+
+int NonNegativeInteger() :
+{ Token t; }
+{
+	t=<NON_NEGATIVE_INTEGER> { return Integer.parseInt(t.image); }
+}
+
+double NonNegativeFloat() :
+{ Token t; }
+{
+	t=<NON_NEGATIVE_FLOAT> { return Double.parseDouble(t.image); }
+}
+
+BeliefNodeProperty.FrameType FrameType() :
+{ BeliefNodeProperty.FrameType type; }
+{
+	( 
+	<NONE> { type = BeliefNodeProperty.FrameType.NONE; }
+|	<OVAL> { type = BeliefNodeProperty.FrameType.OVAL; }
+|	<RECTANGLE> { type = BeliefNodeProperty.FrameType.RECTANGLE; }
+	)
+	{ return type; }
+}
+
+Color ColorValue() :
+{ int r, g, b; }
+{
+	<PROPERTY_LPARENTHESE> r = NonNegativeInteger() <PROPERTY_COMMA> 
+	g = NonNegativeInteger() <PROPERTY_COMMA> 
+	b = NonNegativeInteger() <PROPERTY_RPARENTHESE>
+	{ return new Color(r,g,b); }
+}
