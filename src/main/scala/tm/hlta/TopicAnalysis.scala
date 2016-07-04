@@ -13,7 +13,7 @@ object TopicAnalysis {
   class Context(name: String) {
     lazy val titles = TitleFile.readDocuments(name + ".files.txt").toVector
     lazy val assignment = Reader.readData(name + ".topics.arff")
-    lazy val topics = TopicTable.read(name + ".TopicsTable.html")
+    lazy val topics = HTMLTopicTable.readTopics(name + ".TopicsTable.html")
     lazy val data = Reader.readData(name + ".data.arff")
   }
 

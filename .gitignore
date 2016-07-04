@@ -1,6 +1,7 @@
 .DS_Store
 .cache-main
 .cache-tests
+.history
 bin
 target
 project/target
@@ -9,7 +10,10 @@ converted
 *~
 .worksheet
 /.classpath
+/.project
 /.settings/org.eclipse.core.resources.prefs
 /.settings/org.scala-ide.sdt.core.prefs
 /.settings/org.eclipse.jdt.core.prefs
 /exp/
+/samples
+

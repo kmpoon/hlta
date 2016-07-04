@@ -1,6 +1,6 @@
 // -*- mode: scala -*-
 
-name := "TextMining"
+name := "HLTA"
 
 version := "1.0"
 
@@ -24,6 +24,7 @@ libraryDependencies ++=
     "org.apache.pdfbox" % "pdfbox" % "1.8.10" ::
 //    "colt" % "colt" % "1.2.0" ::
     "nz.ac.waikato.cms.weka" % "weka-stable" % "3.6.13" ::
+//    "io.argonaut" %% "argonaut" % "6.1" ::
 	Nil
 
 

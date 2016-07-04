@@ -58,7 +58,7 @@ object ExportCSV {
   def exportTopicTable(inputFile: String, writer: PrintWriter) = {
     writer.println(Seq("name", "level", "words").mkString(delimiter))
 
-    val topics = TopicTable.read(inputFile)
+    val topics = HTMLTopicTable.readTopics(inputFile)
     topics.foreach(_ match {
       case (topic, parent) => writer.println(
         Seq(topic.name, topic.level.toInt, topic.words.mkString(","))

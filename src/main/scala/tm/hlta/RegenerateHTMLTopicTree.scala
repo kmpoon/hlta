@@ -15,60 +15,11 @@ import java.nio.file.Path
 import tm.util.FileHelpers
 
 object TopicTable {
-  case class Word(w: String, probability: Option[Double]) {
-    override def toString = probability match {
-      case Some(p) => f"$w ($p%.03f)"
-      case None => w
-    }
-  }
-
-  object Word {
-    def apply(w: String): Word = Word(w, None)
-  }
-
-  case class Topic(name: String, level: Int, indent: Int,
-    percentage: Double, mi: Double, words: Seq[Word])
-
-  val lineRegex = """<p level ="([^"]*)" name ="([^"]*)" parent = "([^"]*)" percentage ="([^"]*)" (?:MI = "([^"]*)" )?style="text-indent:(.+?)em;"> ([.0-9]+) (.*?)</p>""".r
-  val wordsWithProbRegex = """\s*(([^ ]+) ([.0-9]+)\s*)*""".r
-
-  /**
-   *  Reads topics and their parents from the specified file.  It returns a list
-   *  in which each element is a pair of topic and its parent.
-   */
-  def read(topicsFile: String): List[(Topic, String)] = {
-    val input = Source.fromFile(topicsFile)
-    val lines = input.getLines
-      .dropWhile(_ != """<div class="div">""")
-      .drop(1) // drop the above <div> line
-      .takeWhile(_ != """</div>""")
-
-    try {
-      lines.map {
-        _ match {
-          case lineRegex(level, name, parent, percentage, mi,
-            indent, percent1, words) =>
-            val miDouble = if (mi == null) Double.NaN else mi.toDouble
-            val ws = words match {
-              case wordsWithProbRegex(_*) =>
-                words.split("\\s+").grouped(2)
-                  .map(xs => Word(xs(0), Some(xs(1).toDouble))).toVector
-              case _ => words.split("\\s+").map(Word.apply).toVector
-            }
-            (Topic(name = name, level = level.toInt, indent = indent.toInt,
-              percentage = percentage.toDouble, mi = miDouble,
-              words = ws), parent)
-        }
-      }.toList
-    } finally {
-      input.close
-    }
-  }
 
 }
 
 object RegenerateHTMLTopicTree {
-  import TopicTable.Topic
+  import TopicTree.Topic
 
   def main(args: Array[String]) {
     if (args.length < 2) {
@@ -112,13 +63,11 @@ object RegenerateHTMLTopicTree {
 
   def generateTopicTree(topicsFile: String, title: String,
     outputName: String, topLevelOrder: Map[String, Int]) = {
-    val topics = TopicTable.read(topicsFile)
-    val ltmTrees = buildLTMTrees(topics)
-    val topLevelTrees =
-      buildTopicTree(ltmTrees).sortBy { t => topLevelOrder(t.value.name) }
-    val parents = topLevelTrees.map(t =>
-      topLevelTrees.find(_.getChild(t.value).isDefined)
-        .map(_.value.name).getOrElse("none"))
+    val topLevelTrees = HTMLTopicTable.readTopicTree(topicsFile)
+      .sortBy { t => topLevelOrder(t.value.name) }
+    //    val parents = topLevelTrees.map(t =>
+    //      topLevelTrees.find(_.getChild(t.value).isDefined)
+    //        .map(_.value.name).getOrElse("none"))
     //    val content = topLevelTrees.zip(parents).foldLeft("") {
     //      (s, p) => s + treeToHtml(p._1, p._2, 4)
     //    }
@@ -134,7 +83,7 @@ object RegenerateHTMLTopicTree {
 
     implicit val topicToNode: (Topic) => Node = (topic: Topic) => {
       val label = f"${topic.percentage}%.2f ${topic.words.mkString(" ")}"
-      val data = f"""name: "${topic.name}", level: ${topic.level}, percentage: ${topic.percentage}, mi: ${topic.mi}"""
+      val data = f"""name: "${topic.name}", level: ${topic.level}, percentage: ${topic.percentage}, mi: ${topic.mi.getOrElse(Double.NaN)}"""
       Node(topic.name, label, data)
     }
   }
@@ -156,47 +105,6 @@ object RegenerateHTMLTopicTree {
 
     writer.print(content)
     writer.close
-  }
-
-  def buildLTMTrees(topics: List[(Topic, String)]): List[Tree[Topic]] = {
-    val topicToChildrenMap = topics.groupBy(_._2).map {
-      _ match {
-        case (parent, childPairs) => (parent, childPairs.map(_._1))
-      }
-    }
-
-    /**
-     * Constructs a tree of topics based on the latent tree model.  In this
-     * tree, the top level nodes may contain a child of the same level.
-     */
-    def constructLTMTree(topic: Topic): Tree[Topic] =
-      topicToChildrenMap.get(topic.name) match {
-        case Some(children) =>
-          Tree(topic, children.map(constructLTMTree))
-        case None => Tree.leaf(topic)
-      }
-
-    val roots = topics.filter(_._2 == "none").map(_._1)
-    roots.map(constructLTMTree)
-  }
-
-  /**
-   * Builds topic trees such that all top-level topics are used as roots.
-   */
-  def buildTopicTree(ltmTrees: List[Tree[Topic]]): List[Tree[Topic]] = {
-    // find all top-level topics
-    val topLevel = ltmTrees.map(_.value.level).max
-    val topLevelTrees = ltmTrees.flatMap(_.findSubTrees { _.level == topLevel })
-
-    // Filter away children of the same level.  This happens when the top level
-    // topics are connected as a tree.
-    def filterSameLevelChildren(tree: Tree[Topic]): Tree[Topic] = {
-      import tree.{ value => v }
-      Tree(v, tree.children.filter(_.value.level < v.level)
-        .map(filterSameLevelChildren))
-    }
-
-    topLevelTrees.map(filterSameLevelChildren)
   }
 
   def copyAssetFiles(basePath: Path) = {

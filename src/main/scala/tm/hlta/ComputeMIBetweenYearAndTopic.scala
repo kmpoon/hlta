@@ -29,7 +29,7 @@ object ComputeMIBetweenYearAndTopic {
   }
 
   def run(topicTableFile: String, topicFile: String, titleFile: String, outputFile: Option[String]) = {
-    val topics = TopicTable.read(topicTableFile).map(_ match {
+    val topics = HTMLTopicTable.readTopics(topicTableFile).map(_ match {
       case (topic, _) => (topic.name, topic)
     }).toMap
 

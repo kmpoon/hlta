@@ -2,6 +2,7 @@ package tm.text
 
 import scala.collection.GenSeq
 import java.io.PrintWriter
+import scala.annotation.tailrec
 
 object DataConverter {
   object AttributeType extends Enumeration {
@@ -64,6 +65,7 @@ object DataConverter {
     import Preprocessor._
     import settings._
 
+    @tailrec
     def rec(documents: GenSeq[Document], n: Int): (GenSeq[Document], Dictionary) = {
       log(s"Counting n-grams (up to ${n}) in each document")
 

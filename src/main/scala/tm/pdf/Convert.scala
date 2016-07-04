@@ -26,5 +26,4 @@ object Convert {
   def printUsage() = {
     println("tm.pdf.Convert name max_number_of_words n_of_n_gram source_directory")
   }
-
 }

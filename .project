@@ -1,5 +1,5 @@
 <projectDescription>
-  <name>TextMining</name>
+  <name>HLTA</name>
   <buildSpec>
     <buildCommand>
       <name>org.scala-ide.sdt.core.scalabuilder</name>
