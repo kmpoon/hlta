@@ -1,5 +1,5 @@
 # hlta-processing
-Provides pre-processing and post-processing functions for hierarchical latent tree analysis
+Provides functions for hierarchical latent tree analysis on text data
 
 Contributors: Prof. Nevin L. Zhang, Peixian Chen, Tao Chen, Tengfei Liu, Leonard K.M. Poon, Yi Wang
 
