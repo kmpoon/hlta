@@ -90,15 +90,15 @@ The full parameter list is: `PEM training_data test_data max_EM_steps num_EM_res
   * `lib`: Javascript and CSS files required by the main HTML file
   * `fonts`: fonts used by some CSS files
 
-# Enquiry
-
-* General questions: [Leonard Poon](mailto: kmpoon@eduhk.hk) (The Education University of Hong Kong)
-* For questions specific to the model building using the PEM algorithm: [Peixian Chen](mailto: pchenac@cse.ust.hk) (The Hong Kong University of Science and Technology)
-
 # References
 
 * [Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
 * Peixian Chen et al. (AAAI 2016) [Progressive EM for Latent Tree Models and Hierarchical Topic Detection](https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/11818/11764) [[Longer version](https://arxiv.org/abs/1605.06650)]
+
+# Enquiry
+
+* General questions: [Leonard Poon](mailto: kmpoon@eduhk.hk) (The Education University of Hong Kong)
+* For questions specific to the model building using the PEM algorithm: [Peixian Chen](mailto: pchenac@cse.ust.hk) (The Hong Kong University of Science and Technology)
 
 # Acknowledgement
 
