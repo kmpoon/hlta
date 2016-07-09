@@ -91,8 +91,8 @@ The full parameter list is: `PEM training_data test_data max_EM_steps num_EM_res
 
 # Enquiry
 
-* General questions: Leonard Poon (kmpoon@eduhk.hk, The Education University of Hong Kong)
-* For questions specific to the model building algorithm PEM: Peixian Chen (pchenac@cse.ust.hk, The Hong Kong University of Science and Technology)
+* General questions: [Leonard Poon](mailto: kmpoon@eduhk.hk) (The Education University of Hong Kong)
+* For questions specific to the model building algorithm PEM: [Peixian Chen](mailto: pchenac@cse.ust.hk) (The Hong Kong University of Science and Technology)
 
 # References
 
