@@ -97,7 +97,7 @@ The full parameter list is: `PEM training_data test_data max_EM_steps num_EM_res
 # References
 
 * [Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
-* Peixian Chen et al. (AAAI 2016) [Progressive EM for Latent Tree Models and Hierarchical Topic Detection](https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/11818/11764) [Longer version](https://arxiv.org/abs/1605.06650)
+* Peixian Chen et al. (AAAI 2016) [Progressive EM for Latent Tree Models and Hierarchical Topic Detection](https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/11818/11764) [[Longer version](https://arxiv.org/abs/1605.06650)]
 
 # Acknowledgement
 
