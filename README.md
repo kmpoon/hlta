@@ -20,7 +20,7 @@ Provides functions for hierarchical latent tree analysis on text data
 You should first obtain a JAR file from the package, by either one of the following ways:
 
 1. Build the SBT and run `sbt-assembly`.  Rename the generated JAR file to `HLTA.jar`, which we assume in the steps below.
-2. Download the `HLTA.jar` from https://github.com/kmpoon/hlta/releases/download/v1.0/HLTA.jar.
+2. Download the `HLTA.jar` from the [Releases page](https://github.com/kmpoon/hlta/releases).
 
 # Pre-processing
 
