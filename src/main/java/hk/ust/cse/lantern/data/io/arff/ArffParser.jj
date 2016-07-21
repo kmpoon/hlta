@@ -1,0 +1,204 @@
+/**
+ * JavaCC file
+ */
+ 
+options {
+  JDK_VERSION = "1.6";
+  STATIC = false;
+  UNICODE_INPUT = true;
+}
+PARSER_BEGIN(ArffParser)
+package hk.ust.cse.lantern.data.io.arff;
+
+import hk.ust.cse.lantern.data.Data;
+import hk.ust.cse.lantern.data.Instance;
+import hk.ust.cse.lantern.data.NominalVariable;
+import hk.ust.cse.lantern.data.NumericVariable;
+import hk.ust.cse.lantern.data.Variable;
+import hk.ust.cse.lantern.data.VariableCollection;
+import hk.ust.cse.lantern.data.io.IntegerText;
+
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+public class ArffParser {
+	public static Data parse(InputStream stream) throws ParseException {
+		Data data = new Data();
+		try {
+			ArffParser parser = new ArffParser(stream, "UTF-8");
+			parser.Arff(data);
+			return data;
+		} catch (RuntimeException e) {
+			if (!data.variables().isSameKind(NominalVariable.class))
+				throw new UnsupportedOperationException(
+					"Only data with all nominal variables are supported.");
+			else
+				throw e;
+		} 
+	}
+}
+PARSER_END(ArffParser)
+
+SKIP :
+{
+ 	" "
+|	"\r"
+|	"\t"
+|	"\n"
+}
+SPECIAL_TOKEN:
+{
+	<NEWLINE: "\r" | "\n" | "\r\n">
+}
+SPECIAL_TOKEN: // comments
+{
+	<SINGLE_LINE_COMMENT: "%" (~["\n","\r"])* (<NEWLINE>)>
+}
+TOKEN :
+{
+	<#ALPHA: ["a"-"z", "A"-"Z"]>
+|   <#DIGIT: ["0"-"9"] >
+|	<#UNICODE_CHAR: ["\u0080"-"\uFFFF"]>
+|	<#SPACE: [" ", "\r", "\t", "\n"]>
+}
+TOKEN: 
+{
+	<RELATION: "@relation">
+|	<ATTRIBUTE: "@attribute">
+|	<DATA: "@data">
+| 	<REAL:"real" >
+| 	<INTEGER:"integer">
+}
+TOKEN: // floating point numbers
+{
+	<#EXPONENT: ["e","E"] (["+","-"])? (<DIGIT>)+>
+|	<INTEGER_LITERAL: (["+","-"])?(<DIGIT>)+>
+|	<FLOAT_LITERAL: (["+","-"])?(<DIGIT>)+ 
+	| (["+","-"])?(<DIGIT>)* "." (<DIGIT>)+
+	| (["+","-"])?(<DIGIT>)* ("."(<DIGIT>)+)? <EXPONENT>
+	>
+|   <DQUOTED_STRING_LITERAL: "\"" ( ~["\"","\\","\n","\r"] | 
+		"\\" ( ["n","t","b","r","f","\\","\'","\""] | 
+			["0"-"7"] (["0"-"7"])?  | 
+			["0"-"3"] ["0"-"7"] ["0"-"7"] | ( ["\n","\r"] | "\r\n"))
+		)* "\"">
+| 	<SQUOTED_STRING_LITERAL: "\'" ( ~["\'","\\","\n","\r"] | 
+		"\\" ( ["n","t","b","r","f","\\","\'","\""] | 
+			["0"-"7"] (["0"-"7"])?  | 
+			["0"-"3"] ["0"-"7"] ["0"-"7"] | ( ["\n","\r"] | "\r\n"))
+		)* "\'">
+|	<STRING_LITERAL: (<DIGIT> | <ALPHA> | <UNICODE_CHAR>) 
+		(~[" ", "\t", "\r", "\n", ",", "{", "}"])*>
+}
+
+void Arff(Data data):
+{
+}
+{
+	Relation(data)
+	(Attribute(data.variables()))*
+	Data(data)
+	<EOF>
+}
+void Relation(Data data):
+{
+	String name;
+}
+{
+	<RELATION> name=StringLiteral() { data.setName(name); }
+}
+void Attribute(VariableCollection variables):
+{
+	Variable variable;
+	String name;
+	String state;
+	List<String> states;
+}
+{
+	<ATTRIBUTE> name=StringLiteral() 
+	(
+	states=NominalSpecification() { 
+		boolean integerList = IntegerText.isIntegerList(states);
+		variables.add(new NominalVariable(name, states, integerList)); }
+|	<REAL> { variables.add(new NumericVariable(name)); }
+|	<INTEGER> ("[" <INTEGER_LITERAL> "," <INTEGER_LITERAL> "]")? 
+		{ variables.add(new NumericVariable(name)); }
+	)
+}
+
+List<String> NominalSpecification():
+{
+	List<String> states = new ArrayList<String>();
+}
+{
+	"{"
+		 NominalState(states) ("," NominalState(states))*
+	"}"
+	
+	{ return states; }
+}
+void NominalState(List<String> states):
+{
+	String state;
+	Token t;
+}
+{
+	(
+	state=StringLiteral() { states.add(state); }
+|	t=<INTEGER_LITERAL> { states.add(t.image); }
+	)
+}
+void Data(Data data):
+{
+	Instance instance;
+}
+{
+	<DATA>
+	(
+		instance=Instance(data) { data.instances().add(instance); }
+	)*
+}
+Instance Instance(Data data):
+{
+	List<String> values = new ArrayList<String>(data.variables().size());
+}
+{
+	Value(values) ("," Value(values))*
+	{ return new Instance(data.variables(), values); }
+}
+void Value(List<String> values):
+{
+	String value;
+	Token t;
+}
+{
+	(
+	value=StringLiteral() { values.add(value); }
+|	t=<INTEGER_LITERAL> { values.add(t.image); }
+|	t=<FLOAT_LITERAL> { values.add(t.image); }
+|	"?" { values.add(null); }
+	)
+}
+String StringLiteral():
+{
+	Token t;
+	String value;
+}
+{
+	(
+	t=<DQUOTED_STRING_LITERAL> 
+		{ value = t.image.substring(1, t.image.length() -1); }
+|	t=<SQUOTED_STRING_LITERAL>
+		{ value = t.image.substring(1, t.image.length() -1); }
+|	t=<STRING_LITERAL>
+		{ value = t.image; }
+|  t=<REAL>
+	{ value = t.image;}
+|  t=<INTEGER>
+	{value = t.image;}
+	)
+	{
+		return value;
+	}
+}
