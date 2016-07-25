@@ -4,7 +4,7 @@ name := "HLTA"
 
 version := "1.0"
 
-scalaVersion := "2.11.7"
+scalaVersion := "2.10.6"
 
 libraryDependencies ++= 
   "org.scalatest" %% "scalatest" % "2.2.6" % "test" ::
@@ -16,6 +16,8 @@ libraryDependencies ++=
   ("edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" classifier "models") ::
   "org.slf4j" % "slf4j-simple" % "1.7.21" ::
   "com.google.protobuf" % "protobuf-java" % "2.6.1"  ::
+  "org.apache.spark" % "spark-core_2.10" % "1.6.2" % "provided" ::
+  "org.apache.spark" % "spark-mllib_2.10" % "1.6.2" % "provided" ::
 //    "org.jsoup" % "jsoup" % "1.8.3" ::
 //    "org.apache.opennlp" % "opennlp-tools" % "1.6.0" ::
 //    "org.apache.opennlp" % "opennlp-maxent" % "3.0.3" ::

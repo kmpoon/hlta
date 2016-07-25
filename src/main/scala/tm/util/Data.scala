@@ -30,7 +30,7 @@ case class Data(variables: IndexedSeq[Variable],
     val data = new DataSet(variables.toArray)
 
     // map from new index to old index
-    val indices = data.getVariables.map(variables.indexOf).toArray
+    val indices = data.getVariables.map(variables.indexOf(_)).toArray
 
     instances.foreach { i =>
       val values = indices.map(i.values.apply).map(_.toInt)
@@ -48,7 +48,7 @@ case class Data(variables: IndexedSeq[Variable],
   }
 
   def project(vs: IndexedSeq[Variable]) = {
-    val indices = vs.map(variables.indexOf).toArray
+    val indices = vs.map(variables.indexOf(_)).toArray
     Data(vs, instances.map(_.select(indices)))
   }
 }
