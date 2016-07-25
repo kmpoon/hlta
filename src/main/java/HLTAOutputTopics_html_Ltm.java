@@ -331,8 +331,8 @@ public class HLTAOutputTopics_html_Ltm{
 			List<Map.Entry<Variable,Double>> order_C = Utils.sortByDescendingOrder(ccpd_C);
 						
 			NumberFormat nf = NumberFormat.getInstance();
-			nf.setMaximumFractionDigits(2);
-			nf.setMinimumFractionDigits(2);
+			nf.setMaximumFractionDigits(3);
+			nf.setMinimumFractionDigits(3);
 			levelOut.print("<p style=\"text-indent:2em;\">&nbsp;&nbsp;&nbsp;&nbsp;");          //Revised by Peixian for HTML output
 			for(int k=0; k<6*level; k++)
 			{
