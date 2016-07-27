@@ -34,23 +34,23 @@ EclipseKeys.withSource := true
 
 EclipseKeys.withJavadoc := true
 
-javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+// javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
-scalacOptions += "-target:jvm-1.7"
+// scalacOptions += "-target:jvm-1.7"
 
 // EclipseKeys.eclipseOutput := Some("target")
 
 // Compile the project before generating Eclipse files, so that generated .scala or .class files for views and routes are present
 EclipseKeys.preTasks := Seq(compile in Compile)
 
+assemblyJarName in assembly := "HLTA.jar"
+
+assemblyOption in assembly :=
+  (assemblyOption in assembly).value.copy(
+    includeScala = false, includeDependency = false)
+
 // To skip test during assembly
 test in assembly := {}
-
-// unmanagedClasspath in Compile += baseDirectory.value / "FastHLTA" / "bin"
-
-// unmanagedClasspath in Test += baseDirectory.value / "FastHLTA" / "bin"
-
-// unmanagedClasspath in Runtime += baseDirectory.value / "FastHLTA" / "bin"
 
 assemblyMergeStrategy in assembly := {
   case PathList("java_cup", "runtime", xs @ _* )   => MergeStrategy.first
@@ -58,3 +58,10 @@ assemblyMergeStrategy in assembly := {
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
 }
+
+// unmanagedClasspath in Compile += baseDirectory.value / "FastHLTA" / "bin"
+
+// unmanagedClasspath in Test += baseDirectory.value / "FastHLTA" / "bin"
+
+// unmanagedClasspath in Runtime += baseDirectory.value / "FastHLTA" / "bin"
+
