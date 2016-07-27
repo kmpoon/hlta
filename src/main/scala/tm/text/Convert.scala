@@ -27,6 +27,9 @@ object Convert {
           .map(tokenizeBySpace)
           .map(ts => new Sentence(ts.map(NGram(_))))
         (p, new Document(sentences.toList))
+      } catch {
+        case e: Exception =>
+          throw new Exception("Unable to read file: " + p.toFile(), e)
       } finally {
         source.close
       }
