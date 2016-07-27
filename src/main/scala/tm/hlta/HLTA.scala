@@ -131,7 +131,7 @@ object HLTA {
   
   def getValue(f: Function)(variables: Seq[Variable], states: IndexedSeq[Int]) = {
     // from order of function variables to order of given variables
-    val indices = f.getVariables.map(variables.indexOf)
+    val indices = f.getVariables.map(variables.indexOf(_))
     f.getValue(indices.map(states.apply).toArray)
   }
 }
