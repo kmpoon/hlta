@@ -28,9 +28,7 @@ object GetDescendants {
   def getDescendants(node: BeliefNode,
     predicate: (BeliefNode) => Boolean = (_) => true) = {
     @tailrec
-    def rec(
-      descendants: List[BeliefNode],
-      nodes: Queue[BeliefNode]): List[BeliefNode] =
+    def rec(descendants: List[BeliefNode], nodes: Queue[BeliefNode]): List[BeliefNode] =
       if (nodes.isEmpty)
         descendants.reverse
       else {
@@ -38,12 +36,6 @@ object GetDescendants {
         val children = n.getChildren.map(_.asInstanceOf[BeliefNode])
         rec(n :: descendants, r ++ children.filter(predicate))
       }
-    //        nodes.dequeueOption match {
-    //      case None => descendants.reverse
-    //      case Some((n, r)) => {
-    //        val children = n.getChildren.map(_.asInstanceOf[BeliefNode])
-    //        rec(n :: descendants, r ++ children.filter(predicate))
-    //      }
 
     rec(Nil, Queue(node))
   }

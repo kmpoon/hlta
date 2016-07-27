@@ -43,7 +43,7 @@ public final class DataSet {
 	 * @author Yi Wang
 	 * 
 	 */
-	public final class DataCase implements Comparable<DataCase> {
+	public static final class DataCase implements Comparable<DataCase> {
 		/**
 		 * the data set to which this data case belongs.
 		 */

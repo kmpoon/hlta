@@ -16,6 +16,8 @@ libraryDependencies ++=
   ("edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" classifier "models") ::
   "org.slf4j" % "slf4j-simple" % "1.7.21" ::
   "com.google.protobuf" % "protobuf-java" % "2.6.1"  ::
+  "org.apache.spark" % "spark-core_2.10" % "1.6.2" % "provided" ::
+  "org.apache.spark" % "spark-mllib_2.10" % "1.6.2" % "provided" ::
 //    "org.jsoup" % "jsoup" % "1.8.3" ::
 //    "org.apache.opennlp" % "opennlp-tools" % "1.6.0" ::
 //    "org.apache.opennlp" % "opennlp-maxent" % "3.0.3" ::
@@ -32,23 +34,23 @@ EclipseKeys.withSource := true
 
 EclipseKeys.withJavadoc := true
 
-javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+// javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
 
-scalacOptions += "-target:jvm-1.7"
+// scalacOptions += "-target:jvm-1.7"
 
 // EclipseKeys.eclipseOutput := Some("target")
 
 // Compile the project before generating Eclipse files, so that generated .scala or .class files for views and routes are present
 EclipseKeys.preTasks := Seq(compile in Compile)
 
+assemblyJarName in assembly := "HLTA.jar"
+
+assemblyOption in assembly :=
+  (assemblyOption in assembly).value.copy(
+    includeScala = false, includeDependency = false)
+
 // To skip test during assembly
 test in assembly := {}
-
-// unmanagedClasspath in Compile += baseDirectory.value / "FastHLTA" / "bin"
-
-// unmanagedClasspath in Test += baseDirectory.value / "FastHLTA" / "bin"
-
-// unmanagedClasspath in Runtime += baseDirectory.value / "FastHLTA" / "bin"
 
 assemblyMergeStrategy in assembly := {
   case PathList("java_cup", "runtime", xs @ _* )   => MergeStrategy.first
@@ -56,3 +58,10 @@ assemblyMergeStrategy in assembly := {
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
 }
+
+// unmanagedClasspath in Compile += baseDirectory.value / "FastHLTA" / "bin"
+
+// unmanagedClasspath in Test += baseDirectory.value / "FastHLTA" / "bin"
+
+// unmanagedClasspath in Runtime += baseDirectory.value / "FastHLTA" / "bin"
+
