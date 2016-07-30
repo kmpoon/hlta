@@ -3,8 +3,10 @@ package tm.text
 import scala.collection.GenSeq
 import java.io.PrintWriter
 import scala.annotation.tailrec
+import org.slf4j.LoggerFactory
 
 object DataConverter {
+  val logger = LoggerFactory.getLogger(DataConverter.getClass)
   object AttributeType extends Enumeration {
     val binary, numeric = Value
   }
@@ -26,33 +28,33 @@ object DataConverter {
       new Settings(maxN, minCharacters, selectWords)
   }
 
-//  object implicits {
-//    implicit val default = Settings(
-//      maxN = 2, minCharacters = 3, minTf = 6, minDf = (Int) => 6)
-//  }
+  //  object implicits {
+  //    implicit val default = Settings(
+  //      maxN = 2, minCharacters = 3, minTf = 6, minDf = (Int) => 6)
+  //  }
 
   type TokenCounts = Map[NGram, Int]
 
-  def convert(name: String, documents: GenSeq[Document], log: (String) => Any)(
+  def convert(name: String, documents: GenSeq[Document])(
     implicit settings: Settings) = {
     import settings._
 
     val (countsByDocuments, dictionary) =
-      countTokensWithNGrams(name, documents, log)
+      countTokensWithNGrams(name, documents)
 
     //    log("Converting to bow")
     //    val bow = convertToBow(countsByDocuments, dictionary.map)
 
     val bowConverter = toBow(dictionary.map)(_)
 
-    log("Saving in ARFF format (count data)")
+    logger.info("Saving in ARFF format (count data)")
     saveAsArff(name, s"${name}.arff", AttributeType.numeric,
       dictionary.words, countsByDocuments.seq, bowConverter)
-    log("Saving in HLCM format (binary data)")
+    logger.info("Saving in HLCM format (binary data)")
     saveAsBinaryHlcm(name, s"${name}.txt",
       dictionary.words, countsByDocuments.seq, bowConverter)
 
-    log("done")
+    logger.info("done")
   }
 
   /**
@@ -60,20 +62,26 @@ object DataConverter {
    * specified in the {@ code settings}.
    */
   def countTokensWithNGrams(
-    name: String, documents: GenSeq[Document], log: (String) => Any)(
+    name: String, documents: GenSeq[Document])(
       implicit settings: Settings): (GenSeq[TokenCounts], Dictionary) = {
     import Preprocessor._
     import settings._
 
     @tailrec
-    def rec(documents: GenSeq[Document], n: Int): (GenSeq[Document], Dictionary) = {
-      log(s"Counting n-grams (up to ${n}) in each document")
+    def loop(documents: GenSeq[Document],
+      previous: Option[Dictionary], n: Int): (GenSeq[Document], Dictionary) = {
+      logger.info("Counting n-grams (up to {}) in each document", n)
 
       // construct a sequence with tokens including those in the original
       // sentence and n-grams with specified n that are built from the
       // original tokens
-      def appendNextNGram(sentence: Sentence): Seq[NGram] =
-        sentence.tokens ++ buildNextNGrams(sentence.tokens, n)
+      def appendNextNGram(sentence: Sentence): Seq[NGram] = {
+        if (n == 1) sentence.tokens
+        else {
+          sentence.tokens ++
+            buildNextNGrams(sentence.tokens, previous.get, n)
+        }
+      }
 
       // compute the counts of original tokens and new n-grams by 
       // documents
@@ -83,38 +91,37 @@ object DataConverter {
           .map(countTokens)
 
       val dictionary = {
-        log("Building Dictionary")
+        logger.info("Building Dictionary")
         val whole = buildDictionary(countsByDocuments)
 
-        log("Saving dictionary before selection")
+        logger.info("Saving dictionary before selection")
         whole.save(s"${name}.whole_dict-${n}.csv")
 
-        log("Selecting words in dictionary")
+        logger.info("Selecting words in dictionary")
         val selected = settings.selectWords(whole, documents.size)
 
-        log("Saving dictionary after selection")
+        logger.info("Saving dictionary after selection")
         selected.save(s"${name}.dict-${n}.csv")
 
         selected
       }
 
-      log(s"Replacing constituent tokens by ${n}-grams")
-      val documentsWithLargerNGrams =
+      val documentsWithLargerNGrams = if (n == 1)
+        documents
+      else {
+        logger.info("Replacing constituent tokens by {}-grams", n)
         documents.map(_.sentences.map(s =>
           replaceConstituentTokensByNGrams(
             s, dictionary.map.contains(_), n)))
           .map(ss => new Document(ss))
+      }
 
       if (n == maxN) (documentsWithLargerNGrams, dictionary)
-      else rec(documentsWithLargerNGrams, n + 1)
+      else loop(documentsWithLargerNGrams, Some(dictionary), n + 1)
     }
 
-    log("Extracting words")
-    //        val words = documents.map(tokenizeBySpace(_).map(NGram(_)))
-    //
-    //        val (tokens, dictionary) = rec(words, 2)
-    //        (tokens.map(countWords), dictionary)
-    val (newDocuments, dictionary) = rec(documents, 2)
+    logger.info("Extracting words")
+    val (newDocuments, dictionary) = loop(documents, None, 1)
     val countsByDocument =
       newDocuments.map(_.sentences.flatMap(_.tokens))
         .map(countTokens)
@@ -182,4 +189,16 @@ object DataConverter {
 
     writer.close
   }
+
+  /**
+   * Given a sequence of tokens, build the n-grams based on the tokens.  The
+   * n-grams are built from two consecutive tokens.  Only the combined n-grams
+   * with the given length {@code n} are kept in the returned collection.  Besides,
+   * the constituent tokens must be contained in the given {@code base} dictionary.
+   */
+  def buildNextNGrams(tokens: Seq[NGram], base: Dictionary, n: Int): Iterator[NGram] =
+    tokens.sliding(2)
+      .filter(_.forall(base.map.contains))
+      .map(NGram.fromNGrams(_))
+      .filter(_.words.length == n)
 }

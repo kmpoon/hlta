@@ -8,28 +8,31 @@ import tm.text.DataConverter.Settings
 import java.io.PrintWriter
 import java.nio.file.Paths
 import java.nio.file.Path
+import org.slf4j.LoggerFactory
 
 object Convert {
+  val logger = LoggerFactory.getLogger(Convert.getClass)
+
   def convert(name: String, source: Path)(implicit settings: Settings) = {
     import Preprocessor.tokenizeBySpace
 
-    val log = println(_: String)
-
-    log("Reading documents")
-    val paths = getFiles(source).toList
+    logger.info("Reading documents")
+    val paths = getFiles(source)
 
     val outputs = paths.par.map { p =>
       // each line is assumed to be a sentence containing tokens
       // separated by space
       val source = Source.fromFile(p.toFile)
       try {
+        logger.debug("Reading {}", p.toFile)
         val sentences = source.getLines
           .map(tokenizeBySpace)
           .map(ts => new Sentence(ts.map(NGram(_))))
         (p, new Document(sentences.toList))
       } catch {
         case e: Exception =>
-          throw new Exception("Unable to read file: " + p.toFile(), e)
+          logger.error("Unable to read file: " + p.toFile, e)
+          throw e
       } finally {
         source.close
       }
@@ -37,12 +40,12 @@ object Convert {
 
     val (readFiles, documents) = outputs.unzip
 
-    log("Saving file names")
+    logger.info("Saving file names")
     val writer = new PrintWriter(s"${name}.files.txt")
     writer.println(readFiles.mkString("\n"))
     writer.close
 
-    DataConverter.convert(name, documents, log)
+    DataConverter.convert(name, documents)
   }
 
   def getFiles(source: Path) =

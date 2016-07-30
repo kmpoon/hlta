@@ -99,14 +99,6 @@ object Preprocessor {
     (1 to maxN).map(buildNGrams(words, _))
 
   /**
-   * Given a sequence of tokens, build the n-grams based on the tokens.  The
-   * n-grams are built from two consecutive tokens.  Only the combined n-grams
-   * with the given length {@code n} are kept in the returned collection.
-   */
-  def buildNextNGrams(tokens: Seq[NGram], n: Int): Iterator[NGram] =
-    tokens.sliding(2).map(NGram.fromNGrams(_)).filter(_.words.length == n)
-
-  /**
    * Counts number of tokens in the given sequence of words.
    */
   def countTokens(tokens: Seq[NGram]): TokenCounts = {

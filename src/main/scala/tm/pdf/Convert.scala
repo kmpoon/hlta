@@ -8,22 +8,29 @@ import tm.text.DataConverter
 import java.nio.file.Paths
 import tm.text.WordSelector
 
-object Convert {
-  def main(args: Array[String]) {
-    if (args.length < 4)
-      printUsage()
-    else {
-      val maxWords = args(1).toInt
-      val maxN = args(2).toInt
-      implicit val settings =
-        DataConverter.Settings(maxN = maxN, minCharacters = 3,
-          selectWords = WordSelector.byTfIdf(3, 0, .25, maxWords))
+import org.rogach.scallop._
+import tm.util.Arguments
 
-      tm.text.Convert.convert(args(0), Paths.get(args(3)))
-    }
+object Convert {
+  class Conf(args: Seq[String]) extends Arguments(args) {
+    banner("Usage: tm.pdf.Convert [OPTION]... name max-words max-n source")
+    val name = trailArg[String](descr = "Name of data")
+    val maxWords = trailArg[Int](descr = "Maximum number of words")
+    val maxN = trailArg[Int](descr = "Maximum n of n-gram")
+    val source = trailArg[String](descr = "Source directory")
+
+    verify
+    checkDefaultOpts()
   }
 
-  def printUsage() = {
-    println("tm.pdf.Convert name max_number_of_words n_of_n_gram source_directory")
+  def main(args: Array[String]) {
+    val conf = new Conf(args)
+
+    implicit val settings =
+      DataConverter.Settings(maxN = conf.maxN(), minCharacters = 3,
+        selectWords = WordSelector.byTfIdf(3, 0, .25, conf.maxWords()))
+
+    tm.text.Convert.convert(conf.name(), Paths.get(conf.source()))
+
   }
 }

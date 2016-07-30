@@ -15,8 +15,11 @@ import java.io.InputStreamReader
 import java.io.FileInputStream
 import tm.text.Document
 import java.nio.file.Paths
+import org.slf4j.LoggerFactory
 
 object Convert {
+  val logger = LoggerFactory.getLogger(this.getClass)
+  
   def main(args: Array[String]) {
     if (args.length < 2)
       printUsage()
@@ -31,13 +34,13 @@ object Convert {
     println("tm.hillary.Convert name source_directory")
   }
 
-  def run(log: (String) => Any) = {
+  def run() = {
     import Parameters.implicits.settings
 
-    log("Extracting bodies")
+    logger.info("Extracting bodies")
     val bodies = Emails.readEmailsFromDefaultPath
       .map(email => Document(email.content)).toList.par
 
-    DataConverter.convert("hillary", bodies, log)
+    DataConverter.convert("hillary", bodies)
   }
 }
