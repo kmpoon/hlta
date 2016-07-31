@@ -14,6 +14,7 @@ import scala.collection.mutable
 import scalaz.Scalaz._
 import scala.util.matching.Regex
 import scala.util.matching.Regex.Match
+import tm.util.ParMapReduce
 
 object Preprocessor {
   val replaceNonAlnum = ("\\P{Alnum}".r, (m: Match) => "_")
@@ -98,19 +99,9 @@ object Preprocessor {
   def find1ToNGrams(words: Seq[String], maxN: Int = 1): IndexedSeq[Seq[NGram]] =
     (1 to maxN).map(buildNGrams(words, _))
 
-  /**
-   * Counts number of tokens in the given sequence of words.
-   */
-  def countTokens(tokens: Seq[NGram]): TokenCounts = {
-    if (tokens.isEmpty) {
-      Map.empty
-    } else {
-      tokens.par.map(w => Map(w -> 1)).reduce(_ |+| _)
-    }
-  }
-
   def tokenizeAndCount(text: String, n: Int = 1)(implicit stopWords: StopWords) =
-    countTokens(find1ToNGrams(tokenizeAndRemoveStopWords(text), n).flatten)
+    DataConverter.countTokens(
+      find1ToNGrams(tokenizeAndRemoveStopWords(text), n).flatten)
 
   //    def add(p1: TokenCounts, p2: TokenCounts): TokenCounts = {
   //        type mutableMap = mutable.Map[NGram, Int]

@@ -1,6 +1,6 @@
 package tm.text
 
-case class NGram(words: Seq[String]) {
+case class NGram(val words: Seq[String]) {
   lazy val identifier = words.mkString(NGram.separator)
 
   override def toString() = identifier

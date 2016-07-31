@@ -4,6 +4,8 @@ import scala.collection.GenSeq
 import java.io.PrintWriter
 import scala.annotation.tailrec
 import org.slf4j.LoggerFactory
+import tm.util.ParMapReduce.mapReduce
+import scalaz.Scalaz._
 
 object DataConverter {
   val logger = LoggerFactory.getLogger(DataConverter.getClass)
@@ -64,8 +66,8 @@ object DataConverter {
   def countTokensWithNGrams(
     name: String, documents: GenSeq[Document])(
       implicit settings: Settings): (GenSeq[TokenCounts], Dictionary) = {
-    import Preprocessor._
     import settings._
+    //    import Preprocessor._
 
     @tailrec
     def loop(documents: GenSeq[Document],
@@ -83,16 +85,9 @@ object DataConverter {
         }
       }
 
-      // compute the counts of original tokens and new n-grams by 
-      // documents
-      val countsByDocuments =
-        // convert each document to tokens
-        documents.map(_.sentences.flatMap(appendNextNGram))
-          .map(countTokens)
-
       val dictionary = {
         logger.info("Building Dictionary")
-        val whole = buildDictionary(countsByDocuments)
+        val whole = buildDictionary(documents, appendNextNGram)
 
         logger.info("Saving dictionary before selection")
         whole.save(s"${name}.whole_dict-${n}.csv")
@@ -111,7 +106,7 @@ object DataConverter {
       else {
         logger.info("Replacing constituent tokens by {}-grams", n)
         documents.map(_.sentences.map(s =>
-          replaceConstituentTokensByNGrams(
+          Preprocessor.replaceConstituentTokensByNGrams(
             s, dictionary.map.contains(_), n)))
           .map(ss => new Document(ss))
       }
@@ -122,10 +117,64 @@ object DataConverter {
 
     logger.info("Extracting words")
     val (newDocuments, dictionary) = loop(documents, None, 1)
-    val countsByDocument =
-      newDocuments.map(_.sentences.flatMap(_.tokens))
-        .map(countTokens)
-    (countsByDocument, dictionary)
+    (newDocuments.map(countTermFrequencies), dictionary)
+  }
+
+  /**
+   * Counts number of tokens in the given sequence of words.
+   */
+  def countTokens(tokens: Seq[NGram]): TokenCounts = {
+    if (tokens.isEmpty) {
+      Map.empty
+    } else {
+      mapReduce(tokens.par)(w => Map(w -> 1))(_ |+| _)
+    }
+  }
+
+  def countTermFrequencies(d: Document): TokenCounts = {
+    countTermFrequencies(d, _.tokens)
+  }
+
+  def countTermFrequencies(d: Document,
+    tokenizer: (Sentence) => Seq[NGram]): TokenCounts = {
+    countTokens(d.sentences.flatMap(tokenizer))
+  }
+
+  def buildDictionary(documents: GenSeq[Document],
+    tokenizer: (Sentence) => Seq[NGram] = _.tokens) = {
+    import Preprocessor._
+    import tm.util.ParMapReduce._
+
+    val (tf, df, n) = mapReduce(documents.par) { d =>
+      val tf = countTermFrequencies(d, tokenizer)
+
+      // document count (1 for each occurring token)
+      val df = tf.mapValues(c => if (c > 0) 1 else 0)
+
+      (tf, df, 1)
+
+    } { (c1, c2) =>
+      (c1._1 |+| c2._1, c1._2 |+| c2._2, c1._3 + c2._3)
+    }
+
+    //    // compute the counts of original tokens and new n-grams by 
+    //    // documents
+    //    val countsByDocuments =
+    //      // convert each document to tokens
+    //      documents.map(_.sentences.flatMap(tokenizer)).map(countTokens)
+    //
+    //    val termFrequencies = sumWordCounts(countsByDocuments)
+    //    val documentFrequencies = computeDocumentFrequencies(countsByDocuments)
+    //    val N = countsByDocuments.size
+    //
+    def buildWordInfo(token: NGram, tf: Int, df: Int) =
+      WordInfo(token, tf, df, computeTfIdf(tf, df, n))
+
+    val info = tf.keys.map { w =>
+      buildWordInfo(w, tf(w), df(w))
+    }
+
+    Dictionary.buildFrom(info)
   }
 
   /**
