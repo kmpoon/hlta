@@ -1,22 +1,24 @@
 package tm.pdf
 
-import java.io.File
 import java.io.PrintWriter
 import java.io.StringWriter
+import java.nio.file.Files
+import java.nio.file.Path
+import java.nio.file.Paths
+
 import scala.util.matching.Regex
 import scala.util.matching.Regex.Match
+
 import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.util.PDFTextStripper
-import tm.text.NGram
+
+import tm.pdf.Parameters.implicits
+import tm.text.DataConverter.Settings
 import tm.text.Preprocessor
 import tm.text.Sentence
 import tm.text.StanfordLemmatizer
 import tm.text.StopWords
 import tm.util.FileHelpers
-import tm.text.DataConverter.Settings
-import java.nio.file.Path
-import java.nio.file.Paths
-import java.nio.file.Files
 
 object ExtractText {
   val replaceNonAlnum = ("\\P{Alnum}".r, (m: Match) => "_")
@@ -32,8 +34,8 @@ object ExtractText {
       return
     }
 
-    import StopWords.implicits.default
     import Parameters.implicits.settings
+    import StopWords.implicits.default
 
     val source = Paths.get(args(0))
     if (Files.isDirectory(source)) {
@@ -58,7 +60,6 @@ object ExtractText {
 
   def extractDirectory(inputDir: Path, outputDir: Path)(
     implicit stopwords: StopWords, settings: Settings) = {
-    import FileHelpers.getPath
 
     val files = FileHelpers.findFiles(inputDir, "pdf").par
 

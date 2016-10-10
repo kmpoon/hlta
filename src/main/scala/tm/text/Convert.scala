@@ -49,32 +49,35 @@ object Convert {
     }
   }
 
-//  def readFiles(name: String, source: Path): Seq[Document] = {
-//    trait O { def toD(): D }
-//    class D(val ds: Vector[Document], val c: Map[NGram, NGram]) extends O {
-//      def toD() = this
-//      def +(d: D): D = ???
-//    }
-//    class P(p: Path) extends O {
-//      def toD(): D = {
-//        readFile { ls =>
-//          val cache = ls.flatten.map { t => t -> NGram(t) }.toMap
-//          val lines = ls.map(_.map(cache.apply))
-//          (p, lines, cache)
-//        }(p)
-//      }
-//    }
-//
-//    getFiles(source).par.map(new P(_): O).reduce(_.toD + _.toD).toD.ds
-//
-//  }
+  //  def readFiles(name: String, source: Path): Seq[Document] = {
+  //    trait O { def toD(): D }
+  //    class D(val ds: Vector[Document], val c: Map[NGram, NGram]) extends O {
+  //      def toD() = this
+  //      def +(d: D): D = ???
+  //    }
+  //    class P(p: Path) extends O {
+  //      def toD(): D = {
+  //        readFile { ls =>
+  //          val cache = ls.flatten.map { t => t -> NGram(t) }.toMap
+  //          val lines = ls.map(_.map(cache.apply))
+  //          (p, lines, cache)
+  //        }(p)
+  //      }
+  //    }
+  //
+  //    getFiles(source).par.map(new P(_): O).reduce(_.toD + _.toD).toD.ds
+  //
+  //  }
 
   def readFiles(name: String, source: Path): GenSeq[Document] = {
     logger.info("Finding files under {}", source)
     val paths = getFiles(source)
-    
+    readFiles(paths)
+  }
+
+  def readFiles(paths: Vector[Path]) = {
     val cache = buildCache(paths)
-    
+
     logger.info("Reading documents")
     paths.par.map(readFile { l =>
       new Document(l.map(ts => Sentence(ts.map(cache.apply))))
