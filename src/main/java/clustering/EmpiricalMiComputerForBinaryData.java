@@ -1,7 +1,6 @@
 package clustering;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
@@ -10,23 +9,23 @@ import org.latlab.util.DataSet;
 import org.latlab.util.DataSet.DataCase;
 import org.latlab.util.Variable;
 
-public class EmpiricalMiComputerForBinaryData {
+public class EmpiricalMiComputerForBinaryData{
 	private final DataSet data;
 	private final List<Variable> variables;
-	private final int[] idMappingFromDataToVariables;
+//	private final int[] idMappingFromDataToVariables;
 
 	public EmpiricalMiComputerForBinaryData(DataSet data,
 			List<Variable> variables) {
 		this.data = data;
 		this.variables = variables;
 
-		idMappingFromDataToVariables = new int[variables.size()];
+	/*	idMappingFromDataToVariables = new int[variables.size()];
 		Arrays.fill(idMappingFromDataToVariables, -1);
 		for (int i = 0; i < variables.size(); i++) {
 			int idInData =
 					Arrays.binarySearch(data.getVariables(), variables.get(i));
 			idMappingFromDataToVariables[idInData] = i;
-		}
+		}*/
 	}
 
 	/**
@@ -37,19 +36,24 @@ public class EmpiricalMiComputerForBinaryData {
 	 *            whether to include the class variable
 	 * @return mutual information for each pair of variables
 	 */
-	public double[][] computerPairwise() {
+	public ArrayList<double[]> computerPairwise() {
 		int numberOfVariables = variables.size();
 		double totalWeight = data.getTotalWeight();
-		double[][] f = new FrequencyCounter().computeSequential();
-		double[][] results = new double[numberOfVariables][numberOfVariables];
+		ArrayList<double[]> f = new FrequencyCounter().computeSequential();
+		ArrayList<double[]> results = new ArrayList<double[]>(numberOfVariables);
+        
 
+		for(int i = 0; i<numberOfVariables;i++){
+			results.add(new double[numberOfVariables]);
+		}
+		
 		for (int i = 0; i < numberOfVariables; i++) {
 			for (int j = i + 1; j < numberOfVariables; j++) {
-				double[] pi = getMarginal(f[i][i] / totalWeight);
-				double[] pj = getMarginal(f[j][j] / totalWeight);
+				double[] pi = getMarginal(f.get(i)[i] / totalWeight);
+				double[] pj = getMarginal(f.get(j)[j]/ totalWeight);
 
 				double[][] pij = new double[2][2];
-				pij[1][1] = f[i][j] / totalWeight;
+				pij[1][1] = f.get(i)[j] / totalWeight;
 				pij[1][0] = pi[1] - pij[1][1];
 				pij[0][1] = pj[1] - pij[1][1];
 				pij[0][0] = 1 - pi[1] - pj[1] + pij[1][1];
@@ -66,8 +70,9 @@ public class EmpiricalMiComputerForBinaryData {
 					}
 				}
 
-				results[i][j] = results[j][i] = mi;
-
+				
+					results.get(i)[j] = mi;
+					results.get(j)[i] = mi;
 				assert !Double.isNaN(mi);
 			}
 		}
@@ -83,7 +88,7 @@ public class EmpiricalMiComputerForBinaryData {
 		private FrequencyCounter() {
 		}
 
-		public double[][] computeParallel() {
+		public ArrayList<double[]> computeParallel() {
 			ParallelComputation c =
 					new ParallelComputation(0, data.getNumberOfEntries());
 			ForkJoinPool pool = new ForkJoinPool();
@@ -91,15 +96,22 @@ public class EmpiricalMiComputerForBinaryData {
 			return c.frequencies;
 		}
 
-		private double[][] computeSequential() {
+		private ArrayList<double[]> computeSequential() {
 			return computeFrequencies(0, data.getNumberOfEntries());
 		}
 
-		protected double[][] computeFrequencies(int start, int end) {
+		protected ArrayList<double[]> computeFrequencies(int start, int end) {
 			// the diagonal entries contain the frequencies of a single variable
-			double[][] frequencies =
-					new double[variables.size()][variables.size()];
+			ArrayList<double[]> frequencies =
+					new ArrayList<double[]>(variables.size());
 
+			for(int i = 0; i<variables.size();i++){
+				frequencies.add(new double[variables.size()]);
+			}
+
+			System.out.println("Initialized the map");
+
+			
 			ArrayList<DataCase> cases = data.getData();
 			for (int caseIndex = start; caseIndex < end; caseIndex++) {
 				DataCase c = cases.get(caseIndex);
@@ -116,16 +128,22 @@ public class EmpiricalMiComputerForBinaryData {
 
 				// update the single and joint counts
 				for (int i : entries) {
-					int iInVariables = idMappingFromDataToVariables[i];
+				//	int iInVariables = idMappingFromDataToVariables[i];
+					int iInVariables = i;
 					if (iInVariables < 0)
 						continue;
 
 					for (int j : entries) {
-						int jInVariables = idMappingFromDataToVariables[j];
+						//int jInVariables = idMappingFromDataToVariables[j];
+						int jInVariables = j;
 						if (jInVariables < 0)
 							continue;
-
-						frequencies[iInVariables][jInVariables] += weight;
+						
+			
+						double freq = frequencies.get(iInVariables)[jInVariables];
+						freq += weight;
+						frequencies.get(iInVariables)[jInVariables]=freq;
+						
 					}
 				}
 			}
@@ -139,7 +157,7 @@ public class EmpiricalMiComputerForBinaryData {
 			private final int start;
 			private final int end;
 			private static final int THRESHOLD = 500;
-			private double[][] frequencies;
+			private ArrayList<double[]> frequencies;
 
 			private ParallelComputation(int start, int end) {
 				this.start = start;
@@ -168,9 +186,11 @@ public class EmpiricalMiComputerForBinaryData {
 				// This is not very efficient for combining the results
 				// from subtasks.
 				frequencies = c1.frequencies;
-				for (int i = 0; i < frequencies.length; i++) {
-					for (int j = 0; j < frequencies[i].length; j++) {
-						frequencies[i][j] += c2.frequencies[i][j];
+				for (int i = 0; i < frequencies.size();i++) {
+					for (int j = 0; j < frequencies.get(i).length; j++) {
+						double t1 = frequencies.get(i)[j];
+						double t2 = c2.frequencies.get(i)[j];
+						frequencies.get(i)[j] = t1+t2;
 					}
 				}
 			}

@@ -35,6 +35,8 @@ import org.latlab.util.StringPair;
 import org.latlab.util.Utils;
 import org.latlab.util.Variable;
 
+import clustering.EmpiricalMiComputerForBinaryData;
+
 
 public class StochasticPEM {
 
