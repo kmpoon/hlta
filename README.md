@@ -20,14 +20,14 @@ Provides functions for hierarchical latent tree analysis on text data
 You should first obtain a JAR file from the package, by either one of the following ways:
 
 1. Build the SBT and run `sbt-assembly`.  Rename the generated JAR file to `HLTA.jar`, which we assume in the steps below.
-2. Download the `HLTA.jar` from the [Releases page](https://github.com/kmpoon/hlta/releases).
+2. Download the `HLTA.jar` and `HLTA-deps.jar` from the [Releases page](https://github.com/kmpoon/hlta/releases).
 
 # Pre-processing
 
 1. To extract text from PDF files:
 
   ```
-  java -cp HLTA.jar tm.pdf.ExtractText papers extracted
+  java -cp HLTA.jar:HLTA-deps.jar tm.pdf.ExtractText papers extracted
   ```
 
   Where: `papers` is input directory and `extracted` is output directory
@@ -35,7 +35,7 @@ You should first obtain a JAR file from the package, by either one of the follow
 2. To convert text files to bag-of-words representation:
 
   ```
-  java -cp HLTA.jar tm.pdf.Convert sample 20 3 extracted
+  java -cp HLTA.jar:HLTA-deps.jar tm.pdf.Convert sample 20 3 extracted
   ```
   
   Where: `sample` is a name to give and `extracted` is directory of extracted text, `20` is the number of words to be included in the resulting data, `3` is the maximum of n to be considerd for n-grams.
@@ -51,7 +51,7 @@ You should first obtain a JAR file from the package, by either one of the follow
 To build the model with PEM:
 
 ```
-java -Xmx15G -cp HLTA.jar PEM sample.txt sample.txt 50  5  0.01 3 model 10 15
+java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.txt sample.txt 50  5  0.01 3 model 10 15
 ```
 
 Where: `sample.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
@@ -71,7 +71,7 @@ The full parameter list is: `PEM training_data test_data max_EM_steps num_EM_res
 
 1. To extract topic hierarchy:
   ```
-  java -cp HLTA.jar HLTAOutputTopics_html_Ltm model.bif topic_output no no 7
+  java -cp HLTA.jar:HLTA-deps.jar HLTAOutputTopics_html_Ltm model.bif topic_output no no 7
   ```
 
   Where: `model.bif` is the name of the model file from PEM, `topic_output` is the directory for output files
@@ -79,7 +79,7 @@ The full parameter list is: `PEM training_data test_data max_EM_steps num_EM_res
 2. To generate topic tree:
 
   ```
-  java -cp HLTA.jar tm.hlta.RegenerateHTMLTopicTree topic_output/TopicsTable.html sample
+  java -cp HLTA.jar:HLTA-deps.jar tm.hlta.RegenerateHTMLTopicTree topic_output/TopicsTable.html sample
   ```
   
   Where: `topic_output/TopicsTable.html` is the name of the topic file from topic extraction, `sample` is name of the files to be generated
@@ -102,4 +102,4 @@ The full parameter list is: `PEM training_data test_data max_EM_steps num_EM_res
 
 # Acknowledgement
 
-Contributors: Prof. Nevin L. Zhang, Peixian Chen, Tao Chen, Tengfei Liu, Leonard K.M. Poon, Yi Wang
+Contributors: Prof. Nevin L. Zhang, Peixian Chen, Tao Chen, Zhourong Chen, Tengfei Liu, Leonard K.M. Poon, Yi Wang
