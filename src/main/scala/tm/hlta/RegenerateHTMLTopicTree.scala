@@ -30,11 +30,15 @@ object RegenerateHTMLTopicTree {
 
       val title = if (args.length > 2) args(2) else "Topic Tree"
 
-      val order = readIslands(
-        FindTopLevelSiblingClusters.getIslandsFileName(outputName))
-      copyAssetFiles(Paths.get("."))
-      generateTopicTree(topicsFile, title, outputName, order)
+      run(topicsFile, outputName, title)
     }
+  }
+
+  def run(topicsFile: String, outputName: String, title: String) = {
+    val order = readIslands(
+      FindTopLevelSiblingClusters.getIslandsFileName(outputName))
+    copyAssetFiles(Paths.get("."))
+    generateTopicTree(topicsFile, title, outputName, order)
   }
 
   def printUsage() = {
@@ -82,7 +86,7 @@ object RegenerateHTMLTopicTree {
     import JSONTreeWriter.Node
 
     implicit val topicToNode: (Topic) => Node = (topic: Topic) => {
-      val label = f"${topic.percentage}%.2f ${topic.words.mkString(" ")}"
+      val label = f"${topic.percentage}%.3f ${topic.words.mkString(" ")}"
       val data = f"""name: "${topic.name}", level: ${topic.level}, percentage: ${topic.percentage}, mi: ${topic.mi.getOrElse(Double.NaN)}"""
       Node(topic.name, label, data)
     }

@@ -203,19 +203,15 @@ object Preprocessor {
      *
      * @param words sequence of words.
      * @param check used to check whether a n-gram will be used.
-     * @param maxN the maximum n for which n-gram will be used.
      */
-  def replaceConstituentTokensByNGrams(tokens: Seq[NGram],
-    check: (NGram) => Boolean, maxN: Int): Seq[NGram] = {
-
-    (maxN to 2 by -1).foldLeft(tokens)(replaceByNGrams(_, check, _))
+  def replaceConstituentTokensByNGrams(
+    tokens: Seq[NGram], check: (NGram) => Boolean): Seq[NGram] = {
+    replaceByNGrams(tokens, check, 2)
   }
 
-  def replaceConstituentTokensByNGrams(sentence: Sentence,
-    check: (NGram) => Boolean, maxN: Int): Sentence = {
-    val tokens = replaceConstituentTokensByNGrams(
-      sentence.tokens, check, maxN)
-    new Sentence(tokens)
+  def replaceConstituentTokensByNGrams(
+    sentence: Sentence, check: (NGram) => Boolean): Sentence = {
+    new Sentence(replaceConstituentTokensByNGrams(sentence.tokens, check))
   }
 
   /**
@@ -228,7 +224,7 @@ object Preprocessor {
       remaining: Seq[NGram], buffer: Queue[NGram])
 
     /**
-     * Adds the next 1-gram from the remaining list, if there is, to the
+     * Adds the next token from the remaining list, if there is, to the
      * buffer.
      */
     def addTokenToBuffer(state: State): State = {

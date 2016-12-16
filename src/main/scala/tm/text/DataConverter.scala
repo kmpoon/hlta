@@ -16,24 +16,19 @@ object DataConverter {
   /**
    * minDf is computed when the number of documents is given.
    */
-  class Settings(val maxN: Int, val minCharacters: Int,
+  class Settings(val concatenations: Int, val minCharacters: Int,
     val selectWords: WordSelector.Type)
 
   object Settings {
-    def apply(maxN: Int = 2, minCharacters: Int = 3, minTf: Int = 6,
+    def apply(concatenations: Int = 0, minCharacters: Int = 3, minTf: Int = 6,
       minDf: (Int) => Int = (Int) => 6): Settings =
-      new Settings(maxN, minCharacters,
+      new Settings(concatenations, minCharacters,
         WordSelector.basic(minCharacters, minTf, minDf))
 
-    def apply(maxN: Int, minCharacters: Int,
+    def apply(concatenations: Int, minCharacters: Int,
       selectWords: WordSelector.Type): Settings =
-      new Settings(maxN, minCharacters, selectWords)
+      new Settings(concatenations, minCharacters, selectWords)
   }
-
-  //  object implicits {
-  //    implicit val default = Settings(
-  //      maxN = 2, minCharacters = 3, minTf = 6, minDf = (Int) => 6)
-  //  }
 
   type TokenCounts = Map[NGram, Int]
 
@@ -72,16 +67,16 @@ object DataConverter {
     @tailrec
     def loop(documents: GenSeq[Document],
       previous: Option[Dictionary], n: Int): (GenSeq[Document], Dictionary) = {
-      logger.info("Counting n-grams (up to {}) in each document", n)
+      logger.info("Counting n-grams (after {} concatentations) in each document", n)
 
       // construct a sequence with tokens including those in the original
-      // sentence and n-grams with specified n that are built from the
-      // original tokens
+      // sentence and n-grams with that are built from the original tokens after 
+      // concatenation
       def appendNextNGram(sentence: Sentence): Seq[NGram] = {
-        if (n == 1) sentence.tokens
+        if (n == 0) sentence.tokens
         else {
           sentence.tokens ++
-            buildNextNGrams(sentence.tokens, previous.get, n)
+            buildNextNGrams(sentence.tokens, previous.get)
         }
       }
 
@@ -101,22 +96,21 @@ object DataConverter {
         selected
       }
 
-      val documentsWithLargerNGrams = if (n == 1)
+      val documentsWithLargerNGrams = if (n == 0)
         documents
       else {
-        logger.info("Replacing constituent tokens by {}-grams", n)
+        logger.info("Replacing constituent tokens by n-grams after {} concatenations", n)
         documents.map(_.sentences.map(s =>
-          Preprocessor.replaceConstituentTokensByNGrams(
-            s, dictionary.map.contains(_), n)))
+          Preprocessor.replaceConstituentTokensByNGrams(s, dictionary.map.contains(_))))
           .map(ss => new Document(ss))
       }
 
-      if (n == maxN) (documentsWithLargerNGrams, dictionary)
+      if (n == concatenations) (documentsWithLargerNGrams, dictionary)
       else loop(documentsWithLargerNGrams, Some(dictionary), n + 1)
     }
 
     logger.info("Extracting words")
-    val (newDocuments, dictionary) = loop(documents, None, 1)
+    val (newDocuments, dictionary) = loop(documents, None, 0)
     (newDocuments.map(countTermFrequencies), dictionary)
   }
 
@@ -241,13 +235,12 @@ object DataConverter {
 
   /**
    * Given a sequence of tokens, build the n-grams based on the tokens.  The
-   * n-grams are built from two consecutive tokens.  Only the combined n-grams
-   * with the given length {@code n} are kept in the returned collection.  Besides,
+   * n-grams are built from two consecutive tokens.  Besides,
    * the constituent tokens must be contained in the given {@code base} dictionary.
+   * It is possible that after c concatenations n-grams, where n=2^c, may appear.  
    */
-  def buildNextNGrams(tokens: Seq[NGram], base: Dictionary, n: Int): Iterator[NGram] =
+  def buildNextNGrams(tokens: Seq[NGram], base: Dictionary): Iterator[NGram] =
     tokens.sliding(2)
       .filter(_.forall(base.map.contains))
       .map(NGram.fromNGrams(_))
-      .filter(_.words.length == n)
 }

@@ -13,16 +13,16 @@ object Parameters {
     val defaultMaxWords = 5000
 
     implicit val settings =
-      DataConverter.Settings(maxN = 3, minCharacters = 3,
+      DataConverter.Settings(concatenations = 3, minCharacters = 3,
         selectWords = WordSelector.byTfIdf(
           3, defaultMinDf, defaultMaxDf, defaultMaxWords))
   }
 
   class Conf(args: Seq[String]) extends Arguments(args) {
     val s = implicits.settings
-    val maxN = opt[Int](short = 'n',
+    val concatenations = opt[Int](short = 'n',
 //      default = Some(s.maxN),
-      descr = "maximum N for n-gram",
+      descr = "number of concatenations used for building n-grams",
       required = true)
     val minChars = opt[Int](noshort = true,
       default = Some(s.minCharacters),
@@ -39,7 +39,7 @@ object Parameters {
       required = true)
 
     def getSettings() = {
-      DataConverter.Settings(maxN = maxN(),
+      DataConverter.Settings(concatenations = concatenations(),
         minCharacters = minChars(),
         selectWords = WordSelector.byTfIdf(
           minChars(), minDf(), maxDf(), maxWords()))
