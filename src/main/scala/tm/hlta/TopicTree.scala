@@ -27,7 +27,7 @@ object HTMLTopicTable {
     val indent: Int, size: Double, mi: Double, words: Seq[Word])
       extends Topic(name, level, size, Some(mi), words)
 
-  val lineRegex = """<p level ="([^"]*)" name ="([^"]*)" parent = "([^"]*)" percentage ="([^"]*)" (?:MI = "([^"]*)" )?style="text-indent:(.+?)em;"> ([.0-9]+) (.*?)</p>""".r
+  val lineRegex = """<p level ="([^"]*)" name ="([^"]*)" parent = "([^"]*)" (?:percentage ="([^"]*)" )?(?:MI = "([^"]*)" )?style="text-indent:(.+?)em;"> ([.0-9]+) (.*?)</p>""".r
   val wordsWithProbRegex = """\s*(([^ ]+) ([.0-9]+)\s*)*""".r
 
   def readTopicTree(topicTableFile: String) = {
@@ -51,7 +51,7 @@ object HTMLTopicTable {
       lines.map {
         _ match {
           case lineRegex(level, name, parent, percentage, mi,
-            indent, percent1, words) =>
+            indent, percentage1, words) =>
             val miDouble = if (mi == null) Double.NaN else mi.toDouble
             val ws = words match {
               case wordsWithProbRegex(_*) =>
@@ -60,7 +60,7 @@ object HTMLTopicTable {
               case _ => words.split("\\s+").map(Word.apply).toVector
             }
             (new HTMLTopic(name = name, level = level.toInt, indent = indent.toInt,
-              size = percentage.toDouble, mi = miDouble, words = ws), parent)
+              size = percentage1.toDouble, mi = miDouble, words = ws), parent)
         }
       }.toList
     } finally {

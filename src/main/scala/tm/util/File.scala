@@ -38,6 +38,13 @@ object FileHelpers {
       EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, visitor)
     files.toVector
   }
-  
+
   def exists(s: String) = Files.exists(Paths.get(s))
+
+  def mkdir(d: String): Unit = mkdir(Paths.get(d))
+
+  def mkdir(p: Path): Unit = {
+    if (!Files.exists(p))
+      Files.createDirectories(p)
+  }
 }
