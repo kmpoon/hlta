@@ -97,7 +97,15 @@ java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StochasticPEM sample.txt sample.txt 50  
   * `lib`: Javascript and CSS files required by the main HTML file
   * `fonts`: fonts used by some CSS files
   * `topic_output`: directory holding some information of the extracted topics
-  
+
+- If you want to extract narrowly defined topics, you can use `ExtractNarrowTopics` instead:
+
+  ```
+  java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopics sample model.bif data.txt
+  ```
+
+  Where: `data.txt` is the data file.
+
 # References
 
 * [Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
