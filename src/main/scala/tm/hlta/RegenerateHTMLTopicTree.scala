@@ -30,11 +30,15 @@ object RegenerateHTMLTopicTree {
 
       val title = if (args.length > 2) args(2) else "Topic Tree"
 
-      val order = readIslands(
-        FindTopLevelSiblingClusters.getIslandsFileName(outputName))
-      copyAssetFiles(Paths.get("."))
-      generateTopicTree(topicsFile, title, outputName, order)
+      run(topicsFile, outputName, title)
     }
+  }
+
+  def run(topicsFile: String, outputName: String, title: String) = {
+    val order = readIslands(
+      FindTopLevelSiblingClusters.getIslandsFileName(outputName))
+    copyAssetFiles(Paths.get("."))
+    generateTopicTree(topicsFile, title, outputName, order)
   }
 
   def printUsage() = {

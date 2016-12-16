@@ -90,20 +90,22 @@ class ConvertSpec extends BaseSpec {
           //                    val tokens2 = tokenizeWithoutConstituentTokens(
           //                        words, dictionary.contains, 2)
 
-          Then("The token list containing 1-grams should be found correctly")
-          val tokens1 = replaceConstituentTokensByNGrams(
-            words, dictionary.contains(_), 1)
-          tokens1 should contain theSameElementsAs Vector(
-            "thursday", "march", "latest", "syria",
-            "aid", "qaddafi", "sid",
-            "hrc", "memo", "syria", "aid", "libya", "docx", "hrc",
-            "memo", "syria", "aid", "libya", "_030311_docx",
-            "march", "hillary")
-            .map(NGram(_))
+// // the test is commented because replaceConstituentTokensByNGrams now tries to 
+// // concatenate tokens
+//          Then("The token list containing 1-grams should be found correctly")
+//          val tokens1 = replaceConstituentTokensByNGrams(
+//            words, dictionary.contains(_), 1)
+//          tokens1 should contain theSameElementsAs Vector(
+//            "thursday", "march", "latest", "syria",
+//            "aid", "qaddafi", "sid",
+//            "hrc", "memo", "syria", "aid", "libya", "docx", "hrc",
+//            "memo", "syria", "aid", "libya", "_030311_docx",
+//            "march", "hillary")
+//            .map(NGram(_))
 
           Then("The tokens list containing 1-grams and 2-grams should be correct")
           val tokens2 = replaceConstituentTokensByNGrams(
-            words, dictionary.contains(_), 2)
+            words, dictionary.contains(_))
           tokens2 should contain theSameElementsAs Vector(
             "thursday", "march", "latest", "syria-aid", "qaddafi",
             "sid", "hrc-memo", "syria-aid", "libya", "docx",
@@ -112,7 +114,7 @@ class ConvertSpec extends BaseSpec {
             .map(NGram.fromConcatenatedString)
 
           val tokens3 = replaceConstituentTokensByNGrams(
-            words, dictionary.contains(_), 3)
+            tokens2, dictionary.contains(_))
           tokens3 should contain theSameElementsAs Vector(
             "thursday", "march", "latest", "syria-aid", "qaddafi",
             "sid", "hrc-memo", "syria-aid-libya", "docx",
