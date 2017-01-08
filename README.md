@@ -1,3 +1,21 @@
+#Hierarchical Latent Tree Analysis (HLTA)
+HLTA is a novel method for hierarchical topic detection. Specifically, it models document collections using a class of graphical models called *hierarchical latent tree models (HLTMs)*. The variables at the bottom level of an HLTM are observed binary variables that represent the presence/absence of words in a document. The variables at other levels are binary latent variables, with those at the lowest latent level representing word co-occurrence patterns and those at higher levels representing co-occurrence of patterns at the level below. Each latent variable gives a soft partition of the documents, and document clusters in the partitions are interpreted as topics. Unlike LDA-based topic models,  HLTMs do not refer to a document generation process and use word variables instead of token variables. They use a tree structure to model the relationships between topics and words, which is conducive to the discovery of meaningful topics and topic hierarchies.
+
+A basic version of HLTA is proposed here: 
+[*Hierarchical Latent Tree Analysis for Topic Detection.*](http://www.cse.ust.hk/~lzhang/paper/pspdf/liu-n-ecml14.pdf)
+Tengfei Liu, Nevin L. Zhang and Peixian Chen. ECML/PKDD 2014: 256-272
+
+An accelarated version of HLTA is proposed by using Progressive EM:
+[*Progressive EM for Latent Tree Models and Hierarchical Topic Detection.*](http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/view/11818)
+Peixian Chen, Nevin L. Zhang, Leonard K. M. Poon and Zhourong Chen. AAAI 2016
+
+
+A full version of HLTA with comprehensive discription as well as several extensions can be found at:
+[*Latent Tree Models for Hierarchical Topic Detection.*](https://arxiv.org/abs/1605.06650)  
+Peixian Chen, Nevin L. Zhang et al. 
+
+An IJCAI tutorial and demonstration can be found at:
+[Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
 
 This package provides functions for hierarchical latent tree analysis on text 
 data.  The workflow supported may start with PDF files and result in a topic
@@ -7,7 +25,7 @@ tree given by HLTA.
 
 - Convert PDF files to text files.
 - Convert text files to data in bag-of-words representation (including n-grams)
-- Build latent tree models from BOW data.
+- Build latent tree models from binary data.(Will extend HLTA to include word count information later)
 - Extract topic hierarchies shown as HTML documents.
 
 
@@ -106,11 +124,6 @@ java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StochasticPEM sample.txt sample.txt 50  
 
   Where: `data.txt` is the data file.
 
-# References
-
-* [Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
-* Peixian Chen et al. (AAAI 2016) [Progressive EM for Latent Tree Models and Hierarchical Topic Detection](https://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/download/11818/11764) [[Longer version](https://arxiv.org/abs/1605.06650)]
-* Peixian Chen et al. (Submitted) [Latent Tree Models for Hierarchical Topic Detection](https://arxiv.org/abs/1605.06650)
 
 # Enquiry
 
