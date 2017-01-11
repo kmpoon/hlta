@@ -33,7 +33,7 @@ tree given by HLTA.
 
 You should first obtain two JAR files for this package, by either one of the following ways:
 
-1. Run the SBT and run `sbt-assembly`.  Rename the generated JAR file to `HLTA.jar`, which we assume in the steps below.
+1. Run the SBT.  Then run `assembly` and `assemblyPackageDependency`.  Rename the generated *dependency file* to `HLTA-deps.jar`, which we assume in the steps below.
 2. Download the `HLTA.jar` and `HLTA-deps.jar` from the [Releases page](https://github.com/kmpoon/hlta/releases).
 
 # Extract Text from PDF files
