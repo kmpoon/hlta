@@ -128,8 +128,8 @@ java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StochasticPEM sample.txt sample.txt 50  
 # Enquiry
 
 * General questions: [Leonard Poon](mailto: kmpoon@eduhk.hk) (The Education University of Hong Kong)
-* For questions specific to the model building using the PEM algorithm: [Peixian Chen](mailto: pchenac@cse.ust.hk) (The Hong Kong University of Science and Technology)
+* PEM questions: [Peixian Chen](mailto: pchenac@cse.ust.hk) (The Hong Kong University of Science and Technology)
 
 # Acknowledgement
 
-Contributors: Prof. Nevin L. Zhang, Peixian Chen, Tao Chen, Zhourong Chen, Tengfei Liu, Leonard K.M. Poon, Yi Wang
+Contributors: Prof. Nevin L. Zhang, Peixian Chen, Tao Chen, Zhourong Chen, Farhan Khawar, Tengfei Liu, Leonard K.M. Poon, Yi Wang
