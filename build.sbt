@@ -55,6 +55,7 @@ test in assembly := {}
 
 assemblyMergeStrategy in assembly := {
   case PathList("java_cup", "runtime", xs @ _* )   => MergeStrategy.first
+  case PathList("EDU", "oswego", "cs", "dl", xs @ _* )   => MergeStrategy.first
   case x =>
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
