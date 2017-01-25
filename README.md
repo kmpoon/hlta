@@ -67,6 +67,7 @@ You should first obtain two JAR files for this package, by either one of the fol
   After conversion, you can find:
   - `sample.arff`: count data in ARFF format
   - `sample.txt`: binary data in format for LTM
+  - `sample.sparse.txt`: binary data in sparse format for LTM
   - `sample.dict-2.csv`: information of words after selection after 2 possible concatenations
   - `sample.whole_dict-2.csv`: information of words before selection after 2 possible concatenations
 
