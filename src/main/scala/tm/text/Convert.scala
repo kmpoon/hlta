@@ -16,13 +16,12 @@ import tm.util.ParMapReduce._
 import org.rogach.scallop._
 import tm.util.Arguments
 
-
 object Convert {
   class Conf(args: Seq[String]) extends Arguments(args) {
     banner("Usage: tm.text.Convert [OPTION]... name max-words max-n source")
     val name = trailArg[String](descr = "Name of data")
     val maxWords = trailArg[Int](descr = "Maximum number of words")
-    val concatenations = 
+    val concatenations =
       trailArg[Int](descr = "Number of concatentations for building n-grams")
     val source = trailArg[String](descr = "Source directory")
 
@@ -79,6 +78,10 @@ object Convert {
   def readFiles(name: String, source: Path): GenSeq[Document] = {
     logger.info("Finding files under {}", source)
     val paths = getFiles(source)
+    if (paths.isEmpty) {
+      logger.error("No text files found under {}", source)
+      throw new IllegalArgumentException("No text files found files under " + source)
+    }
     readFiles(paths)
   }
 

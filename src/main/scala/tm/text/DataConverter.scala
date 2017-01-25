@@ -50,6 +50,8 @@ object DataConverter {
     logger.info("Saving in HLCM format (binary data)")
     saveAsBinaryHlcm(name, s"${name}.txt",
       dictionary.words, countsByDocuments.seq, bowConverter)
+    logger.info("Saving in sparse data format (binary data)")
+    saveAsSparseData(s"${name}.sparse.txt", countsByDocuments.seq, dictionary.map)
 
     logger.info("done")
   }
@@ -233,11 +235,25 @@ object DataConverter {
     writer.close
   }
 
+  def saveAsSparseData(filename: String,
+    countsByDocuments: Seq[TokenCounts], indices: Map[NGram, Int]) = {
+    val writer = new PrintWriter(filename)
+
+    countsByDocuments.zipWithIndex.foreach { p =>
+      val rowId = p._2 + 1 // since the indices from zipWithIndex start with zero
+      // filter out any words not contained in the indices or those with zero counts 
+      p._1.filter(tc => indices.contains(tc._1) && tc._2 > 0)
+        .foreach { tc => writer.println(s"${rowId},${tc._1}") }
+    }
+
+    writer.close
+  }
+
   /**
    * Given a sequence of tokens, build the n-grams based on the tokens.  The
    * n-grams are built from two consecutive tokens.  Besides,
    * the constituent tokens must be contained in the given {@code base} dictionary.
-   * It is possible that after c concatenations n-grams, where n=2^c, may appear.  
+   * It is possible that after c concatenations n-grams, where n=2^c, may appear.
    */
   def buildNextNGrams(tokens: Seq[NGram], base: Dictionary): Iterator[NGram] =
     tokens.sliding(2)
