@@ -15,7 +15,7 @@ A full version of HLTA with comprehensive discription as well as several extensi
 Peixian Chen, Nevin L. Zhang et al. 
 
 An IJCAI tutorial and demonstration can be found at:
-[Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
+[*Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)*](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
 
 This package provides functions for hierarchical latent tree analysis on text 
 data.  The workflow supported may start with PDF files and result in a topic
@@ -78,7 +78,7 @@ You should first obtain two JAR files for this package, by either one of the fol
 To build the model with PEM:
 
 ```
-java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.txt sample.txt 50  5  0.01 3 model 10 15
+java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.txt sample.txt 50  5  0.01 3 model 15 20
 ```
 
 Where: `sample.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
@@ -94,11 +94,31 @@ The full parameter list is: `PEM training_data test_data max_EM_steps num_EM_res
   * `max_island`: Maximum number of variables in an island (e.g. 10).
   * `max_top`: Maximum number of variables in top level (e.g. 15).
   
-To run the **stochastic version**, replace the main class `PEM` by `StochasticPEM`, e.g.:
+To run the HLTA using **stepwise EM**, replace the main class `PEM` by `StepwiseEMHLTA`, and build the model using 
 
 ```
-java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StochasticPEM sample.txt sample.txt 50  5  0.01 3 model 10 15
+java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StepwiseEMHLTA  sample.sparse.txt 50  5  0.01 3 model 10 15 1000 10 128 10000")
 ```
+
+Where: `sample.sparse.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
+
+The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top global_batch_size global_max_epochs global_max_EM_steps struct_batch_size`.  The numerical parameters can be divided into two parts:
+
+* local EM parameters:
+  * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
+  * `num_EM_restarts`: Number of restarts in EM (e.g. 5).
+  * `EM_threshold`: Threshold of improvement to stop EM (e.g. 0.01).
+* Model construction parameters:
+  * `UD_test_threshold`: The threshold used in unidimensionality test for constructing islands (e.g. 3).
+  * `max_island`: Maximum number of variables in an island (e.g. 10).
+  * `max_top`: Maximum number of variables in top level (e.g. 15).
+* Global parameters:
+  * `global_batch_size`: Number of data cases used in each stepwise EM step (e.g. 1000).
+  * `global_max_epochs`: Number of times the whole training dataset has been gone through (e.g. 10).
+  * `global_max_EM_steps`: Maximum number of stepwise EM steps (e.g. 128).
+  * `struct_batch_size`: Number of data cases used for building model structure.
+
+
 
 # Extract Topic Hierarchies
 
