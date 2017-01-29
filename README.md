@@ -83,7 +83,7 @@ java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.txt sample.txt 50  5  0.01 3 
 
 Where: `sample.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
 
-The full parameter list is: `PEM training_data test_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top`.  The numerical parameters can be divided into two parts:
+The full parameter list is: `PEM training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top`.  The numerical parameters can be divided into two parts:
 
 * EM parameters:
   * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
@@ -102,7 +102,7 @@ java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StepwiseEMHLTA  sample.sparse.txt 50  5 
 
 Where: `sample.sparse.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
 
-The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top global_batch_size global_max_epochs global_max_EM_steps struct_batch_size`.  The numerical parameters can be divided into two parts:
+The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top global_batch_size global_max_epochs global_max_EM_steps struct_batch_size`.  The numerical parameters can be divided into three parts:
 
 * local EM parameters:
   * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
@@ -118,7 +118,12 @@ The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_re
   * `global_max_EM_steps`: Maximum number of stepwise EM steps (e.g. 128).
   * `struct_batch_size`: Number of data cases used for building model structure.
 
-
+# Testing
+- To test the model using test data, you can  use *PEM*  as :
+```
+  java -Xmx15G -cp HLTA.jar:HLTA-deps.jar  PEM  modelname test_data outpath
+```
+  There will be a file named " EvaluationResult.txt" storing the per-document loglikelihood of test data on this model.
 
 # Extract Topic Hierarchies
 
