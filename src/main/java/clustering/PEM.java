@@ -142,10 +142,7 @@ public class PEM {
 	 * Name the model you obtain
 	 */
 	String _modelname;
-	/**
-	 * originalDataFileName
-	 */
-	String _originalDataFileName;
+
 	/**
 	 * Store the variable index
 	 */
@@ -159,22 +156,24 @@ public class PEM {
 	 */
 
 	public static void main(String[] args) throws Exception {
-		if (args.length != 9 && args.length != 2 && args.length != 3 && args.length != 0) {
+		if (args.length != 8 && args.length != 1 && args.length != 3 && args.length != 0) {
 			System.err.println(
-					"Usage: java PEMHLTA trainingdata testdata EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold outputmodel MaxIsland MaxTop");
+					"Usage: java PEMHLTA trainingdata EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold outputmodel MaxIsland MaxTop");
 			System.exit(1);
 		}
 		// TODO Auto-generated method stub
 
-		if (args.length == 9 || args.length == 2 || args.length == 0) {
+		
+		if(args.length == 8||args.length == 1||args.length == 0){
 			PEM Fast_learner = new PEM();
 			Fast_learner.initialize(args);
 			Fast_learner.IntegratedLearn();
 		}
-		if (args.length == 3) {
+		if(args.length == 3){
 			PEM test = new PEM();
-			test.testtest(args);
+			test.testtest(args);	
 		}
+		
 
 	}
 
@@ -194,39 +193,36 @@ public class PEM {
 		// parser.parse(_model);
 		System.out.println("Initializing......");
 		// Read the data set
+	
 
-		if (args.length == 0) {
-			_originalDataFileName = "Alarm-train.arff";
-			_Origdata = new DataSet(DataSetLoader.convert("./data/Alarm-train.arff"));
-			_test = new DataSet(DataSetLoader.convert("./data/Alarm-test.arff"));
+		if(args.length == 0){
+			 _Origdata = new DataSet(DataSetLoader.convert("./data/SampleData_5000.arff"));
 
-		} else {
-			_originalDataFileName = args[0];
+		}else{
 			_Origdata = new DataSet(DataSetLoader.convert(args[0]));
-			_test = new DataSet(DataSetLoader.convert(args[1]));
 		}
 
-		if (args.length == 9) {
-			_EmMaxSteps = Integer.parseInt(args[2]);
+		if(args.length == 8){
+			_EmMaxSteps = Integer.parseInt(args[1]);
 
-			_EmNumRestarts = Integer.parseInt(args[3]);
+			_EmNumRestarts = Integer.parseInt(args[2]);
 
-			_emThreshold = Double.parseDouble(args[4]);
+			_emThreshold = Double.parseDouble(args[3]);
 
-			_UDthreshold = Double.parseDouble(args[5]);
+			_UDthreshold = Double.parseDouble(args[4]);
 
-			_modelname = args[6];
+			_modelname = args[5];
 
-			_maxIsland = Integer.parseInt(args[7]);
-			_maxTop = Integer.parseInt(args[8]);
+			_maxIsland = Integer.parseInt(args[6]);
+			_maxTop = Integer.parseInt(args[7]);
 		} else {
 			_EmMaxSteps = 50;
 			_EmNumRestarts = 5;
 			_emThreshold = 0.01;
 			_UDthreshold = 3;
 			_modelname = "modelname";
-			_maxIsland = 10;
-			_maxTop = 10;
+			_maxIsland = 15;
+			_maxTop = 20;
 		}
 	}
 
