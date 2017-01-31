@@ -78,7 +78,7 @@ You should first obtain two JAR files for this package, by either one of the fol
 To build the model with PEM:
 
 ```
-java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.txt sample.txt 50  5  0.01 3 model 15 20
+java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.txt 50  5  0.01 3 model 15 20
 ```
 
 Where: `sample.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
@@ -104,7 +104,7 @@ Where: `sample.sparse.txt` the name of the binary data file, `model` is the name
 
 The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top global_batch_size global_max_epochs global_max_EM_steps struct_batch_size`.  The numerical parameters can be divided into three parts:
 
-* local EM parameters:
+* Local EM parameters:
   * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
   * `num_EM_restarts`: Number of restarts in EM (e.g. 5).
   * `EM_threshold`: Threshold of improvement to stop EM (e.g. 0.01).
