@@ -82,6 +82,7 @@ object Convert {
       logger.error("No text files found under {}", source)
       throw new IllegalArgumentException("No text files found files under " + source)
     }
+    saveFileList(name, paths)
     readFiles(paths)
   }
 
@@ -96,4 +97,10 @@ object Convert {
 
   def getFiles(source: Path) =
     FileHelpers.findFiles(source, "txt").map(source.resolve)
+
+  def saveFileList(name: String, paths: Seq[Path]) = {
+    val writer = new PrintWriter(s"${name}.files.txt")
+    paths.foreach(writer.println)
+    writer.close
+  }
 }
