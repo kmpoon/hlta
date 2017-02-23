@@ -145,7 +145,7 @@ The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_re
 - If you want to extract narrowly defined topics, you can use `ExtractNarrowTopics` instead:
 
   ```
-  java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopics sample model.bif data.txt
+  java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractNarrowTopics sample model.bif data.txt
   ```
 
   Where: `data.txt` is the data file.
