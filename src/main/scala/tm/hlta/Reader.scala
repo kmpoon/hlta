@@ -81,15 +81,17 @@ object Reader {
       data.variables.map(_.getName), data.instances, model)
   }
 
+  def findVariablesInModel[M <: BayesNet](
+    variableNames: IndexedSeq[String], model: M) = {
+    val nameToVariableMap =
+      model.getVariables.toIndexedSeq.map(v => (v.getName, v)).toMap
+
+    variableNames.map(nameToVariableMap)
+  }
+
   def formDataWithVariablesInModel[M <: BayesNet](
     variableNames: IndexedSeq[String], instances: IndexedSeq[Data.Instance],
     model: M) = {
-    // use the variables in the model
-    val nameToVariableMap =
-      model.getVariables.toSeq.map(v => (v.getName, v)).toMap
-
-    val variables = variableNames.map(nameToVariableMap)
-
-    (model, Data(variables, instances))
+    (model, Data(findVariablesInModel(variableNames, model), instances))
   }
 }

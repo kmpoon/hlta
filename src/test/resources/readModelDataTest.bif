@@ -1,0 +1,201 @@
+// model.bif
+// Produced by org.latlab at Sat Feb 11 22:10:30 PST 2017
+network "HLCM261" {
+}
+
+variable "Z17" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "reward" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "policy" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "Z14" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "query" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "sentence" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "item" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "event" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "belief" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "vertex" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "Z13" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "clause" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "logic" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "Z16" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "planning" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "robot" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "Z15" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "game" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "player" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "Z12" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "clustering" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "cluster" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "Z18" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "utility" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "preference" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "Z11" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "document" {
+	type discrete[2] { "s0" "s1" };
+}
+
+variable "classifier" {
+	type discrete[2] { "s0" "s1" };
+}
+
+probability ( "Z17" | "Z16" ) {
+	table 0.9316041138983752 0.4965755593054403 0.06839588610162486 0.5034244406945597;
+}
+probability ( "reward" | "Z17" ) {
+	table 0.9826375780900886 0.3770589728690432 0.01736242190991154 0.6229410271309569;
+}
+probability ( "policy" | "Z17" ) {
+	table 0.952824863254311 0.21671328554882072 0.04717513674568895 0.7832867144511793;
+}
+probability ( "Z14"  ) {
+	table 0.7382326110542584 0.2617673889457416;
+}
+probability ( "query" | "Z14" ) {
+	table 0.8658424811520331 0.5369435086344571 0.1341575188479667 0.4630564913655429;
+}
+probability ( "sentence" | "Z14" ) {
+	table 0.9572748400103267 0.6978260060135287 0.04272515998967323 0.3021739939864713;
+}
+probability ( "item" | "Z14" ) {
+	table 0.8825581616032461 0.7567579405734713 0.11744183839675389 0.24324205942652874;
+}
+probability ( "event" | "Z14" ) {
+	table 0.8097447607495217 0.6513115540519353 0.19025523925047816 0.3486884459480648;
+}
+probability ( "belief" | "Z14" ) {
+	table 0.8472189813242761 0.6358171750456955 0.1527810186757241 0.3641828249543045;
+}
+probability ( "vertex" | "Z14" ) {
+	table 0.8655657591749218 0.8368903395852749 0.1344342408250782 0.16310966041472516;
+}
+probability ( "Z13" | "Z14" ) {
+	table 0.9126045096494472 0.35888414177617656 0.08739549035055279 0.6411158582238236;
+}
+probability ( "clause" | "Z13" ) {
+	table 0.9857073332681293 0.6522485372650575 0.014292666731870686 0.34775146273494256;
+}
+probability ( "logic" | "Z13" ) {
+	table 0.9715954880731893 0.21714908202129327 0.028404511926810722 0.7828509179787068;
+}
+probability ( "Z16" | "Z13" ) {
+	table 0.7977741130636822 0.573260272665735 0.20222588693631774 0.4267397273342649;
+}
+probability ( "planning" | "Z16" ) {
+	table 0.9912723489641172 0.2544459120012027 0.00872765103588289 0.7455540879987973;
+}
+probability ( "robot" | "Z16" ) {
+	table 0.9626829375874364 0.6697329006892235 0.03731706241256361 0.3302670993107766;
+}
+probability ( "Z15" | "Z17" ) {
+	table 0.9074119412956948 0.5545384692108347 0.09258805870430535 0.44546153078916545;
+}
+probability ( "game" | "Z15" ) {
+	table 0.9588748305138914 0.09864401697038334 0.041125169486108684 0.9013559830296166;
+}
+probability ( "player" | "Z15" ) {
+	table 0.9918375440300322 0.48645561863599646 0.008162455969967848 0.5135443813640035;
+}
+probability ( "Z12" | "Z13" ) {
+	table 0.6916009785468537 0.9153946779820781 0.3083990214531463 0.08460532201792176;
+}
+probability ( "clustering" | "Z12" ) {
+	table 0.9837578005686565 0.2283124112644533 0.016242199431343605 0.7716875887355468;
+}
+probability ( "cluster" | "Z12" ) {
+	table 0.9275933020276033 0.331050642530505 0.07240669797239674 0.6689493574694951;
+}
+probability ( "Z18" | "Z15" ) {
+	table 0.8947615708720681 0.414677542929854 0.105238429127932 0.5853224570701461;
+}
+probability ( "utility" | "Z18" ) {
+	table 0.94164423782558 0.3341650228377756 0.05835576217441993 0.6658349771622244;
+}
+probability ( "preference" | "Z18" ) {
+	table 0.8910556570336683 0.5258097679254521 0.10894434296633161 0.47419023207454775;
+}
+probability ( "Z11" | "Z12" ) {
+	table 0.8285692024312474 0.3447157044144614 0.17143079756875257 0.6552842955855386;
+}
+probability ( "document" | "Z11" ) {
+	table 0.9419432577693982 0.5072839846054877 0.058056742230601796 0.49271601539451226;
+}
+probability ( "classifier" | "Z11" ) {
+	table 0.8670502644222713 0.5018360700950896 0.1329497355777288 0.49816392990491043;
+}

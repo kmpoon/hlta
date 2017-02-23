@@ -56,9 +56,11 @@ object AssignTopics {
   def readModelAndComputeTopicData(modelFile: String, dataFile: String) = {
     println("reading model and data")
     val (model, data) = Reader.readLTMAndARFFData(modelFile, dataFile)
+    val variableNames = data.variables.map(_.getName)
 
     println("binarizing data")
     val binaryData = data.binary
+    model.synchronize(binaryData.variables.toArray)
 
     val variables = model.getInternalVars.toIndexedSeq
 
