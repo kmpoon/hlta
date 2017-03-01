@@ -10,17 +10,20 @@ import org.latlab.util.DataSet
 import org.latlab.reasoner.CliqueTreePropagation
 import tm.util.Data
 import tm.util.Tree
+import org.slf4j.LoggerFactory
 
-/** 
+/**
  *  Provides helper methods for HLTA.
  */
 object HLTA {
+
+  val logger = LoggerFactory.getLogger(HLTA.getClass)
 
   def hardAssignment(data: DataSet, model: LTM, variables: Array[Variable]) = {
 
     val tl = new ThreadLocal[CliqueTreePropagation] {
       override def initialValue() = {
-        println("CTP constructed")
+        logger.debug("CTP constructed")
         new CliqueTreePropagation(model)
       }
     }
@@ -56,15 +59,36 @@ object HLTA {
       override def initialValue() = new CliqueTreePropagation(model)
     }
 
-    data.instances.view.par.map { d =>
-      val ctp = tl.get
-      ctp.setEvidence(data.variables.toArray, d.values.map(_.toInt).toArray)
-      ctp.propagate()
+    val partitions = 1000
+    val groups = data.instances.view.grouped(partitions)
+    var size = 0
 
-      val values = variables.map { v => ctp.computeBelief(v).getCells }
+    groups.flatMap { g =>
+      val r = g.par.map { d =>
+        val ctp = tl.get
+        ctp.setEvidence(data.variables.toArray, d.values.map(_.toInt).toArray)
+        ctp.propagate()
 
-      (values, d.weight)
-    }.seq
+        val values = variables.map { v => ctp.computeBelief(v).getCells }
+
+        (values, d.weight)
+      }.seq
+
+      size = size + g.size
+      logger.info("Finished computing probabilities for {} samples", size)
+
+      r
+    }
+
+    //    data.instances.view.par.map { d =>
+    //      val ctp = tl.get
+    //      ctp.setEvidence(data.variables.toArray, d.values.map(_.toInt).toArray)
+    //      ctp.propagate()
+    //
+    //      val values = variables.map { v => ctp.computeBelief(v).getCells }
+    //
+    //      (values, d.weight)
+    //    }.seq
   }
 
   def readLatentVariableLevels(model: LTM) = {
@@ -128,7 +152,7 @@ object HLTA {
 
     top.map(model.getNode).map(build)
   }
-  
+
   def getValue(f: Function)(variables: Seq[Variable], states: IndexedSeq[Int]) = {
     // from order of function variables to order of given variables
     val indices = f.getVariables.map(variables.indexOf(_))

@@ -16,6 +16,7 @@ import org.latlab.model.BayesNet
 import weka.core.Attribute
 import java.util.ArrayList
 import scala.collection.LinearSeq
+import org.slf4j.LoggerFactory
 
 object Reader {
   implicit final class ARFFToData(val d: Instances) {
@@ -31,6 +32,8 @@ object Reader {
       Data(attributes.map(convert), instances)
     }
   }
+
+  val logger = LoggerFactory.getLogger(Reader.getClass)
 
   def readLTMAndData(modelFile: String, dataFile: String) = {
     val model = readLTM(modelFile)
@@ -61,37 +64,59 @@ object Reader {
 
   /**
    * Reads a model and a data set from the given files.  The returned data
-   * set uses the same variable objects as in the model.
+   * set uses the same variable objects as in the model.  Attribute not found
+   * in the model will be discarded.
    */
-  def readLTMAndARFFData(modelFile: String, dataFile: String) = {
+  def readLTMAndARFFData(modelFile: String, dataFile: String): (LTM, Data) = {
     val model = readLTM(modelFile)
 
-    println("Reading ARFF data")
+    logger.info("Reading ARFF data")
     val arffData = readARFFData(dataFile)
-    println("Getting attributes")
+    logger.info("Getting attributes")
     val attributes = getAttributes(arffData)
-    println("Getting instances")
+    logger.info("Getting instances")
     val instances = getDataCases(arffData)
 
-    formDataWithVariablesInModel(attributes.map(_.name), instances, model)
-  }
-
-  def replaceVariablesInDataByModel[M <: BayesNet](data: Data, model: M) = {
-    formDataWithVariablesInModel(
-      data.variables.map(_.getName), data.instances, model)
-  }
-
-  def findVariablesInModel[M <: BayesNet](
-    variableNames: IndexedSeq[String], model: M) = {
+    // remove attributes not found in the model
     val nameToVariableMap =
       model.getVariables.toIndexedSeq.map(v => (v.getName, v)).toMap
 
-    variableNames.map(nameToVariableMap)
+    val pairs = attributes.zipWithIndex
+      .map(p => (nameToVariableMap.get(p._1.name), p._2))
+    pairs.filter(_._1.isEmpty).foreach { p =>
+      logger.warn("Attribute {} is not found in model.", attributes(p._2).name())
+    }
+    val (variables, indices) = pairs
+      .collect({ case (Some(v), i) => (v, i) })
+      .unzip
+    val indicesArray = indices.toArray
+
+    val data = Data(variables, instances.map(_.select(indicesArray)))
+    (model, data)
   }
 
-  def formDataWithVariablesInModel[M <: BayesNet](
-    variableNames: IndexedSeq[String], instances: IndexedSeq[Data.Instance],
-    model: M) = {
-    (model, Data(findVariablesInModel(variableNames, model), instances))
-  }
+  //  def replaceVariablesInDataByModel[M <: BayesNet](data: Data, model: M) = {
+  //    formDataWithVariablesInModel(data.variables, data.instances, model)
+  //  }
+  //
+  //  /**
+  //   * If variable is not found in model, the function will use the default one.
+  //   */
+  //  def findVariablesInModel[M <: BayesNet](
+  //    variableNames: IndexedSeq[String], model: M, default: (String) => Variable) = {
+  //    val nameToVariableMap =
+  //      model.getVariables.toIndexedSeq.map(v => (v.getName, v)).toMap
+  //
+  //    variableNames.map(n => nameToVariableMap.getOrElse(n, default(n)))
+  //  }
+  //
+  //  def formDataWithVariablesInModel[M <: BayesNet](
+  //    variableNames: IndexedSeq[String], instances: IndexedSeq[Data.Instance],
+  //    model: M) = {
+  //    def createVariable(n: String) = {
+  //      val states = new ArrayList((0 to 1).map(_.toString))
+  //      new Variable(n, states)
+  //    }
+  //    (model, Data(findVariablesInModel(variableNames, model, createVariable), instances))
+  //  }
 }

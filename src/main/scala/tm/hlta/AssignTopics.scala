@@ -9,6 +9,7 @@ import org.latlab.model.LTM
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.io.PrintWriter
+import org.slf4j.LoggerFactory
 
 /**
  * Assign topics to the documents.  It computes the probabilities of the latent
@@ -23,6 +24,8 @@ object AssignTopics {
       run(args(0), args(1), args(2))
   }
 
+  val logger = LoggerFactory.getLogger(AssignTopics.getClass)
+
   def printUsage() = {
     println("AssignTopics model_file data_file outputName")
     println
@@ -33,12 +36,12 @@ object AssignTopics {
   def run(modelFile: String, dataFile: String, outputName: String): Unit = {
     val topicDataFile = outputName + ".topics.arff"
     val (model, topicData) = if (Files.exists(Paths.get(topicDataFile))) {
-      println(s"Topic data file (${topicDataFile}) exists.  Skipped computing topic data.")
+      logger.info("Topic data file ({}) exists.  Skipped computing topic data.", topicDataFile)
       Reader.readLTMAndARFFData(modelFile, topicDataFile)
     } else {
       val (model, topicData) = readModelAndComputeTopicData(modelFile, dataFile)
 
-      println("Saving topic data")
+      logger.info("Saving topic data")
       outputName + "-topics"
 
       topicData.saveAsArff(outputName + "-topics",
@@ -46,25 +49,25 @@ object AssignTopics {
       (model, topicData)
     }
 
-    println("Generating topic map")
+    logger.info("Generating topic map")
     val map = generateTopicToDocumentMap(topicData, 0.5)
 
-    println("Saving topic map")
+    logger.info("Saving topic map")
     writeTopicMap(map, outputName + ".topics.js")
   }
 
   def readModelAndComputeTopicData(modelFile: String, dataFile: String) = {
-    println("reading model and data")
+    logger.info("reading model and data")
     val (model, data) = Reader.readLTMAndARFFData(modelFile, dataFile)
     val variableNames = data.variables.map(_.getName)
 
-    println("binarizing data")
+    logger.info("binarizing data")
     val binaryData = data.binary
     model.synchronize(binaryData.variables.toArray)
 
     val variables = model.getInternalVars.toIndexedSeq
 
-    println("Computing topic distribution")
+    logger.info("Computing topic distribution")
     // find the probabilities of state 1 for each variable
     val topicProbabilities =
       HLTA.computeProbabilities(model, binaryData, variables)
