@@ -78,14 +78,13 @@ You should first obtain two JAR files for this package, by either one of the fol
 To build the model with PEM:
 
 ```
-java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.txt test.txt 50  5  0.01 3 model 15 20
+java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.txt 50  5  0.01 3 model 15 20
 ```
 
 Where: `sample.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
 
-The full parameter list is: `PEM training_data test_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top`.  The numerical parameters can be divided into two parts:
+The full parameter list is: `PEM training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top`.  The numerical parameters can be divided into two parts:
 
-Note: in this version, when building models, test.txt is not actually used so please just put anything you want at the place of "test.txt". You can also put "sample.txt" there. Will delete this argument in new versions.
 
 * EM parameters:
   * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
