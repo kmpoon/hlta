@@ -18,7 +18,7 @@ import tm.util.Arguments
 
 object Convert {
   class Conf(args: Seq[String]) extends Arguments(args) {
-    banner("Usage: tm.text.Convert [OPTION]... name max-words max-n source")
+    banner("Usage: tm.text.Convert [OPTION]... name max-words concatenations source")
     val name = trailArg[String](descr = "Name of data")
     val maxWords = trailArg[Int](descr = "Maximum number of words")
     val concatenations =
@@ -34,10 +34,9 @@ object Convert {
 
     implicit val settings =
       DataConverter.Settings(concatenations = conf.concatenations(), minCharacters = 3,
-        selectWords = WordSelector.byTfIdf(3, 0, .25, conf.maxWords()))
+        wordSelector = WordSelector.byTfIdf(3, 0, .25, conf.maxWords()))
 
-    tm.text.Convert.convert(conf.name(), Paths.get(conf.source()))
-
+    convert(conf.name(), Paths.get(conf.source()))
   }
 
   val logger = LoggerFactory.getLogger(Convert.getClass)
@@ -53,7 +52,8 @@ object Convert {
     import Preprocessor.tokenizeBySpace
 
     logger.info("Building cache")
-    mapReduce(paths.par)(readFile { _.flatten.toSet })(_ ++ _)
+    mapReduce(paths.par)(
+      readFile { _.flatten.toSet })(_ ++ _)
       .map(t => t -> NGram(t)).toMap
   }
 

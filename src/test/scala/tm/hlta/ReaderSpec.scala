@@ -34,7 +34,7 @@ class ReaderSpec extends BaseSpec {
       val names = dataVariables.map(_.getName)
 
       checkReferenceEqual(modelVariables, dataVariables)
-      checkReferenceEqual(modelVariables, Reader.findVariablesInModel(names, model))
+//      checkReferenceEqual(modelVariables, Reader.findVariablesInModel(names, model))
     }
   }
 }

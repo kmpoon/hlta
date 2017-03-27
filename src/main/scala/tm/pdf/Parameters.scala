@@ -14,7 +14,7 @@ object Parameters {
 
     implicit val settings =
       DataConverter.Settings(concatenations = 3, minCharacters = 3,
-        selectWords = WordSelector.byTfIdf(
+        wordSelector = WordSelector.byTfIdf(
           3, defaultMinDf, defaultMaxDf, defaultMaxWords))
   }
 
@@ -41,7 +41,7 @@ object Parameters {
     def getSettings() = {
       DataConverter.Settings(concatenations = concatenations(),
         minCharacters = minChars(),
-        selectWords = WordSelector.byTfIdf(
+        wordSelector = WordSelector.byTfIdf(
           minChars(), minDf(), maxDf(), maxWords()))
     }
   }

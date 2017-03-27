@@ -3,6 +3,7 @@ package tm.text
 import java.io.PrintWriter
 import scala.io.Source
 import tm.util.CompositeComparator
+import java.io.InputStream
 
 /**
  * Info about a word.
@@ -25,13 +26,13 @@ object Dictionary {
     val map = info.zipWithIndex.map(p => (p._1.token -> p._2)).toMap
     new Dictionary(info, map)
   }
-
+  
   /**
-   * Reads a dictionary from a file specified by the given file name.
+   * Reads a dictionary from a given source.
    */
-  def read(filename: String) = {
+  def read(source: Source) = {
     buildFrom(
-      Source.fromFile(filename).getLines
+      source.getLines
         .drop(1) // skip the header
         .map(_.split(","))
         .map(_ match {
@@ -40,6 +41,18 @@ object Dictionary {
               tf.toInt, df.toInt, tfidf.toDouble)
         })
         .toIterable)
+  }
+
+  
+  def read(input: InputStream):Dictionary = {
+    read(Source.fromInputStream(input))
+  }
+
+  /**
+   * Reads a dictionary from a file specified by the given file name.
+   */
+  def read(filename: String): Dictionary = {
+    read(Source.fromFile(filename))
   }
 }
 

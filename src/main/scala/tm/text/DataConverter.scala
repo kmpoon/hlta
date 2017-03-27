@@ -17,7 +17,7 @@ object DataConverter {
    * minDf is computed when the number of documents is given.
    */
   class Settings(val concatenations: Int, val minCharacters: Int,
-    val selectWords: WordSelector.Type)
+    val wordSelector: WordSelector)
 
   object Settings {
     def apply(concatenations: Int = 0, minCharacters: Int = 3, minTf: Int = 6,
@@ -26,8 +26,8 @@ object DataConverter {
         WordSelector.basic(minCharacters, minTf, minDf))
 
     def apply(concatenations: Int, minCharacters: Int,
-      selectWords: WordSelector.Type): Settings =
-      new Settings(concatenations, minCharacters, selectWords)
+      wordSelector: WordSelector): Settings =
+      new Settings(concatenations, minCharacters, wordSelector)
   }
 
   type TokenCounts = Map[NGram, Int]
@@ -68,7 +68,8 @@ object DataConverter {
 
     @tailrec
     def loop(documents: GenSeq[Document],
-      previous: Option[Dictionary], n: Int): (GenSeq[Document], Dictionary) = {
+      previous: Option[Dictionary],
+      frequentWords: Set[NGram], n: Int): (GenSeq[Document], Dictionary) = {
       logger.info("Counting n-grams (after {} concatentations) in each document", n)
 
       // construct a sequence with tokens including those in the original
@@ -78,11 +79,12 @@ object DataConverter {
         if (n == 0) sentence.tokens
         else {
           sentence.tokens ++
-            buildNextNGrams(sentence.tokens, previous.get)
+            buildNextNGrams(sentence.tokens,
+              (w: NGram) => previous.get.map.contains(w) || frequentWords.contains(w))
         }
       }
 
-      val dictionary = {
+      val (dictionary, currentFrequent) = {
         logger.info("Building Dictionary")
         val whole = buildDictionary(documents, appendNextNGram)
 
@@ -90,12 +92,13 @@ object DataConverter {
         whole.save(s"${name}.whole_dict-${n}.csv")
 
         logger.info("Selecting words in dictionary")
-        val selected = settings.selectWords(whole, documents.size)
+        val (selected, frequent) =
+          settings.wordSelector.select(whole, documents.size)
 
         logger.info("Saving dictionary after selection")
         selected.save(s"${name}.dict-${n}.csv")
 
-        selected
+        (selected, frequent)
       }
 
       val documentsWithLargerNGrams = if (n == 0)
@@ -108,11 +111,12 @@ object DataConverter {
       }
 
       if (n == concatenations) (documentsWithLargerNGrams, dictionary)
-      else loop(documentsWithLargerNGrams, Some(dictionary), n + 1)
+      else loop(documentsWithLargerNGrams,
+        Some(dictionary), frequentWords ++ currentFrequent, n + 1)
     }
 
     logger.info("Extracting words")
-    val (newDocuments, dictionary) = loop(documents, None, 0)
+    val (newDocuments, dictionary) = loop(documents, None, Set.empty, 0)
     (newDocuments.map(countTermFrequencies), dictionary)
   }
 
@@ -221,7 +225,7 @@ object DataConverter {
 
     val writer = new PrintWriter(filename)
 
-    writer.println(s"//${filename}")
+    writer.println(s"//${filename.replaceAll("\\P{Alnum}", "_")}")
     writer.println(s"Name: ${name}\n")
 
     writer.println(s"// ${words.size} variables")
@@ -255,8 +259,9 @@ object DataConverter {
    * the constituent tokens must be contained in the given {@code base} dictionary.
    * It is possible that after c concatenations n-grams, where n=2^c, may appear.
    */
-  def buildNextNGrams(tokens: Seq[NGram], base: Dictionary): Iterator[NGram] =
+  def buildNextNGrams(tokens: Seq[NGram],
+    shouldConsider: (NGram) => Boolean): Iterator[NGram] =
     tokens.sliding(2)
-      .filter(_.forall(base.map.contains))
+      .filter(_.forall(shouldConsider))
       .map(NGram.fromNGrams(_))
 }
