@@ -58,6 +58,8 @@ trait AssignTopics {
 
     logger.info("Saving topic map")
     writeTopicMap(map, getFileName(outputName, "js"))
+
+    logger.info("Done")
   }
 
   def computeTopicData(modelFile: String, dataFile: String): Data = {
@@ -153,9 +155,14 @@ object AssignNarrowTopics extends AssignTopics {
       extractTopics()
       convertProbabilities()
     }
+    
+    def logCompute(latent: String) = logger.info("Computing probabilities for {}", latent)
+
 
     override def extractTopicsByCounting(
       latent: String, observed: ArrayList[Variable]) = {
+      logCompute(latent)
+
       val indices = observed.map(data.variables.indexOf)
       val probabilities = data.instances.map { i =>
         if (indices.map(i.values.apply).find(_ > 0.0).isDefined)
@@ -169,7 +176,8 @@ object AssignNarrowTopics extends AssignTopics {
     override def extractTopicsBySubtree(
       latent: String, setVars: ArrayList[Variable],
       setNode: java.util.Set[DirectedNode], subtree: LTM) {
-      // the method is broken down into three parts to allow overriding.
+      logCompute(latent)
+
       extractTopicsBySubtree1(latent, setNode, subtree);
       val subtree1 = extractTopicsBySubtree2(latent, setNode, subtree);
 
