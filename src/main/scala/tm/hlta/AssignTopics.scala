@@ -57,7 +57,8 @@ trait AssignTopics {
     val map = generateTopicToDocumentMap(topicData, 0.5)
 
     logger.info("Saving topic map")
-    writeTopicMap(map, getFileName(outputName, "js"))
+    writeTopicMap_js(map, getFileName(outputName, "js"))
+    writeTopicMap_json(map, getFileName(outputName, "json"))
 
     logger.info("Done")
   }
@@ -95,7 +96,7 @@ trait AssignTopics {
     }.toMap
   }
 
-  def writeTopicMap(map: Map[Variable, Seq[(Double, Int)]], outputFile: String) = {
+  def writeTopicMap_js(map: Map[Variable, Seq[(Double, Int)]], outputFile: String) = {
     val writer = new PrintWriter(outputFile)
 
     writer.println("var topicMap = {")
@@ -107,6 +108,22 @@ trait AssignTopics {
     }.mkString(",\n"))
 
     writer.println("};")
+
+    writer.close
+  }
+  
+  def writeTopicMap_json(map: Map[Variable, Seq[(Double, Int)]], outputFile: String) = {
+    val writer = new PrintWriter(outputFile)
+
+    writer.println("[")
+
+    writer.println(map.map { p =>
+      val variable = p._1
+      val documents = p._2.map(p => f"[${p._2}%s, ${p._1}%.2f]").mkString(",")
+      "{\"topic\":\""+variable.getName+"\",\"doc\":["+documents+"]}"
+    }.mkString(",\n"))
+
+    writer.println("]")
 
     writer.close
   }
