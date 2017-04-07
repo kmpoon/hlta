@@ -164,6 +164,7 @@ The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_re
 * Tao Chen
 * Zhourong Chen
 * Farhan Khawar
+* Chun Fai Leung
 * Tengfei Liu
 * Leonard K.M. Poon
 * Yi Wang
