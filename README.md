@@ -1,4 +1,4 @@
-#Hierarchical Latent Tree Analysis (HLTA)
+# Hierarchical Latent Tree Analysis (HLTA)
 HLTA is a novel method for hierarchical topic detection. Specifically, it models document collections using a class of graphical models called *hierarchical latent tree models (HLTMs)*. The variables at the bottom level of an HLTM are observed binary variables that represent the presence/absence of words in a document. The variables at other levels are binary latent variables, with those at the lowest latent level representing word co-occurrence patterns and those at higher levels representing co-occurrence of patterns at the level below. Each latent variable gives a soft partition of the documents, and document clusters in the partitions are interpreted as topics. Unlike LDA-based topic models,  HLTMs do not refer to a document generation process and use word variables instead of token variables. They use a tree structure to model the relationships between topics and words, which is conducive to the discovery of meaningful topics and topic hierarchies.
 
 A basic version of HLTA is proposed here: 
@@ -154,8 +154,8 @@ The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_re
 
 # Enquiry
 
-* General questions: [Leonard Poon](mailto: kmpoon@eduhk.hk) (The Education University of Hong Kong)
-* PEM questions: [Peixian Chen](mailto: pchenac@cse.ust.hk) (The Hong Kong University of Science and Technology)
+* General questions: Leonard Poon (kmpoon@eduhk.hk) (The Education University of Hong Kong)
+* PEM questions: Peixian Chen (pchenac@cse.ust.hk) (The Hong Kong University of Science and Technology)
 
 # Contributors
 
