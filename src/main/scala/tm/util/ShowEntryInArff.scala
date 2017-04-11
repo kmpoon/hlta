@@ -1,28 +1,36 @@
-package tm.text
+package tm.util
 
 import scala.io.Source
 import scala.annotation.tailrec
 
-object ShowWordCounts extends App {
+/**
+ * Show non-zero values in an ARFF file.
+ */
+object ShowEntryInArff extends App {
+  type SparseInstance = Seq[(Int, Double)]
+
   val relationRegex = """(?i)@relation(?:\s+)(\S+)""".r
   val attributeRegex = """(?i)@attribute(?:\s+)(\S+)(?:\s+)(\S+)""".r
   val ignoreRegex = """(//(.*)|(\s*))""".r
   val dataRegex = """(?i)@data(?:\s*)""".r
 
   if (args.size < 1) {
-    println("ShowWordCounts data_file")
+    println("ShowEntryInArff data_file [row_number ...]")
   } else {
-    run(args(0))
+    val rows = if (args.size > 1) Some(args.drop(1).toSeq.map(_.toInt)) else None
+    run(args(0), rows)
   }
 
-  def run(datafile: String) = {
+  def run(datafile: String, rows: Option[Seq[Int]]) = {
     println("Reading from: " + datafile)
     val lines = Source.fromFile(datafile).getLines
     val relation = readRelation(lines)
     val attributes = readAttributes(lines)
     val data = readData(lines)
 
-    println(showDataCase(data.drop(1).head, attributes))
+    rows.map(_.map(data.apply)).getOrElse(data).foreach { r =>
+      println(showDataCase(r, attributes))
+    }
   }
 
   def readRelation(lines: Iterator[String]) = {
@@ -56,22 +64,22 @@ object ShowWordCounts extends App {
     rec(Nil).toVector.reverse
   }
 
-  def readData(lines: Iterator[String]): Seq[Seq[(Int, Int)]] = {
+  def readData(lines: Iterator[String]): Seq[SparseInstance] = {
     @tailrec
-    def rec(data: List[Seq[(Int, Int)]]): Seq[Seq[(Int, Int)]] = {
+    def rec(data: List[SparseInstance]): Seq[SparseInstance] = {
       if (lines.hasNext) rec(convert(lines.next) +: data)
       else data
     }
 
-    def convert(line: String): Seq[(Int, Int)] = {
-      val values = line.split(",").map(_.toInt)
+    def convert(line: String): SparseInstance = {
+      val values = line.split(",").map(_.toDouble)
       for (i <- values.indices if values(i) > 0) yield (i, values(i))
     }
 
     rec(Nil).reverse
   }
 
-  def showDataCase(c: Seq[(Int, Int)], attributes: IndexedSeq[String]) = {
-    c.map { _ match { case (i, v) => s"(${attributes(i)}, $v)" } }
+  def showDataCase(c: SparseInstance, attributes: IndexedSeq[String]) = {
+    c.map { _ match { case (i, v) => s"${attributes(i)}: $v" } }.mkString(", ")
   }
 }
