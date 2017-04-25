@@ -98,7 +98,7 @@ The full parameter list is: `PEM training_data max_EM_steps num_EM_restarts EM_t
 To run the HLTA using **stepwise EM**, replace the main class `PEM` by `StepwiseEMHLTA`, and build the model using 
 
 ```
-java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StepwiseEMHLTA  sample.sparse.txt 50  5  0.01 3 model 10 15 1000 10 128 10000")
+java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StepwiseEMHLTA  sample.sparse.txt 50  5  0.01 3 model 10 15 1000 10 128 8000
 ```
 
 Where: `sample.sparse.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
