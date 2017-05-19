@@ -24,20 +24,28 @@ trait AssignTopics {
   def main(args: Array[String]) {
     if (args.length < 3)
       printUsage()
-    else
-      run(args(0), args(1), args(2))
+    else {
+      val modelFile = args(0)
+      val dataFile = args(1)
+      val outputName = args(2)
+      val decimalPlaces = if (args.length >= 3) args(3).toInt else 2
+
+      run(modelFile, dataFile, outputName)(decimalPlaces)
+    }
   }
 
   def printUsage() = {
-    println(s"${name} model_file data_file outputName")
+    println(s"${name} model_file data_file outputName [decimal_places]")
     println
-    println(s"E.g. ${name} model.bif data.arff output")
+    println(s"E.g. ${name} model.bif data.arff output 2")
     println(s"The output file will be ${getFileName("output", "js")} and ${getFileName("output", "arff")}")
+    println("The number of decimal places is used in the ARFF file only.")
   }
 
   def getFileName(output: String, ext: String) = s"${output}${suffix}.topics.${ext}"
 
-  def run(modelFile: String, dataFile: String, outputName: String): Unit = {
+  def run(modelFile: String, dataFile: String,
+    outputName: String)(implicit decimalPlaces: Int): Unit = {
     val topicDataFile = getFileName(outputName, "arff")
     val topicData = if (Files.exists(Paths.get(topicDataFile))) {
       logger.info("Topic data file ({}) exists.  Skipped computing topic data.", topicDataFile)
@@ -48,8 +56,8 @@ trait AssignTopics {
       logger.info("Saving topic data")
       outputName + "-topics"
 
-      topicData.saveAsArff(outputName + "-topics",
-        topicDataFile, new DecimalFormat("#0.##"))
+      val df = new DecimalFormat("#0." + "#" * decimalPlaces)
+      topicData.saveAsArff(outputName + "-topics", topicDataFile, df)
       topicData
     }
 
@@ -96,7 +104,8 @@ trait AssignTopics {
     }.toMap
   }
 
-  def writeTopicMapJs(map: Map[Variable, Seq[(Double, Int)]], outputFile: String) = {
+  def writeTopicMapJs(map: Map[Variable, Seq[(Double, Int)]], outputFile: String)(
+    implicit decimalPlaces: Int) = {
     val writer = new PrintWriter(outputFile)
 
     writer.println("var topicMap = {")
@@ -111,8 +120,9 @@ trait AssignTopics {
 
     writer.close
   }
-  
-  def writeTopicMapJson(map: Map[Variable, Seq[(Double, Int)]], outputFile: String) = {
+
+  def writeTopicMapJson(map: Map[Variable, Seq[(Double, Int)]], outputFile: String)(
+    implicit decimalPlaces: Int) = {
     val writer = new PrintWriter(outputFile)
 
     writer.println("[")
@@ -120,7 +130,7 @@ trait AssignTopics {
     writer.println(map.map { p =>
       val variable = p._1
       val documents = p._2.map(p => f"[${p._2}%s, ${p._1}%.2f]").mkString(",")
-      "{\"topic\":\""+variable.getName+"\",\"doc\":["+documents+"]}"
+      "{\"topic\":\"" + variable.getName + "\",\"doc\":[" + documents + "]}"
     }.mkString(",\n"))
 
     writer.println("]")
@@ -172,9 +182,8 @@ object AssignNarrowTopics extends AssignTopics {
       extractTopics()
       convertProbabilities()
     }
-    
-    def logCompute(latent: String) = logger.info("Computing probabilities for {}", latent)
 
+    def logCompute(latent: String) = logger.info("Computing probabilities for {}", latent)
 
     override def extractTopicsByCounting(
       latent: String, observed: ArrayList[Variable]) = {
