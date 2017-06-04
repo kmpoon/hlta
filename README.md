@@ -151,6 +151,13 @@ The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_re
 
   Where: `data.txt` is the data file.
 
+# Class Path in Windows
+
+It seems that the delimiter used in class path in Windows is `;` rather than `:`.  So you may need to run a command like
+
+```
+java -cp HLTA.jar;HLTA-deps.jar tm.pdf.ExtractText papers extracted
+```
 
 # Enquiry
 
