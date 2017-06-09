@@ -31,11 +31,14 @@ libraryDependencies ++=
 Nil
 
 
+
 EclipseKeys.withSource := true
 
 EclipseKeys.withJavadoc := true
 
 // javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+
+javacOptions ++= Seq("-encoding", "UTF-8")
 
 // scalacOptions += "-target:jvm-1.7"
 
