@@ -62,7 +62,7 @@ object Convert {
 
     // each line is assumed to be a sentence containing tokens
     // separated by space
-    val source = Source.fromFile(p.toFile)
+    val source = Source.fromFile(p.toFile, "UTF8")
     try {
       logger.debug("Reading {}", p.toFile)
       f(source.getLines.toList.map(tokenizeBySpace))
