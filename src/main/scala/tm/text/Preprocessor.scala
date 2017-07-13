@@ -30,13 +30,13 @@ object Preprocessor {
    * Performs normalization (removing accents), removes punctuation, words
    * shorter than 4 characters, and change letters to lower case.
    */
-  def preprocess(text: String, minChar: Int = 4) = {
+  def preprocess(text: String, minChars: Int = 4) = {
 
     def convert(original: String) = {
       val conversions =
         ("'", "") +:
           ("[^\\p{Alpha}\\n]+" -> " ") +:
-          (s"\\b\\w{1,${minChar - 1}}\\b" -> " ") +: // remove words with fewer than 4 characters
+          (s"\\b\\w{1,${minChars - 1}}\\b" -> " ") +: // remove words with fewer than 4 characters
           ("^\\s+" -> "") +:
           ("\\s+$" -> "") +:
           Nil
