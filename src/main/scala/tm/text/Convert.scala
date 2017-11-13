@@ -62,7 +62,7 @@ object Convert {
 
     // each line is assumed to be a sentence containing tokens
     // separated by space
-    val source = Source.fromFile(p.toFile)
+    val source = Source.fromFile(p.toFile)("UTF-8")
     try {
       logger.debug("Reading {}", p.toFile)
       f(source.getLines.toList.map(tokenizeBySpace))
@@ -75,7 +75,7 @@ object Convert {
     }
   }
 
-  def readFiles(name: String, source: Path): GenSeq[Document] = {
+  def readFiles(name: String, source: Path): GenSeq[Document] = {  
     logger.info("Finding files under {}", source)
     val paths = getFiles(source)
     if (paths.isEmpty) {
@@ -88,10 +88,16 @@ object Convert {
 
   def readFiles(paths: Vector[Path]) = {
     val cache = buildCache(paths)
+    
+    logger.info("Reading stopword file")
+    implicit val stopwords = StopWords.implicits.default
 
     logger.info("Reading documents")
     paths.par.map(readFile { l =>
-      new Document(l.map(ts => Sentence(ts.map(cache.apply))))
+      new Document(l.map{ts => 
+        val s = Sentence(ts.map(cache.apply))
+        Sentence(Preprocessor.preprocess(3)(s).map(NGram.apply))
+      })
     })
   }
 
