@@ -28,6 +28,49 @@ tree given by HLTA.
 - Build latent tree models from binary data.(Will extend HLTA to include word count information later)
 - Extract topic hierarchies shown as HTML documents.
 
+# Quick Example
+
+We show a quick example how to run the HLTA tools on a few example PDFs distributed along the source.  
+Note that HLTA works better with more data, so this example only serves as an illustration of how to run the code.
+
+1. Change directory to the base directory.
+2. Run the following command to build the JAR files from source code:
+
+   ```
+   sbt clean assembly assemblyPackageDependency && ./rename-deps.sh
+   ```
+   
+3. Change to the `quickstart` directory:
+
+   ```
+   cd quickstart
+   ```
+   
+4. Extract text from PDF files:
+
+   ```
+   java -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar tm.pdf.ExtractText pdfs extracted
+   ```
+
+5. Convert text files to bag-of-word representation:
+
+   ```
+   java -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar tm.text.Convert sample 40 2 extracted
+   ```
+   
+6. Build a LTM with PEM:
+
+   ```
+   java -Xmx15G -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar PEM sample.txt 50  5  0.01 3 model 15 20
+   ```
+
+7. Extract topics from the LTM:
+
+   ```
+   java -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar tm.hlta.ExtractTopics sample model.bif
+   ```
+   
+8. You should now view the topic hierarchy by open the file `sample.html` in the `quickstart` directory.
 
 # Prerequisites
 
