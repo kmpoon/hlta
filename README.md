@@ -30,8 +30,7 @@ tree given by HLTA.
 
 # Quick Example
 
-We show a quick example how to run the HLTA tools on a few example PDFs distributed along the source.  
-Note that HLTA works better with more data, so this example only serves as an illustration of how to run the code.
+We show a quick example of how to run the HLTA tools on a few example PDF files distributed along the source.  Note that HLTA works better with more data, so this example only serves as an illustration of how to run the code.
 
 1. Change directory to the base directory.
 2. Run the following command to build the JAR files from source code:
@@ -70,7 +69,7 @@ Note that HLTA works better with more data, so this example only serves as an il
    java -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar tm.hlta.ExtractTopics sample model.bif
    ```
    
-8. You should now view the topic hierarchy by open the file `sample.html` in the `quickstart` directory.
+8. You can now look at the topic hierarchy by opening the file `sample.html` in the `quickstart` directory.
 
 # Prerequisites
 
