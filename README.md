@@ -193,6 +193,9 @@ The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_re
 
   Where: `data.txt` is the data file.
 
+# Compactness Score
+Install gensim (https://radimrehurek.com/gensim/) before using the python codes for computing compactness scores in AAAI17 paper (http://www.aaai.org/Conferences/AAAI/2017/PreliminaryPapers/12-Chen-Z-14201.pdf). One pre-trained Word2Vec model is available at  https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing. The description of the model can be found at https://code.google.com/archive/p/word2vec/ under the section "Pre-trained word and phrase vectors".
+
 # Class Path in Windows
 
 It seems that the delimiter used in class path in Windows is `;` rather than `:`.  So you may need to run a command like
