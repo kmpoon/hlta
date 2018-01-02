@@ -3,13 +3,15 @@ from gensim.models import Word2Vec
 
 def compactness_score(model_path, topic_file_path):
 	"""
-	model_path:		Word2Vec model file
-	topic_file_path:Each line is a topic, represented as 
-					a list of words separated by spaces 
+	model_path:	Word2Vec model file
+	topic_file_path:Each line in the file is a topic, represented as 
+			a list of words separated by spaces
+			
+	Output:		Print compactness score for each topic and a final score for all the topics.
 	"""
 
 	# Loading can be very slow if the model is large. 
-	# Consider loading the model just once for all the topic files.
+	# User should consider loading the model just once for all the topic files.
 	print("Loading Word2Vec model: " + model_path)
 	model = Word2Vec.load_word2vec_format(model_path, binary=True)
 	print("Loading Done.")
