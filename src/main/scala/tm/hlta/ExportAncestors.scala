@@ -3,6 +3,7 @@ package tm.hlta
 import tm.util.Tree
 import org.latlab.model.BeliefNode
 import java.io.PrintWriter
+import tm.util.Reader
 
 object ExportAncestors {
   def main(args: Array[String]) {

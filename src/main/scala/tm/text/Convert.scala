@@ -48,16 +48,34 @@ object Convert {
     DataConverter.convert(name, documents)
   }
 
-  def buildCache(paths: Vector[Path]): Cache = {
-    import Preprocessor.tokenizeBySpace
+//  def buildCache(paths: Vector[Path]): Cache = {
+//    import Preprocessor.tokenizeBySpace
+//
+//    logger.info("Building cache")
+//    mapReduce(paths.par)(
+//      readFile { _.flatten.toSet })(_ ++ _)
+//      .map(t => t -> NGram(t)).toMap
+//  }
 
-    logger.info("Building cache")
-    mapReduce(paths.par)(
-      readFile { _.flatten.toSet })(_ ++ _)
-      .map(t => t -> NGram(t)).toMap
-  }
-
-  def readFile[T](f: (Seq[Seq[String]]) => T)(p: Path): T = {
+//  def readFile[T](f: (Seq[Seq[String]]) => T)(p: Path): T = {
+//    import Preprocessor.tokenizeBySpace
+//
+//    // each line is assumed to be a sentence containing tokens
+//    // separated by space
+//    val source = Source.fromFile(p.toFile)("UTF-8")
+//    try {
+//      logger.debug("Reading {}", p.toFile)
+//      f(source.getLines.toList.map(tokenizeBySpace))
+//    } catch {
+//      case e: Exception =>
+//        logger.error("Unable to read file: " + p.toFile, e)
+//        throw e
+//    } finally {
+//      source.close
+//    }
+//  }
+  
+  def readFile[T](f: String => T)(p: Path): T = {
     import Preprocessor.tokenizeBySpace
 
     // each line is assumed to be a sentence containing tokens
@@ -65,7 +83,7 @@ object Convert {
     val source = Source.fromFile(p.toFile)("UTF-8")
     try {
       logger.debug("Reading {}", p.toFile)
-      f(source.getLines.toList.map(tokenizeBySpace))
+      f(source.getLines.mkString(" "))
     } catch {
       case e: Exception =>
         logger.error("Unable to read file: " + p.toFile, e)
@@ -87,17 +105,19 @@ object Convert {
   }
 
   def readFiles(paths: Vector[Path]) = {
-    val cache = buildCache(paths)
+    //val cache = buildCache(paths)
     
     logger.info("Reading stopword file")
     implicit val stopwords = StopWords.implicits.default
 
     logger.info("Reading documents")
     paths.par.map(readFile { l =>
-      new Document(l.map{ts => 
-        val s = Sentence(ts.map(cache.apply))
-        Sentence(Preprocessor.preprocess(3)(s).map(NGram.apply))
-      })
+      Document.apply(l)
+      //new Document(l.map{ts => 
+        //Sentence(ts.mkString(" "))
+        //val s = Sentence(ts.map(cache.apply))
+        //Sentence(Preprocessor.preprocess(3)(s).map(NGram.apply))
+      //})
     })
   }
 

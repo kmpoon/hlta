@@ -8,47 +8,47 @@ import collection.JavaConversions._
 import java.io.PrintWriter
 import scala.io.Source
 import tm.util.Tree
+import tm.util.TreeList
 import java.nio.file.Paths
 import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 import java.nio.file.Path
 import tm.util.FileHelpers
-
-object TopicTable {
-
-}
+import tm.util.Arguments
 
 object RegenerateHTMLTopicTree {
-  import TopicTree.Topic
-
-  def main(args: Array[String]) {
-    if (args.length < 2) {
-      printUsage()
-    } else {
-      val topicsFile = args(0)
-      val outputName = args(1)
-
-      val title = if (args.length > 2) args(2) else "Topic Tree"
-
-      run(topicsFile, outputName, title)
-    }
+  
+  type TopicTree = TreeList[Topic]
+  
+  class Conf(args: Seq[String]) extends Arguments(args) {
+    val topicFile = trailArg[String]()
+    val outputName = trailArg[String]()
+    val title = opt[String](default = Some("Topic Tree"), descr = "Title in the topic tree")
+    
+    val layer = opt[List[Int]](descr = "Layer number, i.e. 2,3,4")
+    
+    banner("""RegenerateHTMLTopicTree topics_file output_name [title]"
+        |e.g. RegenerateHTMLTopicTree TopicsTable.html output \"Topic Tree\"
+        |It generates the """+outputName+""".nodes.js file and uses
+        |"""+outputName+""".topics.js and """+outputName+""".titles.js if they exist.""")
+        
+    verify
+    checkDefaultOpts()  
   }
 
-  def run(topicsFile: String, outputName: String, title: String) = {
+  def main(args: Array[String]) {
+    val conf = new Conf(args)
+    
+    run(conf.topicFile(), conf.outputName(), conf.title(), conf.layer.toOption)
+  }
+
+  def run(topicsFile: String, outputName: String, title: String, layer: Option[List[Int]] = None) = {
     val order = readIslands(
       FindTopLevelSiblingClusters.getIslandsFileName(outputName))
     copyAssetFiles(Paths.get("."))
-    generateTopicTree(topicsFile, title, outputName, order)
-  }
-
-  def printUsage() = {
-    //    println("ReorderTopics model_file data_file")
-    println("RegenerateHTMLTopicTree topics_file output_name [title]")
-    println
-    println("e.g. RegenerateHTMLTopicTree TopicsTable.html output \"Topic Tree\"")
-    println("It generates the ${output_name}.nodes.js file and uses " +
-      "${output_name}.topics.js and ${output_name}.titles.js if they exist.")
-  }
+    generateTopicTree(topicsFile, title, outputName, order, layer)
+  }  
+  
   /**
    * Constructs a variable to index mapping for ordering the top level variables
    * by reading the islands file.
@@ -66,9 +66,11 @@ object RegenerateHTMLTopicTree {
   }
 
   def generateTopicTree(topicsFile: String, title: String,
-    outputName: String, topLevelOrder: Map[String, Int]) = {
-    val topLevelTrees = HTMLTopicTable.readTopicTree(topicsFile)
-      .sortBy { t => topLevelOrder(t.value.name) }
+    outputName: String, topLevelOrder: Map[String, Int], layer: Option[List[Int]]) = {
+    var topLevelTrees = TopicTree.readHTML(topicsFile)
+    if(layer.isDefined)
+      topLevelTrees = topLevelTrees.trimLevels(layer.get)
+    topLevelTrees = topLevelTrees.sortRoots { t => topLevelOrder(t.value.name) }
     //    val parents = topLevelTrees.map(t =>
     //      topLevelTrees.find(_.getChild(t.value).isDefined)
     //        .map(_.value.name).getOrElse("none"))
@@ -76,21 +78,22 @@ object RegenerateHTMLTopicTree {
     //      (s, p) => s + treeToHtml(p._1, p._2, 4)
     //    }
 
-    import Implicits.topicToNode
+    //import Implicits.topicToNode
 
-    JSONTreeWriter.writeJSONOutput(topLevelTrees, outputName + ".nodes.js")
-    writeHtmlOutput(title, outputName, outputName + ".html")
+    //JsonTreeWriter.writeJsOutput(topLevelTrees, outputName + ".nodes.js")
+    //writeHtmlOutput(title, outputName, outputName + ".html")
   }
 
-  object Implicits {
-    import JSONTreeWriter.Node
-
-    implicit val topicToNode: (Topic) => Node = (topic: Topic) => {
-      val label = f"${topic.percentage}%.3f ${topic.words.mkString(" ")}"
-      val data = f"""name: "${topic.name}", level: ${topic.level}, percentage: ${topic.percentage}, mi: ${topic.mi.getOrElse(Double.NaN)}"""
-      Node(topic.name, label, data)
-    }
-  }
+//  Moved to TopicTree.scala
+//  object Implicits {
+//    import JsonTreeWriter.Node
+//
+//    implicit val topicToNode: (Topic) => Node = (topic: Topic) => {
+//      val label = f"${topic.percentage.get}%.3f ${topic.words.mkString(" ")}"
+//      val data = f"""name: "${topic.name}", level: ${topic.level.get}, percentage: ${topic.percentage.get}, mi: ${topic.mi.getOrElse(Double.NaN)}"""
+//      Node(topic.name, label, data)
+//    }
+//  }
 
   def writeHtmlOutput(title: String, outputName: String, outputFile: String) = {
     val template = Source.fromInputStream(
@@ -195,29 +198,53 @@ object RegenerateHTMLTopicTree {
 
 }
 
-object JSONTreeWriter {
-  case class Node(id: String, label: String, data: String)
-
-  def writeJSONOutput[T](trees: Seq[Tree[T]], outputFile: String)(implicit convert: (T) => Node) = {
-    val writer = new PrintWriter(outputFile)
-    writer.print("var nodes = [")
-    writer.println(trees.map(treeToJson(_, 0)).mkString(", "))
-    writer.println("];")
-    writer.close
-  }
-
-  def treeToJson[T](tree: Tree[T], indent: Int)(implicit convert: (T) => Node): String = {
-    val node = convert(tree.value)
-    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
-    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
-
-    val children = tree.children.map(treeToJson(_, indent + 4))
-
-    val json = """{
-      |  id: "%s", text: "%s", state: { opened: true, disabled: false, selected: false}, data: { %s }, li_attr: {}, a_attr: {}, children: [%s]
-      |}""".format(node.id, node.label, node.data, children.mkString(", "))
-      .replaceAll(" +\\|", " " * indent)
-
-    json
-  }
-}
+//  Moved to TopicTree.scala
+//object JsonTreeWriter {
+//  case class Node(id: String, label: String, data: String)
+//
+//  def writeJsOutput[T](trees: Seq[Tree[T]], outputFile: String)(implicit convert: (T) => Node) = {
+//    val writer = new PrintWriter(outputFile)
+//    writer.print("var nodes = [")
+//    writer.println(trees.map(treeToJs(_, 0)).mkString(", "))
+//    writer.println("];")
+//    writer.close
+//  }
+//
+//  def treeToJs[T](tree: Tree[T], indent: Int)(implicit convert: (T) => Node): String = {
+//    val node = convert(tree.value)
+//    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
+//    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+//
+//    val children = tree.children.map(treeToJs(_, indent + 4))
+//
+//    val js = """{
+//      |  id: "%s", text: "%s", state: { opened: true, disabled: false, selected: false}, data: { %s }, li_attr: {}, a_attr: {}, children: [%s]
+//      |}""".format(node.id, node.label, node.data, children.mkString(", "))
+//      .replaceAll(" +\\|", " " * indent)
+//
+//    js
+//  }
+//  
+//  def writeJsonOutput[T](trees: Seq[Tree[T]], outputFile: String)(implicit convert: (T) => Node) = {
+//    val writer = new PrintWriter(outputFile)
+//    writer.print("[")
+//    writer.println(trees.map(treeToJson(_, 0)).mkString(", "))
+//    writer.println("]")
+//    writer.close
+//  }
+//
+//  def treeToJson[T](tree: Tree[T], indent: Int)(implicit convert: (T) => Node): String = {
+//    val node = convert(tree.value)
+//    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
+//    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+//
+//    val children = tree.children.map(treeToJson(_, indent + 4))
+//
+//    val json = """{
+//      |  "id": "%s", "text": "%s", "data": {%s}, "children": [%s]
+//      |}""".format(node.id, node.label, node.data, children.mkString(", "))
+//      .replaceAll(" +\\|", " " * indent)
+//
+//    json
+//  }
+//}

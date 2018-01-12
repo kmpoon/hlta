@@ -2,6 +2,7 @@ package tm.hlta
 
 import java.io.PrintWriter
 import scala.io.Source
+import tm.util.Reader
 
 object ExportCSV {
   val delimiter = "\t"
@@ -61,7 +62,7 @@ object ExportCSV {
     val topics = HTMLTopicTable.readTopics(inputFile)
     topics.foreach(_ match {
       case (topic, parent) => writer.println(
-        Seq(topic.name, topic.level.toInt, topic.words.mkString(","))
+        Seq(topic.name, topic.level.get, topic.words.mkString(","))
           .mkString(delimiter))
     })
   }

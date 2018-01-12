@@ -28,6 +28,11 @@ libraryDependencies ++=
   "colt" % "colt" % "1.2.0" ::
   "nz.ac.waikato.cms.weka" % "weka-stable" % "3.6.13" ::
 //    "io.argonaut" %% "argonaut" % "6.1" ::
+// https://mvnrepository.com/artifact/org.deeplearning4j
+  "org.deeplearning4j" % "deeplearning4j-core" % "0.9.1" ::
+  "org.deeplearning4j" % "deeplearning4j-nlp" % "0.9.1" ::
+  "org.json4s" %% "json4s-native" % "3.6.0-M2" ::
+  "com.github.tototoshi" %% "scala-csv" % "1.3.5" ::
 Nil
 
 
@@ -36,6 +41,7 @@ EclipseKeys.withSource := true
 EclipseKeys.withJavadoc := true
 
 // javacOptions ++= Seq("-source", "1.7", "-target", "1.7")
+javacOptions ++= Seq("-encoding", "UTF-8")
 
 // scalacOptions += "-target:jvm-1.7"
 
@@ -66,4 +72,3 @@ assemblyMergeStrategy in assembly := {
 // unmanagedClasspath in Test += baseDirectory.value / "FastHLTA" / "bin"
 
 // unmanagedClasspath in Runtime += baseDirectory.value / "FastHLTA" / "bin"
-

@@ -6,6 +6,7 @@ import org.latlab.util.Variable
 import org.latlab.model.LTM
 import org.latlab.model.BeliefNode
 import collection.JavaConversions._
+import tm.util.Reader
 
 object NDTTest {
   val papers500Data = {
@@ -24,7 +25,7 @@ class NarrowlyDefinedTopicSpec extends BaseSpec {
         val v = newVar("Z141")
         val cs = Vector("parsing", "grammar").map(s => d.variables.find(_.getName == s).get)
         val m = buildLCM(v, cs)
-        val m1 = FindNarrowlyDefinedTopics.estimate(v, m, d.toHLCMData)
+        val m1 = FindNarrowlyDefinedTopics.estimate(v, m, d.toHLCMDataSet)
         m1.getNodes.map(_.asInstanceOf[BeliefNode].getCpt).foreach(println)
       }
     }

@@ -69,7 +69,7 @@ object ComputeTopicConferenceAssociation {
     Array((totals zip counts).map(p => p._1 - p._2), counts)
   }
 
-  def topicInfo(topic: TopicTree.Topic) = {
+  def topicInfo(topic: Topic) = {
     topic.name +: topic.level.toString +: topic.words.mkString(",") +: Nil
   }
 

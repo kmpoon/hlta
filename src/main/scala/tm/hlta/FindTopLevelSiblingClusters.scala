@@ -6,6 +6,8 @@ import java.nio.file.Files
 import java.nio.file.Paths
 import collection.JavaConversions._
 import tm.util.FileHelpers
+import tm.util.Reader
+import tm.hlta.HLTA._
 
 object FindTopLevelSiblingClusters {
 
@@ -40,12 +42,12 @@ object FindTopLevelSiblingClusters {
       println(s"Both data files (${hlcmDataFile} and ${arffDataFile}) exist. " +
         "Skipped computing top level topic assignments.")
     } else {
-      val (model, data) = Reader.readLTMAndData(modelFile, dataFile)
+      val (model, data) = Reader.readLTMAndHLCM(modelFile, dataFile)
 
       println(data.getVariables.length)
       println(data.getData.size())
 
-      val top = HLTA.getTopLevelVariables(model)
+      val top = model.getTopLevelVariables
 
       //    val topLevelData = PEMTools.HardAssignment(data, model, top.toArray)
       val topLevelData = HLTA.hardAssignment(data, model, top.toArray)

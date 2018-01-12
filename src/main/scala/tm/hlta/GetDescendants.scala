@@ -5,6 +5,7 @@ import scala.collection.immutable.Queue
 import collection.JavaConversions._
 
 import org.latlab.model.BeliefNode
+import tm.util.Reader
 
 object GetDescendants {
   def main(args: Array[String]) {

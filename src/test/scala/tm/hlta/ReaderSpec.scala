@@ -4,6 +4,7 @@ import tm.test.BaseSpec
 import java.nio.file.Paths
 import collection.JavaConversions._
 import org.latlab.util.Variable
+import tm.util.Reader
 
 object ReaderSpec {
   def getFileName(name: String) =
@@ -25,7 +26,7 @@ class ReaderSpec extends BaseSpec {
   describe("Data and model read from files") {
     they("should use the same variable objects") {
 
-      val (model, data) = Reader.readLTMAndARFFData(
+      val (model, data) = Reader.readLTMAndARFF(
         ReaderSpec.getFileName("/readModelDataTest.bif"),
         ReaderSpec.getFileName("/readModelDataTest.arff"))
 

@@ -8,6 +8,7 @@ import java.util.Arrays
 import java.io.PrintWriter
 import tm.util.MIComputer.MutualInformation
 import tm.util.MIComputer
+import tm.util.Reader
 
 object ComputeMIBetweenYearAndTopic {
   def main(args: Array[String]) {
@@ -82,6 +83,6 @@ object ComputeMIBetweenYearAndTopic {
     counts
   }
 
-  def miToCSV(delimiter: String)(mi: MutualInformation) =
+  def miToCSV(delimiter: String)(mi: MIComputer.MutualInformation) =
     (mi.mi +: mi.entropies).mkString(delimiter)
 }

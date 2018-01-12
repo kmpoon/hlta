@@ -5,6 +5,7 @@ import tm.util.Data
 import scala.collection.immutable.TreeMap
 import scala.collection.IterableLike
 import scala.collection.generic.CanBuildFrom
+import tm.util.Reader
 
 /**
  * Provides functions for analyzing the topics.

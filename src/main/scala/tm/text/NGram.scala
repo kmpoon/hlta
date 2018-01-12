@@ -21,7 +21,7 @@ class Sentence(val tokens: Seq[NGram])
 object Sentence {
   def apply(ts: Seq[NGram]): Sentence = new Sentence(ts)
   def apply(text: String): Sentence =
-    new Sentence(Preprocessor.tokenizeBySpace(text).map(NGram.apply))
+    new Sentence(Preprocessor.tokenizeBySpace(Preprocessor.preprocess(text, 3)).map(NGram.apply))
 }
 
 class Document(val sentences: Seq[Sentence])

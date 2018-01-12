@@ -15,10 +15,10 @@ import scala.annotation.tailrec
 import scala.collection.mutable.ArrayBuffer
 import java.util.ArrayList
 import java.text.DecimalFormat
-import tm.hlta.TopicTree.Topic
-import tm.hlta.TopicTree.Word
 import tm.util.MIComputer
 import scala.language.reflectiveCalls
+import tm.util.Reader
+import tm.util.TreeList
 
 object FindNarrowlyDefinedTopics {
   /**
@@ -69,16 +69,15 @@ object FindNarrowlyDefinedTopics {
     val topics = computeTopicInformation(assignments, model, data)
 
     println("Generating JSON file and HTML topic tree")
-    import RegenerateHTMLTopicTree.Implicits.topicToNode
-    JSONTreeWriter.writeJSONOutput(topics, name + ".nodes.js")
+    topics.saveAsJs(name + ".nodes.js")
     RegenerateHTMLTopicTree.writeHtmlOutput(name, name, name + ".html")
     //    save(name + ".node.js", topics)
   }
 
   def readModelAndData(modelFile: String, dataFile: String) = {
-    val (model, data) = Reader.readLTMAndARFFData(modelFile, dataFile)
+    val (model, data) = Reader.readLTMAndARFF(modelFile, dataFile)
     val binaryData = data.binary
-    val hlcmData = data.toHLCMData
+    val hlcmData = data.toHLCMDataSet
     (model, binaryData, hlcmData)
   }
 
@@ -130,7 +129,7 @@ object FindNarrowlyDefinedTopics {
     var lcm = extractLCM(tree, c.marginals(variable))
     val baseData = convertToData(
       lowerLevel, c.data.instances.map(_.weight))
-    lcm = estimate(variable, lcm, baseData.toHLCMData)
+    lcm = estimate(variable, lcm, baseData.toHLCMDataSet)
     lcm = reorder(variable, lcm)
     assign(variable, lcm, baseData)
   }
@@ -291,7 +290,7 @@ object FindNarrowlyDefinedTopics {
   }
 
   def computeTopicInformation(
-    assignments: Seq[Tree[Column]], model: LTM, data: Data): Seq[Tree[Topic]] = {
+    assignments: Seq[Tree[Column]], model: LTM, data: Data): TopicTree = {
     // use the tree to find children since the tree does not contain observed
     // variables
     def go(tree: Tree[Column]): (Tree[Topic], List[Variable], Int) = {
@@ -309,7 +308,7 @@ object FindNarrowlyDefinedTopics {
       (Tree.node(topic, childResults.map(_._1)), leaves, level)
     }
 
-    assignments.map(go).map(_._1)
+    TopicTree(assignments.map(go).map(_._1))
   }
 
   def computeTopic(column: Column, level: Int, leaves: List[Variable], data: Data): Topic = {
@@ -324,7 +323,7 @@ object FindNarrowlyDefinedTopics {
       (l.getName, info)
     }).sortBy(-_._2.mi)
     val words = info.take(MAX_NUMBER_OF_WORDS)
-      .map(_ match { case (w, WordInfo(_, p)) => TopicTree.Word(w, p) })
+      .map(_ match { case (w, WordInfo(_, p)) => Word(w, p) })
 
     Topic(column._1.getName, level, topicSize, None, words)
   }

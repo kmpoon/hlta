@@ -2,7 +2,8 @@ package tm.nHDP
 
 import scala.io.Source
 import java.nio.file.Paths
-import tm.hlta.JSONTreeWriter
+import tm.util.Tree
+import java.io.PrintWriter
 
 object ConvertTopicTreeToHTML {
   def main(args: Array[String]) = {
@@ -19,7 +20,7 @@ object ConvertTopicTreeToHTML {
   }
 
   object Implicits {
-    import JSONTreeWriter.Node
+    import JsonTreeWriter.Node
 
     implicit val topicToNode: (Topic) => Node = (topic: Topic) => {
       val name = "%04d".format(topic.index)
@@ -40,8 +41,59 @@ object ConvertTopicTreeToHTML {
 
     println(topicTrees.size)
 
-    JSONTreeWriter.writeJSONOutput(topicTrees, outputName + ".nodes.js")
+    JsonTreeWriter.writeJsOutput(topicTrees, outputName + ".nodes.js")
     writeHtmlOutput(title, outputName, outputName + ".html")
 
+  }
+}
+
+//Copied from tm.hlta.RegenerateHTMLTopicTree
+object JsonTreeWriter {
+  case class Node(id: String, label: String, data: String)
+
+  def writeJsOutput[T](trees: Seq[Tree[T]], outputFile: String)(implicit convert: (T) => Node) = {
+    val writer = new PrintWriter(outputFile)
+    writer.print("var nodes = [")
+    writer.println(trees.map(treeToJs(_, 0)).mkString(", "))
+    writer.println("];")
+    writer.close
+  }
+
+  def treeToJs[T](tree: Tree[T], indent: Int)(implicit convert: (T) => Node): String = {
+    val node = convert(tree.value)
+    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
+    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+
+    val children = tree.children.map(treeToJs(_, indent + 4))
+
+    val js = """{
+      |  id: "%s", text: "%s", state: { opened: true, disabled: false, selected: false}, data: { %s }, li_attr: {}, a_attr: {}, children: [%s]
+      |}""".format(node.id, node.label, node.data, children.mkString(", "))
+      .replaceAll(" +\\|", " " * indent)
+
+    js
+  }
+  
+  def writeJsonOutput[T](trees: Seq[Tree[T]], outputFile: String)(implicit convert: (T) => Node) = {
+    val writer = new PrintWriter(outputFile)
+    writer.print("[")
+    writer.println(trees.map(treeToJson(_, 0)).mkString(", "))
+    writer.println("]")
+    writer.close
+  }
+
+  def treeToJson[T](tree: Tree[T], indent: Int)(implicit convert: (T) => Node): String = {
+    val node = convert(tree.value)
+    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
+    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+
+    val children = tree.children.map(treeToJson(_, indent + 4))
+
+    val json = """{
+      |  "id": "%s", "text": "%s", "data": {%s}, "children": [%s]
+      |}""".format(node.id, node.label, node.data, children.mkString(", "))
+      .replaceAll(" +\\|", " " * indent)
+
+    json
   }
 }
