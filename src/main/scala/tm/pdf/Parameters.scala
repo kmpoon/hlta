@@ -1,6 +1,6 @@
 package tm.pdf
 
-import tm.text.DataConverter
+import tm.text.Convert
 import tm.text.WordSelector
 
 import org.rogach.scallop._
@@ -11,11 +11,12 @@ object Parameters {
     val defaultMinDf = 0.0
     val defaultMaxDf = 0.25
     val defaultMaxWords = 5000
+    val asciiOnly = true
 
     implicit val settings =
-      DataConverter.Settings(concatenations = 3, minCharacters = 3,
-        wordSelector = WordSelector.byTfIdf(
-          3, defaultMinDf, defaultMaxDf, defaultMaxWords))
+      Convert.Settings(concatenations = 3, minCharacters = 3,
+        wordSelector = WordSelector.ByTfIdf(
+          3, defaultMinDf, defaultMaxDf, defaultMaxWords), asciiOnly = asciiOnly)
   }
 
   class Conf(args: Seq[String]) extends Arguments(args) {
@@ -37,12 +38,13 @@ object Parameters {
 //      default = Some(implicits.defaultMaxWords),
       descr = "maximum of selected words",
       required = true)
+    val asciiOnly = opt[Boolean](default = Some(true), descr = "aceept ASCII only, default true")
 
     def getSettings() = {
-      DataConverter.Settings(concatenations = concatenations(),
+      Convert.Settings(concatenations = concatenations(),
         minCharacters = minChars(),
-        wordSelector = WordSelector.byTfIdf(
-          minChars(), minDf(), maxDf(), maxWords()))
+        wordSelector = WordSelector.ByTfIdf(minChars(), minDf(), maxDf(), maxWords()),
+        asciiOnly = asciiOnly())
     }
   }
 

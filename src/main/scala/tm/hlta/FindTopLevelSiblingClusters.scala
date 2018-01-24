@@ -42,7 +42,7 @@ object FindTopLevelSiblingClusters {
       println(s"Both data files (${hlcmDataFile} and ${arffDataFile}) exist. " +
         "Skipped computing top level topic assignments.")
     } else {
-      val (model, data) = Reader.readLTMAndHLCM(modelFile, dataFile)
+      val (model, data) = Reader.readLTMAndHLCM_native(modelFile, dataFile)
 
       println(data.getVariables.length)
       println(data.getData.size())

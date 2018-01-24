@@ -26,7 +26,7 @@ object Convert {
     else {
       import Parameters.implicits.settings
 
-      tm.text.Convert.convert(args(0), Paths.get(args(1)))
+      tm.text.Convert(args(0), args(1))
     }
   }
 
@@ -38,8 +38,14 @@ object Convert {
     import Parameters.implicits.settings
 
     logger.info("Extracting bodies")
-    val bodies = Emails.readEmailsFromDefaultPath
-      .map(email => Document(email.content)).toList.par
+    implicit val asciiOnly = settings.asciiOnly
+    val bodies = Emails.readEmailsFromDefaultPath.map{email =>
+      //Was changed during Jan 2018 update
+      //Not yet tested
+      val cleanText = Preprocessor.preprocess(email.content)
+      val tokens = Preprocessor.tokenizeBySpace(cleanText)
+      Document(tokens)
+    }.toList.par
 
     DataConverter.convert("hillary", bodies)
   }

@@ -176,6 +176,48 @@ public class PEM {
 		
 
 	}
+	
+	/**
+	 * Added by Leung Chun Fai
+	 * Seperates IO from initialize(args)
+	 * 
+	 * @param args
+	 * @throws IOException
+	 * @throws Exception
+	 */
+	public void initialize(DataSet dataSet, int emMaxSteps, int emNumRestarts, double emThreshold, double udThreshold, 
+			String modelName, int maxIsland, int maxTop) throws IOException, Exception{
+
+		// _model = new LTM();
+		// Parser parser = new BifParser(new FileInputStream(args[0]),"UTF-8");
+		// parser.parse(_model);
+		System.out.println("Initializing......");
+		// Read the data set
+		_Origdata = dataSet;
+
+//		if(args.length == 8){
+			_EmMaxSteps = emMaxSteps;//Integer.parseInt(args[1]);
+
+			_EmNumRestarts = emNumRestarts;//Integer.parseInt(args[2]);
+
+			_emThreshold = emThreshold;//Double.parseDouble(args[3]);
+
+			_UDthreshold = udThreshold;//Double.parseDouble(args[4]);
+
+			_modelname = modelName;//args[5];
+
+			_maxIsland = maxIsland;//Integer.parseInt(args[6]);
+			_maxTop = maxTop;//Integer.parseInt(args[7]);
+//		} else {
+//			_EmMaxSteps = 50;
+//			_EmNumRestarts = 5;
+//			_emThreshold = 0.01;
+//			_UDthreshold = 3;
+//			_modelname = "modelname";
+//			_maxIsland = 15;
+//			_maxTop = 20;
+//		}
+	}
 
 	/**
 	 * Initialize All

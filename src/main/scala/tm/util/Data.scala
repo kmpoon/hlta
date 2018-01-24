@@ -2,15 +2,59 @@ package tm.util
 
 import org.latlab.util.Variable
 import org.latlab.util.DataSet
+import org.latlab.learner.SparseDataSet
 import scala.collection.JavaConversions._
 import scala.collection.LinearSeq
 import java.text.DecimalFormat
 import java.util.ArrayList
 import org.latlab.model.LTM
 import org.slf4j.LoggerFactory
+import scala.util.Random
+import tm.text.Dictionary
+import tm.text.NGram
 
 object Data{
-  def apply(variables: IndexedSeq[Variable], instances: IndexedSeq[Data.Instance], isBinary: Boolean = false) = new Data(variables, instances, isBinary)
+  
+//  def apply(variables: IndexedSeq[Variable], instances: IndexedSeq[Data.Instance]) = 
+//    new Data(variables, instances)
+//  
+//  def apply(variables: IndexedSeq[Variable], instances: IndexedSeq[Data.Instance], isBinary: Boolean) = 
+//    new Data(variables, instances, isBinary)
+//  
+//  def apply(dictionary: Dictionary, tokenCountsSeq: Seq[TokenCounts], isBinary: Boolean = false, name: String = "data") = 
+//    fromDictionaryAndTokenCounts(dictionary, tokenCountsSeq, isBinary, name)
+  
+//  def apply(dictionary: Dictionary, tokenCountsSeq: Seq[TokenCounts]) = fromDictionaryAndTokenCounts(dictionary, tokenCountsSeq)
+  
+  type TokenCounts = Map[NGram, Int]
+  def fromDictionaryAndTokenCounts(dictionary: Dictionary, tokenCountsSeq: Seq[TokenCounts], isBinary: Boolean = false, name: String = "data"): Data = {
+    def _toVariable(a: String) = {
+      val b = new ArrayList[String]()
+      b.add(0, "s0")
+      b.add(1, "s1")
+      new Variable(a, b)
+    }
+    
+    /**
+     * Converts data to bag-of-words representation, based on the given word
+     * counts and dictionary.
+     */
+    def _toBow(indices: Map[NGram, Int], counts: TokenCounts): Array[Double] = {
+      val values = Array.fill(indices.size)(0.0)
+      counts.foreach { wc =>
+        indices.get(wc._1).foreach { i => values(i) = wc._2.toDouble }
+      }
+      values
+    }
+    
+    val tokenIndices = dictionary.map
+    val variables = dictionary.info.map{wordInfo => _toVariable(wordInfo.token.identifier)}
+    val instances = tokenCountsSeq.map{tokenCounts => 
+      val values = _toBow(tokenIndices, tokenCounts)
+      Instance(values, 1.0)
+    }
+    new Data(variables, instances.toIndexedSeq, isBinary, name)
+  }
   
   private def binarize(value: Double): Double = if (value > 0) 1.0 else 0.0
   private def binarize(variable: Variable): Variable = new Variable(variable.getName, new ArrayList(Seq("s0", "s1")))
@@ -24,17 +68,17 @@ object Data{
     def select(indices: Array[Int]) = copy(values = indices.map(values.apply))
     def apply(variablePos: Int) : Double = values.apply(variablePos)
   }
-  
-	/** Returns a data set that is the projection of this data set on the
-	 * specified list of variables.
-	 * 
-	 * Added by Leung Chun Fai
-	 * 
-	 * @param instancesId
-	 *            list of instances onto which this data set is to be project.
-	 * @return a subset of the original data set on the specified list of variables(enforced order).
-	 */  
+    
   implicit class DataSetMethod(dataSet: DataSet){
+    /** Returns a data set that is the projection of this data set on the
+  	 * specified list of variables.
+  	 * 
+  	 * Added by Leung Chun Fai
+  	 * 
+  	 * @param instancesId
+  	 *            list of instances onto which this data set is to be project.
+  	 * @return a subset of the original data set on the specified list of variables(enforced order).
+  	 */
   	def subset(instancesId: Seq[Int]) = {
   		val newDataSet = new DataSet(dataSet.getVariables)
   		instancesId.filter{ instanceId => instanceId < dataSet.getData.size }.foreach{ instanceId => 
@@ -43,16 +87,25 @@ object Data{
   		}  
   		newDataSet
   	}
+  	
+  	def randomSubset(ratio: Double) = {
+  	  val indices = Random.shuffle(List.range(1, dataSet.getData.size)).take((dataSet.getData.size*ratio).toInt)
+  	  subset(indices)
+  	}
+  }
+  
+  implicit class SparseDataSetMethod(sparseDataSet: SparseDataSet){
+  	def randomSlice(split: Int) = sparseDataSet.GetNextPartition(split, Random.nextInt(split))
   }
 }
 
-class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.Instance], val isBinary: Boolean = false) {
-  
+class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.Instance], val isBinary: Boolean = false, var name : String = "data") {
+
   val logger = LoggerFactory.getLogger(Data.getClass)
   
   def copy(variables: IndexedSeq[Variable] = variables, instances: IndexedSeq[Data.Instance] = instances, isBinary: Boolean = isBinary) = new Data(variables, instances, isBinary)
   
-  def apply(i: Int) : Data.Instance = instances.apply(i)
+  def apply(i: Int) : Data.Instance = instances(i)
   
   def apply(i: String) : Data.Instance = instances.find { instance => instance.name==Some(i) }.get
   
@@ -141,18 +194,20 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
       val values = indices.map(i.values.apply).map(_.toInt)
       data.addDataCase(values, i.weight)
     }
+    data.setName(name)
 
     data
   }
 
-  def saveAsArff(name: String, filename: String,
-    df: DecimalFormat = new DecimalFormat("#0.##")) = {
+  def saveAsArff(filename: String, df: DecimalFormat = new DecimalFormat("#0.##")) = {
     ArffWriter.write(name, filename,
-      ArffWriter.AttributeType.numeric,
+      if(isBinary) ArffWriter.AttributeType.binary else ArffWriter.AttributeType.numeric,
       variables.map(_.getName), instances, df.format)
   }
   
-  def saveAsHlcm(filename: String) = toHLCMDataSet().save(filename)
+  def saveAsHlcm(filename: String) = {
+    toHLCMDataSet().save(filename)
+  }
   
   /**
    * Save as SparseDataSet, see org.latlab.learner.SparseDataSet
@@ -189,6 +244,8 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
     case i: Int => subsetI(docList.asInstanceOf[Seq[Int]])
     case s: String => subsetS(docList.asInstanceOf[Seq[String]])
   }
+  
+  def randomSubset(ratio: Double) = Random.shuffle(instances).take((instances.size*ratio).toInt)
   
   def select[A, B](varList: IndexedSeq[A], docList: Seq[B]) = subset(docList).project(varList)
 }

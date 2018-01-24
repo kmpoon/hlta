@@ -1,30 +1,30 @@
 package tm.util
 
 import java.io.PrintWriter
+import tm.util.Data
 
 object ArffWriter {
   object AttributeType extends Enumeration {
     val binary, numeric = Value
   }
 
-  def write(name: String, fileName: String, attributeType: AttributeType.Value,
-    variables: Seq[String], instances: Seq[Data.Instance],
-    format: (Double) => String) = {
+  def write(name: String, fileName: String, attributeType: AttributeType.Value, 
+      variables: Seq[String], instances: Seq[Data.Instance], format: (Double) => String) = {
 
     val at = attributeType match {
       case AttributeType.binary => "{0, 1}"
-      case AttributeType.numeric => "numeric"
+      case AttributeType.numeric => "integer"
     }
 
     val writer = new PrintWriter(fileName)
 
-    writer.println(s"@RELATION ${name}")
+    writer.println(s"@relation ${name}")
     writer.println
 
-    variables.foreach { w => writer.println(s"@ATTRIBUTE ${w} ${at}") }
+    variables.foreach { w => writer.println(s"@attribute ${w} ${at}") }
     writer.println
     
-    writer.println("@DATA")
+    writer.println("@data")
 
     instances.foreach { instance =>
       writer.print(instance.values.map(format).mkString(","))

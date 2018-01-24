@@ -246,6 +246,59 @@ public class StepwiseEMHLTA {
 		}
 	}
 
+
+	/**
+	 * Added by Leung Chun Fai
+	 * Seperates IO from initialize(args)
+	 * 
+	 * @param args
+	 * @throws IOException
+	 * @throws Exception
+	 */
+	public void initialize(SparseDataSet sparseDataSet, int emMaxSteps, int emNumRestarts, double emThreshold, double udThreshold,
+			String modelName, int maxIsland, int maxTop, int sizeBatch, int maxEpochs, int globalEmMaxSteps, String sizeFirstBatch) throws IOException, Exception{
+        System.out.println("Initializing......");
+		// Read the data set
+		_OrigSparseData = sparseDataSet;
+
+//		if(args.length==12){
+		_EmMaxSteps = emMaxSteps;//Integer.parseInt(args[1]);
+
+		_EmNumRestarts = emNumRestarts;//Integer.parseInt(args[2]);
+
+		_emThreshold = emThreshold;//Double.parseDouble(args[3]);
+
+		_UDthreshold = udThreshold;//Double.parseDouble(args[4]);
+
+		_modelname = modelName;//args[5];
+
+		_maxIsland = maxIsland;//Integer.parseInt(args[6]);
+		_maxTop = maxTop;//Integer.parseInt(args[7]);
+		_sizeBatch = sizeBatch;//Integer.parseInt(args[8]);
+		_maxEpochs = maxEpochs;//Integer.parseInt(args[9]);
+		_globalEMmaxSteps = globalEmMaxSteps;//Integer.parseInt(args[10]);
+		_sizeFirstBatch = sizeFirstBatch;//args[11];
+		if(_sizeFirstBatch.contains("all")){
+            _OrigDenseData = _OrigSparseData.getWholeDenseData();
+		}else{
+            _OrigDenseData = _OrigSparseData.GiveDenseBatch(Integer.parseInt(_sizeFirstBatch));
+		}
+//		}else{
+//			_EmMaxSteps =50;
+//			_EmNumRestarts=3;
+//			_emThreshold=0.01;
+//			_UDthreshold=3;
+//			_modelname ="HLTAModel";
+//			_maxIsland = 15;
+//			_maxTop =30;
+//			_sizeBatch =500;
+//			_maxEpochs = 10;
+//			_globalEMmaxSteps =100;
+//			_sizeFirstBatch = "all";
+//            _OrigDenseData = _OrigSparseData.getWholeDenseData();
+//		}
+	}
+	
 	
 	public void testtest(String[] args) throws IOException, Exception{
 		 _model = new LTM();

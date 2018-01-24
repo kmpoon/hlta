@@ -140,6 +140,49 @@ class TopicTree(roots: Seq[Tree[Topic]]) extends TreeList[Topic](roots){
     writer.println("]")
     writer.close
   }
+
+  def saveAsHtml(outputFile: String){
+//    val parents = topLevelTrees.map(t =>
+//      topLevelTrees.find(_.getChild(t.value).isDefined)
+//        .map(_.value.name).getOrElse("none"))
+//    val content = topLevelTrees.zip(parents).foldLeft("") {
+//      (s, p) => s + treeToHtml(p._1, p._2, 4)
+    
+    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
+    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+    
+    implicit class NodeInfo(topic: Topic){
+      def info(): Info = {
+        val label = if(topic.percentage.isDefined) f"${topic.percentage.get}%.2f ${topic.words.mkString(" ")}"
+                    else f"${topic.words.mkString(" ")}"
+        val data = ""
+        Info(topic.name, label, data)
+      }
+    }
+
+    def _treeToHtml(tree: Tree[Topic], indent: Int): String = {
+      val node = tree.value.info()
+      val start = """<li class="jstree-open" id="%s" >""".format(node.id)
+      val content = node.label
+      val end = "</li>"
+  
+      if (tree.children.isEmpty)
+        " " * indent + start + content + end + "\n"
+      else {
+        val childIndent = indent + 2
+  
+        " " * indent + start + content + "\n" +
+          " " * childIndent + "<ul>" + "\n" +
+          tree.children.map(_treeToHtml(_, childIndent)).reduce(_ + _) +
+          " " * childIndent + "</ul>" + "\n" +
+          " " * indent + end + "\n"
+      }
+    }
+    
+    val writer = new PrintWriter(outputFile)
+    writer.println(roots.map(_treeToHtml(_, 0)).reduce(_ + _))
+    writer.close
+  }
 }
 
 object HTMLTopicTable {

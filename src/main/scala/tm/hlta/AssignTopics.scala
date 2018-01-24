@@ -152,7 +152,7 @@ trait AssignTopics {
       outputName + "-topics"
 
       val df = new DecimalFormat("#0." + "#" * decimalPlaces)
-      topicData.saveAsArff(outputName + "-topics", topicDataFile, df)
+      topicData.saveAsArff(topicDataFile, df)
       topicData
     }
 
@@ -204,19 +204,20 @@ object AssignBroadTopics extends AssignTopics {
   def computeTopicData(model: LTM, binaryData: Data, layer: Option[List[Int]]): Data = { 
     //get the list of variables to be computed
     val variables = if(layer.isEmpty)
-      model.getInternalVars.toList
+      model.getInternalVars.toSeq
     else{
-      val variablesByLevel = model.getLevelVariables()
-      //layer could be negative or 0 (0 is word but not topic), root=0, root's child=-1, etc.
-      val _layer = layer.get.map{l => if(l<=0) l+variablesByLevel.size() else l}
-      _layer.map(variablesByLevel.get(_)).flatten.flatten
+      val variablesByLevel = model.getLevelVariables
+      //variablesByLevel: {0->word, 1->topic, ... , topic_height-1 ->root}
+      //but layer could be negative or 0, where root=0, root's child=-1, etc.
+      val _layer = layer.get.map{l => if(l<=0) l+model.getHeight-1 else l}
+      _layer.map(variablesByLevel.get(_)).flatten.flatten.toSeq
     }
 
     // find the probabilities of state 1 for each variable
     val topicProbabilities =
       HLTA.computeProbabilities(model, binaryData, variables).map(p => Data.Instance(p._1.toArray.map(_(1)), p._2, p._3))
 
-    Data(variables.toIndexedSeq, topicProbabilities.toIndexedSeq)
+    new Data(variables.toIndexedSeq, topicProbabilities.toIndexedSeq)
   }
 }
 
@@ -233,13 +234,13 @@ object AssignNarrowTopics extends AssignTopics {
   val name = "AssignNarrowTopics"
   val suffix = "-ndt"
 
-  private class Extractor(model: LTM, data: Data, var layer: Option[List[Int]]) extends ExtractNarrowTopics_LCM {
+  private class Extractor(model: LTM, data: Data, layer: Option[List[Int]]) extends ExtractNarrowTopics_LCM {
     // Holds topic probabilities (value) for each document for each latent variable (key)
     val topicProbabilities = scala.collection.mutable.Map.empty[String, IndexedSeq[Double]]
     val varLevels = model.getVariableNameLevels
-    if(layer.isDefined) layer.get.map{l => if(l<=0) l+model.getHeight else l}
+    val _layer = if(layer.isDefined)  layer.get.map{l => if(l<=0) l+model.getHeight-1 else l} else null
 
-    def run(): Data = {
+    def apply(): Data = {
       initialize(model, data.toHLCMDataSet(), Array("", "", "tmp", "no", "no", "7"))
       extractTopics()
       convertProbabilities()
@@ -248,7 +249,7 @@ object AssignNarrowTopics extends AssignTopics {
     def logCompute(latent: String) = logger.info("Computing probabilities for {}", latent)
     
     override def extractTopicsByCounting(latent: String, observed: ArrayList[Variable]){
-      if(layer.isDefined && !layer.get.contains(varLevels(latent)))
+      if(_layer != null && !_layer.contains(varLevels(latent)))
         return
         
       logCompute(latent)
@@ -266,7 +267,7 @@ object AssignNarrowTopics extends AssignTopics {
     override def extractTopicsBySubtree(
       latent: String, setVars: ArrayList[Variable],
       setNode: java.util.Set[DirectedNode], subtree: LTM) {
-      if(layer.isDefined && !layer.get.contains(varLevels(latent)))
+      if(_layer != null && !_layer.contains(varLevels(latent)))
         return
       
       logCompute(latent)
@@ -311,13 +312,13 @@ object AssignNarrowTopics extends AssignTopics {
         Data.Instance(columns.map(_.apply(i)), data.instances(i).weight)
       }
 
-      Data(variables, instances)
+      new Data(variables, instances)
     }
 
   }
 
   def computeTopicData(model: LTM, binaryData: Data, layer: Option[List[Int]]): Data = {
-    new Extractor(model, binaryData, layer).run()
+    new Extractor(model, binaryData, layer).apply()
   }
 
 }

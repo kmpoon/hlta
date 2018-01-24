@@ -35,15 +35,13 @@ object StanfordLemmatizer {
 
   def process(text: String): Document = {
     val document = new edu.stanford.nlp.simple.Document(text)
-    val sentences = document.sentences
-      .map(_.lemmas.map(NGram.apply))
-      .map(Sentence.apply)
-    new Document(sentences.toSeq)
+    val sentences = document.sentences.map(_.lemmas.map(NGram.apply)).map(Sentence.apply(_))
+    Document(sentences)
   }
 
   def processAsSentence(s: String): Sentence = {
     if (s.isEmpty)
-      Sentence(Seq.empty)
+      Sentence(Seq.empty[NGram])
     else {
       val sentence = new edu.stanford.nlp.simple.Sentence(s)
       Sentence(sentence.lemmas.map(NGram.apply))

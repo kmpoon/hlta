@@ -70,14 +70,14 @@ object FindNarrowlyDefinedTopics {
 
     println("Generating JSON file and HTML topic tree")
     topics.saveAsJs(name + ".nodes.js")
-    RegenerateHTMLTopicTree.writeHtmlOutput(name, name, name + ".html")
+    BuildWebsite.writeHtmlOutput(name, name, name + ".html")
     //    save(name + ".node.js", topics)
   }
 
   def readModelAndData(modelFile: String, dataFile: String) = {
     val (model, data) = Reader.readLTMAndARFF(modelFile, dataFile)
     val binaryData = data.binary
-    val hlcmData = data.toHLCMDataSet
+    val hlcmData = data.toHLCMDataSet()
     (model, binaryData, hlcmData)
   }
 
@@ -129,7 +129,7 @@ object FindNarrowlyDefinedTopics {
     var lcm = extractLCM(tree, c.marginals(variable))
     val baseData = convertToData(
       lowerLevel, c.data.instances.map(_.weight))
-    lcm = estimate(variable, lcm, baseData.toHLCMDataSet)
+    lcm = estimate(variable, lcm, baseData.toHLCMDataSet())
     lcm = reorder(variable, lcm)
     assign(variable, lcm, baseData)
   }
@@ -219,7 +219,7 @@ object FindNarrowlyDefinedTopics {
       }
     }
 
-    Data(columns.map(_._1).toIndexedSeq,
+    new Data(columns.map(_._1).toIndexedSeq,
       loop(0, Vector.empty, columns.map(_._2).toArray))
   }
 
@@ -286,7 +286,7 @@ object FindNarrowlyDefinedTopics {
   def save(name: String, filename: String,
     columns: List[Tree[Column]], weights: IndexedSeq[Double]) = {
     val data = convertToData(columns.flatMap(_.toList), weights)
-    data.saveAsArff(name, filename, new DecimalFormat("#0.##"))
+    data.saveAsArff(filename, new DecimalFormat("#0.##"))
   }
 
   def computeTopicInformation(

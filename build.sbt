@@ -2,7 +2,7 @@
 
 name := "HLTA"
 
-version := "1.1"
+version := "1.2"
 
 scalaVersion := "2.11.8"
 
@@ -62,10 +62,13 @@ test in assembly := {}
 assemblyMergeStrategy in assembly := {
   case PathList("java_cup", "runtime", xs @ _* )   => MergeStrategy.first
   case PathList("EDU", "oswego", "cs", "dl", xs @ _* )   => MergeStrategy.first
+  case PathList("edu","umd","cs","findbugs","annotations", xs @ _* )   => MergeStrategy.first
+  case PathList("it","unimi","dsi","fastutil", xs @ _* )   => MergeStrategy.first
   case x =>
     val oldStrategy = (assemblyMergeStrategy in assembly).value
     oldStrategy(x)
 }
+
 
 // unmanagedClasspath in Compile += baseDirectory.value / "FastHLTA" / "bin"
 

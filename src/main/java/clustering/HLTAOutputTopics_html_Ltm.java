@@ -106,6 +106,58 @@ public class HLTAOutputTopics_html_Ltm{
 		}
 	}
 	
+	/**
+	 * Added by Leung Chun Fai
+	 * Seperate IO from initialize(args)
+	 * For scala calls
+	 * @param model
+	 * @param args
+	 * @throws FileNotFoundException
+	 * @throws ParseException
+	 */
+	public void initialize(LTM model, String output, boolean outProbNum, boolean outBackground, int maxBaseSize) throws FileNotFoundException, ParseException
+	{
+		_model = model;
+		_posteriorCtp = new CliqueTreePropagation(_model);
+		_posteriorCtp.propagate();
+//		if(args.length==1){
+//			_MaxBaseSize =7;
+//			_output  ="./topics/";
+//			_outProbNum =false;
+//			_outBackground=false;
+//		}else{
+		_MaxBaseSize 		= maxBaseSize;//Integer.parseInt(args[4]);
+		_output             = output;//args[1];   
+		_outProbNum         = outProbNum;//outProbargs[2].equalsIgnoreCase("yes")?true:false;
+		_outBackground      = outBackground;//args[3].equalsIgnoreCase("yes")?true:false;
+//		}
+		_semanticBaseMap    = new HashMap<String, Integer>();
+		_semanticBaseString = new HashMap<String, String>();
+		_semanticBaseStart  = new HashMap<Integer, Boolean>();
+		_pairwiseMIorderMap = new HashMap<String, List<Map.Entry<Variable,Double>>>();
+		
+		processVariables();
+		
+		for(int i=1; i<_varDiffLevels.size(); i++)
+		{
+			_semanticBaseStart.put(i, true);
+		}
+	}
+	
+	/**
+	 * Added by Leung Chun Fai
+	 * For scala calls
+	 */
+	public void run() throws FileNotFoundException, ParseException{
+		System.out.println("Output semantic base table ... ... (The computation may take a while ...)");
+		printSemanticBaseTable();
+		System.out.println("Done!\n\n\n");
+		
+		System.out.println("Output topic table ...");
+		printTopicsTable();
+		System.out.println("Done!");
+	}
+	
 	private void processVariables()
 	{
 		_varDiffLevels = new HashMap<Integer, HashSet<String>>();

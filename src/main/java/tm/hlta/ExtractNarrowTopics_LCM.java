@@ -69,7 +69,7 @@ public class ExtractNarrowTopics_LCM {
         initialize(model, data, args);
     }
     
-    protected void initialize(LTM model, DataSet data, String[] args) {
+    public void initialize(LTM model, DataSet data, String[] args) {
         _model = model;
         _posteriorCtp = new CliqueTreePropagation(_model);
         _posteriorCtp.propagate();
@@ -87,7 +87,7 @@ public class ExtractNarrowTopics_LCM {
         }
     }
 
-    private void run() throws IOException, Exception {
+    public void run() throws IOException, Exception {
 
         System.out.println("Relearn the model...");
         extractTopics();
@@ -419,7 +419,7 @@ public class ExtractNarrowTopics_LCM {
         }
 
         String[] topics = _node2topics.get(latent);
-        System.out.println(topics);
+//        System.out.println(topics);
 
         for (int i = startIndex; i < _node2topics.get(latent).length; i++) {
             levelOut.print("<p style=\"text-indent:2em;\">&nbsp;&nbsp;&nbsp;&nbsp;");

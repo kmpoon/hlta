@@ -45,8 +45,11 @@ object RegenerateHTMLTopicTree {
   def run(topicsFile: String, outputName: String, title: String, layer: Option[List[Int]] = None) = {
     val order = readIslands(
       FindTopLevelSiblingClusters.getIslandsFileName(outputName))
-    copyAssetFiles(Paths.get("."))
-    generateTopicTree(topicsFile, title, outputName, order, layer)
+    var topLevelTrees = TopicTree.readHTML(topicsFile)
+    if(layer.isDefined)
+      topLevelTrees = topLevelTrees.trimLevels(layer.get)
+    topLevelTrees = topLevelTrees.sortRoots { t => order(t.value.name) }
+    BuildWebsite(topLevelTrees, ".", outputName, title)
   }  
   
   /**
@@ -65,25 +68,6 @@ object RegenerateHTMLTopicTree {
     }
   }
 
-  def generateTopicTree(topicsFile: String, title: String,
-    outputName: String, topLevelOrder: Map[String, Int], layer: Option[List[Int]]) = {
-    var topLevelTrees = TopicTree.readHTML(topicsFile)
-    if(layer.isDefined)
-      topLevelTrees = topLevelTrees.trimLevels(layer.get)
-    topLevelTrees = topLevelTrees.sortRoots { t => topLevelOrder(t.value.name) }
-    //    val parents = topLevelTrees.map(t =>
-    //      topLevelTrees.find(_.getChild(t.value).isDefined)
-    //        .map(_.value.name).getOrElse("none"))
-    //    val content = topLevelTrees.zip(parents).foldLeft("") {
-    //      (s, p) => s + treeToHtml(p._1, p._2, 4)
-    //    }
-
-    //import Implicits.topicToNode
-
-    //JsonTreeWriter.writeJsOutput(topLevelTrees, outputName + ".nodes.js")
-    //writeHtmlOutput(title, outputName, outputName + ".html")
-  }
-
 //  Moved to TopicTree.scala
 //  object Implicits {
 //    import JsonTreeWriter.Node
@@ -94,7 +78,88 @@ object RegenerateHTMLTopicTree {
 //      Node(topic.name, label, data)
 //    }
 //  }
+//  def treeToHtml(tree: Tree[Topic], parent: String, indent: Int): String = {
+//    import tree.value
+//    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
+//    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+//
+//    val start = """<li class="jstree-open" id="%s" >""".format(value.name)
+//    val content = f"${value.percentage}%.2f ${value.words.mkString(" ")}"
+//    val end = "</li>"
+//
+//    if (tree.children.isEmpty)
+//      " " * indent + start + content + end + "\n"
+//    else {
+//      val childIndent = indent + 2
+//
+//      " " * indent + start + content + "\n" +
+//        " " * childIndent + "<ul>" + "\n" +
+//        tree.children.map(treeToHtml(_, value.name, childIndent)).reduce(_ + _) +
+//        " " * childIndent + "</ul>" + "\n" +
+//        " " * indent + end + "\n"
+//    }
 
+}
+
+//  Moved to TopicTree.scala
+//object JsonTreeWriter {
+//  case class Node(id: String, label: String, data: String)
+//
+//  def writeJsOutput[T](trees: Seq[Tree[T]], outputFile: String)(implicit convert: (T) => Node) = {
+//    val writer = new PrintWriter(outputFile)
+//    writer.print("var nodes = [")
+//    writer.println(trees.map(treeToJs(_, 0)).mkString(", "))
+//    writer.println("];")
+//    writer.close
+//  }
+//
+//  def treeToJs[T](tree: Tree[T], indent: Int)(implicit convert: (T) => Node): String = {
+//    val node = convert(tree.value)
+//    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
+//    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+//
+//    val children = tree.children.map(treeToJs(_, indent + 4))
+//
+//    val js = """{
+//      |  id: "%s", text: "%s", state: { opened: true, disabled: false, selected: false}, data: { %s }, li_attr: {}, a_attr: {}, children: [%s]
+//      |}""".format(node.id, node.label, node.data, children.mkString(", "))
+//      .replaceAll(" +\\|", " " * indent)
+//
+//    js
+//  }
+//  
+//  def writeJsonOutput[T](trees: Seq[Tree[T]], outputFile: String)(implicit convert: (T) => Node) = {
+//    val writer = new PrintWriter(outputFile)
+//    writer.print("[")
+//    writer.println(trees.map(treeToJson(_, 0)).mkString(", "))
+//    writer.println("]")
+//    writer.close
+//  }
+//
+//  def treeToJson[T](tree: Tree[T], indent: Int)(implicit convert: (T) => Node): String = {
+//    val node = convert(tree.value)
+//    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
+//    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
+//
+//    val children = tree.children.map(treeToJson(_, indent + 4))
+//
+//    val json = """{
+//      |  "id": "%s", "text": "%s", "data": {%s}, "children": [%s]
+//      |}""".format(node.id, node.label, node.data, children.mkString(", "))
+//      .replaceAll(" +\\|", " " * indent)
+//
+//    json
+//  }
+//}
+
+object BuildWebsite{
+  
+  def apply(topicTree: TopicTree, dir: String, outputName: String, title: String, assignment: Option[Assignment] = None){
+    topicTree.saveAsJs(outputName + ".nodes.js")
+    writeHtmlOutput(title, outputName, outputName + ".html")
+    copyAssetFiles(Paths.get(dir))
+  }
+  
   def writeHtmlOutput(title: String, outputName: String, outputFile: String) = {
     val template = Source.fromInputStream(
       this.getClass.getResourceAsStream("/tm/hlta/template.html"))
@@ -173,78 +238,5 @@ object RegenerateHTMLTopicTree {
       "/tm/hlta/bootstrap/fonts/glyphicons-halflings-regular.woff2")
       .foreach(p => copy(p, fontsDir))
   }
-
-  //  def treeToHtml(tree: Tree[Topic], parent: String, indent: Int): String = {
-  //    import tree.value
-  //    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
-  //    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
-  //
-  //    val start = """<li class="jstree-open" id="%s" >""".format(value.name)
-  //    val content = f"${value.percentage}%.2f ${value.words.mkString(" ")}"
-  //    val end = "</li>"
-  //
-  //    if (tree.children.isEmpty)
-  //      " " * indent + start + content + end + "\n"
-  //    else {
-  //      val childIndent = indent + 2
-  //
-  //      " " * indent + start + content + "\n" +
-  //        " " * childIndent + "<ul>" + "\n" +
-  //        tree.children.map(treeToHtml(_, value.name, childIndent)).reduce(_ + _) +
-  //        " " * childIndent + "</ul>" + "\n" +
-  //        " " * indent + end + "\n"
-  //    }
   //  }
-
 }
-
-//  Moved to TopicTree.scala
-//object JsonTreeWriter {
-//  case class Node(id: String, label: String, data: String)
-//
-//  def writeJsOutput[T](trees: Seq[Tree[T]], outputFile: String)(implicit convert: (T) => Node) = {
-//    val writer = new PrintWriter(outputFile)
-//    writer.print("var nodes = [")
-//    writer.println(trees.map(treeToJs(_, 0)).mkString(", "))
-//    writer.println("];")
-//    writer.close
-//  }
-//
-//  def treeToJs[T](tree: Tree[T], indent: Int)(implicit convert: (T) => Node): String = {
-//    val node = convert(tree.value)
-//    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
-//    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
-//
-//    val children = tree.children.map(treeToJs(_, indent + 4))
-//
-//    val js = """{
-//      |  id: "%s", text: "%s", state: { opened: true, disabled: false, selected: false}, data: { %s }, li_attr: {}, a_attr: {}, children: [%s]
-//      |}""".format(node.id, node.label, node.data, children.mkString(", "))
-//      .replaceAll(" +\\|", " " * indent)
-//
-//    js
-//  }
-//  
-//  def writeJsonOutput[T](trees: Seq[Tree[T]], outputFile: String)(implicit convert: (T) => Node) = {
-//    val writer = new PrintWriter(outputFile)
-//    writer.print("[")
-//    writer.println(trees.map(treeToJson(_, 0)).mkString(", "))
-//    writer.println("]")
-//    writer.close
-//  }
-//
-//  def treeToJson[T](tree: Tree[T], indent: Int)(implicit convert: (T) => Node): String = {
-//    val node = convert(tree.value)
-//    //    val start = """<li level ="%d" name ="%s" parent = "%s" percentage ="%.2f" MI = "%f" indent="%d">"""
-//    //      .format(value.level, value.name, parent, value.percentage, value.mi, value.indent)
-//
-//    val children = tree.children.map(treeToJson(_, indent + 4))
-//
-//    val json = """{
-//      |  "id": "%s", "text": "%s", "data": {%s}, "children": [%s]
-//      |}""".format(node.id, node.label, node.data, children.mkString(", "))
-//      .replaceAll(" +\\|", " " * indent)
-//
-//    json
-//  }
-//}

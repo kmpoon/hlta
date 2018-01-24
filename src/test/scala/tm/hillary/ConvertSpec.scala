@@ -198,20 +198,20 @@ class ConvertSpec extends BaseSpec {
 
           When("The data is converted to bow")
           val dictionary = buildDictionary(countsByEmails).filter(_.tf > 5)
-          val bow = DataConverter.convertToBow(countsByEmails, dictionary.map).toVector
+          val bow = tm.util.Data.fromDictionaryAndTokenCounts(dictionary, countsByEmails)
 
           Then("The words should be aid, syria, and libya")
           dictionary.words should contain theSameElementsAs Vector("aid", "syria", "libya")
 
           And("The first and third email should contain exactly three zero counts")
-          bow(0) should contain theSameElementsAs Vector(0, 0, 0)
-          bow(2) should contain theSameElementsAs Vector(0, 0, 0)
+          bow(0).values should contain theSameElementsAs Vector(0.0, 0.0, 0.0)
+          bow(2).values should contain theSameElementsAs Vector(0.0, 0.0, 0.0)
 
           And("The second email should contain correct counts")
-          bow(1) should contain theSameElementsAs Vector(3, 3, 2)
+          bow(1).values should contain theSameElementsAs Vector(3.0, 3.0, 2.0)
 
           And("The bow should have correct number of instances")
-          bow.length should equal(10)
+          bow.size should equal(10)
         }
       }
     }

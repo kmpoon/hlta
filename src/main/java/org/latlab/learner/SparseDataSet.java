@@ -125,6 +125,30 @@ public class SparseDataSet {
 		}
 		
 	}*/
+	
+	/**
+	 * Number of distinct datacases
+	 * 
+	 * @author Leung Chun Fai
+	 * 
+	 * @return
+	 */
+	public int getNumOfDatacase(){
+		return _totalDatacases;
+	}
+	
+	/**
+	 * _VariablesSet is originally a private attribute
+	 * Becareful not to change its element value
+	 * 
+	 * @author Leung Chun Fai
+	 * 
+	 * @return
+	 */
+	public Variable[] getVariables(){
+		return _VariablesSet;
+	}
+	
 	/**
 	 * Converts the csv input data , where rows represent datacase and columns represent variables, to 
 	 * the form of tuples. For Example in the original dataset if each datacase is a documnet, then we would 

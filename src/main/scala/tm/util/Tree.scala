@@ -109,9 +109,10 @@ object Tree {
       val nodeLevel = levelMap(tree.value)
       val newChildren = tree.children.flatMap(_trimLevels(_))
       if(takeLevels.contains(nodeLevel))
-        Seq(Tree.node(tree.value, tree.children))
-      else
+        Seq(Tree.node(tree.value, newChildren))
+      else{
         newChildren
+      }
     }
     
     trees.flatMap(_trimLevels(_))

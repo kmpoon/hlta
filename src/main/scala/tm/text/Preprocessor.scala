@@ -17,26 +17,19 @@ import scala.util.matching.Regex.Match
 import tm.util.ParMapReduce
 
 object Preprocessor {
-  val replaceNonAlnum = ("\\P{Alnum}".r, (m: Match) => "_")
-  val replaceStartingDigit = ("^(\\p{Digit})".r, (m: Match) => s"_${m.group(1)}")
-
-  def useRegexToReplace(pair: (Regex, (Match) => String)) = pair match {
-    case (r, m) => (input: String) => r.replaceAllIn(input, m)
-  }
-
   type TokenCounts = Map[NGram, Int]
-
-  /**
-   * Performs normalization (removing accents), removes punctuation, words
-   * shorter than 4 characters, and change letters to lower case.
-   */
-  def preprocess(text: String, minChars: Int = 4) = {
+  
+  def preprocess(text: String, minChars: Int = 4, asciiOnly: Boolean = true) = asciiOnly match{
+    case true => preprocessAscii(text, minChars)
+    case false => preprocessNonAscii(text)
+  }
+  
+  private def preprocessNonAscii(text: String) = {
 
     def convert(original: String) = {
       val conversions =
         ("'", "") +:
-          ("[^\\p{Alpha}\\n]+" -> " ") +:
-          (s"\\b\\w{1,${minChars - 1}}\\b" -> " ") +: // remove words with fewer than 4 characters
+          (s"\\b[0-9]+\\b" -> " ") +: //remove words start with numbers
           ("^\\s+" -> "") +:
           ("\\s+$" -> "") +:
           Nil
@@ -49,6 +42,44 @@ object Preprocessor {
     convert(normalize(text.toLowerCase))
   }
 
+  /**
+   * Performs normalization (removing accents), removes punctuation, words
+   * shorter than 4 characters, and change letters to lower case.
+   */
+  private def preprocessAscii(text: String, minChars: Int) = {
+
+    def convert(original: String) = {
+      val conversions = {
+        if(minChars>2)
+          ("'", "") +:
+            ("[^\\p{Alpha}\\n]+" -> " ") +:
+            (s"\\b\\w{1,${minChars - 1}}\\b" -> " ") +: // remove words with fewer than 4 characters
+            ("^\\s+" -> "") +:
+            ("\\s+$" -> "") +:
+            Nil
+        else
+          ("'", "") +:
+            ("[^\\p{Alpha}\\n]+" -> " ") +:
+            ("^\\s+" -> "") +:
+            ("\\s+$" -> "") +:
+            Nil
+      }
+
+      conversions.foldLeft(original) {
+        (text, rule) => text.replaceAll(rule._1, rule._2)
+      }
+    }
+
+    convert(normalize(text.toLowerCase))
+  }
+
+  val replaceNonAlnum = ("\\P{Alnum}".r, (m: Match) => "_")
+  val replaceStartingDigit = ("^(\\p{Digit})".r, (m: Match) => s"_${m.group(1)}")
+
+  def useRegexToReplace(pair: (Regex, (Match) => String)) = pair match {
+    case (r, m) => (input: String) => r.replaceAllIn(input, m)
+  }
+  
   /**
    * Another way to preprocess.  This is probably the right way to do it.
    */

@@ -1,7 +1,7 @@
 package tm.text
 
 object WordSelector {
-  def basic(minCharacters: Int, minTf: Int, minDf: (Int) => Int): WordSelector = {
+  def Basic(minCharacters: Int, minTf: Int, minDf: (Int) => Int): WordSelector = {
     new WordSelector {
       def select(d: Dictionary, df: Int) =
         (d.filter(w =>
@@ -12,7 +12,7 @@ object WordSelector {
     }
   }
 
-  def byTfIdf(minCharacters: Int, minDfFraction: Double,
+  def ByTfIdf(minCharacters: Int, minDfFraction: Double,
     maxDfFraction: Double, maxWords: Int): WordSelector =
     new WordSelector {
       def select(d: Dictionary, df: Int) = {

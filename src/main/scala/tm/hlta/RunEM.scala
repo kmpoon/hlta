@@ -19,9 +19,11 @@ object EM{
     implicit object DataSetWitness extends DataOrDataSet[DataSet]
   }
   
-  def apply[T: DataOrDataSet](model: LTM, data: T, steps: Int = 50, numOfRestarts: Int = 5, threshold: Double = 1e-2, smooth: Boolean = true) = data match {
+  def apply[T: DataOrDataSet](model: LTM, data: T, steps: Int = 50, numOfRestarts: Int = 5
+      , threshold: Double = 1e-2, smooth: Boolean = true) = 
+  data match {
     case _: DataSet => em(model, data.asInstanceOf[DataSet], steps, numOfRestarts, threshold, smooth)
-    case _: Data => em(model, data.asInstanceOf[Data].toHLCMDataSet, steps, numOfRestarts, threshold, smooth)
+    case _: Data => em(model, data.asInstanceOf[Data].toHLCMDataSet(), steps, numOfRestarts, threshold, smooth)
   }
  
   private def em(model: LTM, data: DataSet, steps: Int, numOfRestarts: Int, threshold: Double, smooth: Boolean) = {
@@ -38,6 +40,8 @@ object EM{
     else
       modelAfterEM
   }
+  
+  private def reorderStates(model: LTM) : LTM = tm.hlta.EmMethods.reorderStates(model)
   
   private def smoothParameters(model: LTM, sampleSize: Double) = {
     model.getNodes.map(_.asInstanceOf[BeliefNode]).foreach { n =>
@@ -59,14 +63,25 @@ object StepwiseEM{
     implicit object DataWitness extends DataOrSparseDataSet[Data]
     implicit object SparseDataSetWitness extends DataOrSparseDataSet[SparseDataSet]
   }
-  
-  def apply[T: DataOrSparseDataSet](model: LTM, data: T, steps: Int = 50, numOfRestarts: Int = 5, threshold: Double = 1e-2, batchSize : Int = 1000, maxEpochs: Int = 10, smooth: Boolean = true) = {
-    val dataFile = "./temp/temp.sparse.txt"
+
+  /**
+   * TODO: randomSplit unimplemented
+   */
+  def apply[T: DataOrSparseDataSet](model: LTM, data: T, steps: Int = 50, numOfRestarts: Int = 5
+      , threshold: Double = 1e-2, batchSize : Int = 1000, maxEpochs: Int = 10, smooth: Boolean = true, randomSplit: Int = 1, outputDir: String = "./temp/"): LTM = {
+    val dataFile = outputDir+"temp.sparse.txt"
     data match {
-      case _: SparseDataSet => em(model, data.asInstanceOf[SparseDataSet], steps, numOfRestarts, threshold, batchSize, maxEpochs, smooth)
+      case _: SparseDataSet => {
+        //import tm.util.Data._
+        //val dataSlice = if(randomSplit != 1) data.asInstanceOf[SparseDataSet].randomSlice(randomSplit) else data.asInstanceOf[SparseDataSet]
+        em(model, data.asInstanceOf[SparseDataSet], steps, numOfRestarts, threshold, batchSize, maxEpochs, smooth)
+      }
       case _: Data => {
-        data.asInstanceOf[Data].saveAsTuple(dataFile); 
-        em(model, new SparseDataSet(dataFile), steps, numOfRestarts, threshold, batchSize, maxEpochs, smooth)
+        //TODO: needs variable synchronization
+        data.asInstanceOf[Data].saveAsTuple(dataFile)
+        val sparseDataSet = new SparseDataSet(dataFile)
+        model.synchronize(sparseDataSet.getVariables)
+        em(model, sparseDataSet, steps, numOfRestarts, threshold, batchSize, maxEpochs, smooth)
       }
     }
   }
@@ -82,14 +97,14 @@ object StepwiseEM{
 	  emLearner.setMaxNumberOfEpochs(maxEpochs);
 
     val modelAfterEM = emLearner.em(model, data).asInstanceOf[LTM]
-    val renamedModel = renameAndReorderModel(modelAfterEM)
+    val renamedModel = reorderStates(modelAfterEM)
     if(smooth)
-      smoothParameters(model, data.getTotalWeight);
+      smoothParameters(renamedModel, data.getTotalWeight);
     else
-      model    
+      renamedModel 
   }
   
-  private def renameAndReorderModel(model: LTM) : LTM = tm.hlta.StepwiseEmMethods.renameAndReorderModel(model)
+  private def reorderStates(model: LTM) : LTM = tm.hlta.EmMethods.reorderStates(model)
   
   private def smoothParameters(model: LTM, sampleSize: Double) = {
     model.getNodes.map(_.asInstanceOf[BeliefNode]).foreach { n =>
@@ -120,7 +135,7 @@ object RunEM {
     }
     
     def run(modelFile: String, dataFile: String) = {
-      val (model, data) = Reader.readLTMAndHLCM(modelFile, dataFile)
+      val (model, data) = Reader.readLTMAndHLCM_native(modelFile, dataFile)
       val modelAfterEM = EM(model, data)
       
       val outputName = modelFile.replaceAll(".bif$", ".em.bif")

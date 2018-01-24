@@ -1,6 +1,7 @@
 package tm.util
 
 import java.io.PrintWriter
+import tm.util.Data
 
 /**
  * SparseDataSet Writer
@@ -22,7 +23,7 @@ object TupleWriter {
       .foreach { case (x, wordId) => 
         //Not sure what is the format for .sparse.txt
         //Is user name allowed to be non-integer?
-        val docId = if(instance.name.isAllDigits()) instance.name else docSeq.toInt+1
+        val docId = if(instance.name.length()>0) instance.name else docSeq.toInt+1
         val word = variables(wordId)
         writer.println(docId+", "+word)
       }

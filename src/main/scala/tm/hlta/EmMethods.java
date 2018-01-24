@@ -19,14 +19,14 @@ import org.latlab.util.Variable;
 
 /**
  * Copied from clustering.StepwiseEMHLTA.java
- * Solely serves scala stepwiseEM method
+ * Solely serves scala EM and StepwiseEM method
  * 
  * @author Leung Chun Fai
  *
  */
-public class StepwiseEmMethods {
+public class EmMethods {
 	
-	public static LTM renameAndReorderModel(LTM model) {
+	public static LTM reorderStates(LTM model) {
 		HashMap<Integer, HashSet<String>> varDiffLevels =
 				processVariables(model);
 		HashMap<Integer, Integer> levelAndIndex =
@@ -44,9 +44,9 @@ public class StepwiseEmMethods {
 		HashSet<String> topLevel = varDiffLevels.get(topLevelIndex);
 
 		// renameVariables
-		for (String str : topLevel) {
-			processName(model, str, topLevelIndex, levelAndIndex, varDiffLevels);
-		}
+//		for (String str : topLevel) {
+//			processName(model, str, topLevelIndex, levelAndIndex, varDiffLevels);
+//		}
 
 		return model;
 	}

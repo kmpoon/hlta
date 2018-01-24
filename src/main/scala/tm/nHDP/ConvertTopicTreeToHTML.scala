@@ -34,7 +34,7 @@ object ConvertTopicTreeToHTML {
     import Implicits.topicToNode
     import tm.hlta.RegenerateHTMLTopicTree._
 
-    copyAssetFiles(Paths.get("."))
+    tm.hlta.BuildWebsite.copyAssetFiles(Paths.get("."))
 
     val topicTrees = TopicTree.read(
       Source.fromFile(topicFile).getLines.toList)
@@ -42,7 +42,7 @@ object ConvertTopicTreeToHTML {
     println(topicTrees.size)
 
     JsonTreeWriter.writeJsOutput(topicTrees, outputName + ".nodes.js")
-    writeHtmlOutput(title, outputName, outputName + ".html")
+    tm.hlta.BuildWebsite.writeHtmlOutput(title, outputName, outputName + ".html")
 
   }
 }

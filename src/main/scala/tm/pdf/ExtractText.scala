@@ -13,7 +13,7 @@ import org.apache.pdfbox.pdmodel.PDDocument
 import org.apache.pdfbox.util.PDFTextStripper
 
 import tm.pdf.Parameters.implicits
-import tm.text.DataConverter.Settings
+import tm.text.Convert.Settings
 import tm.text.Preprocessor
 import tm.text.Sentence
 import tm.text.StanfordLemmatizer
@@ -59,7 +59,7 @@ object ExtractText {
   }
 
   def extractDirectory(inputDir: Path, outputDir: Path)(
-    implicit stopwords: StopWords, settings: Settings) = {
+    implicit settings: Settings) = {
 
     val files = FileHelpers.findFiles(inputDir, "pdf").par
 
@@ -87,10 +87,10 @@ object ExtractText {
     Paths.get(inputFile.toString.replaceAll(".pdf$", ".txt"))
 
   def extractFile(inputFile: Path)(
-    implicit stopwords: StopWords, settings: Settings): Unit =
+    implicit settings: Settings): Unit =
     extractFile(inputFile, getOutputFile(inputFile))
 
-  def extractText(inputFile: Path)(implicit stopwords: StopWords): String = {
+  def extractText(inputFile: Path)(implicit stopWords: StopWords): String = {
     val force = false;
     val sort = false;
     val separateBeads = true;
@@ -118,7 +118,7 @@ object ExtractText {
   }
 
   def preprocess(text: String)(
-    implicit stopwords: StopWords, settings: Settings) = {
+    implicit settings: Settings) = {
     val document = StanfordLemmatizer.process(text)
 
     def preprocess(s: Sentence): Seq[String] = s.tokens
@@ -128,7 +128,7 @@ object ExtractText {
       .map(useRegexToReplace(replaceNonAlnum))
       .map(useRegexToReplace(replaceStartingDigit))
       .filter(withProperLength(settings.minCharacters))
-      .filterNot(stopwords.contains)
+      .filterNot(settings.stopWords.contains)
 
     document.sentences.map(preprocess)
   }
@@ -138,11 +138,12 @@ object ExtractText {
   }
 
   def extractFile(inputFile: Path, outputFile: Path)(
-    implicit stopwords: StopWords, settings: Settings): Unit = {
+    implicit settings: Settings): Unit = {
     try {
       val encoding = "UTF-8"
       val output = new PrintWriter(outputFile.toFile, encoding)
 
+      implicit val stopWords = settings.stopWords
       val sentences = preprocess(extractText(inputFile)).filter(_.size > 0)
       output.write(sentences.map(_.mkString(" ")).mkString("\n"))
 

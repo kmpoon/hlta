@@ -1,6 +1,7 @@
 package tm.hlta
 
 import org.latlab.model.LTM
+import org.latlab.learner.SparseDataSet
 import scala.annotation.tailrec
 import org.latlab.util.Function
 import org.latlab.util.Variable
@@ -33,8 +34,10 @@ object HLTA {
   
         // level is zero if this node is a leaf node
         val children = node.getChildren
-        if (children.size == 0)
+        if (children.size == 0){
+          variablesToLevels(node.getVariable) = 0
           return 0
+        }
   
         val childLevels = children.map(_.asInstanceOf[BeliefNode]).map(findLevel)
         val level = childLevels.min + 1
@@ -93,27 +96,66 @@ object HLTA {
       levels(levels.keys.max)
     }
     
+    def allWordsOf(root: String) : List[Variable] = {
+      val subtopics = scala.collection.mutable.ListBuffer[Variable]()
+      foreachSubtreeNodeOf(root, bNode => if(bNode.isLeaf) subtopics+=bNode.getVariable)
+      subtopics.toList
+    }
+    
+    def subtopicsOf(root: String) : List[Variable] = {
+      val subtopics = scala.collection.mutable.ListBuffer[Variable]()
+      foreachSubtreeNodeOf(root, bNode => if(!bNode.isLeaf) subtopics+=bNode.getVariable)
+      subtopics.toList
+    }
+    
+    def subtopicsAndWordsOf(root: String) : List[Variable] = {
+      val subtopics = scala.collection.mutable.ListBuffer[Variable]()
+      foreachSubtreeNodeOf(root, bNode => subtopics+=bNode.getVariable)
+      subtopics.toList
+    }
+    
+    def foreachSubtreeNodeOf(root: String, f: BeliefNode => Unit){
+      //Note descendants !== children and (grand)+ children
+      //See LTM papers, variable on the same level can root to each other
+      //Here we write our own DFS search
+      val variableNameLevels = model.getVariableNameLevels
+      val rootNode = model.getNodeByName(root)
+      val rootLevel = variableNameLevels.get(root).get
+      
+      def _subtopicsOf(node: BeliefNode){
+        if(variableNameLevels.get(node.getName).get < rootLevel){
+          f(node)
+          node.getChildren.map{child => _subtopicsOf(child.asInstanceOf[BeliefNode])}
+        }
+      }
+      rootNode.getChildren.map{child => _subtopicsOf(child.asInstanceOf[BeliefNode])}
+    }
+    
     /**
      * Returns a new subtree root at latent
      */
-    def subtreeOf(latent: String) = {
+    def subtreeOf(newRoot: String): LTM = {
       val clone = model.clone()
-      val latentNode = clone.getNodeByName(latent)
-//      if(latentNode==null)
-//        return None
-      val subtreeNodes = latentNode.getDescendants()
+      val variableLevels = clone.getVariableNameLevels
+      val newRootNode = clone.getNodeByName(newRoot)
+      val newRootLevel = variableLevels.get(newRoot).get
+      assert(newRootNode!=null)
+      
+      val subTreeNodes = clone.subtopicsAndWordsOf(newRoot)
+      
       val allNodes = clone.getNodes.toArray
       for(node <- allNodes){
-      	if(!subtreeNodes.contains(node) && !node.equals(latentNode)){
-  		    val edges = node.asInstanceOf[org.latlab.graph.AbstractNode].getEdges.toArray
+        val nodeLevel = variableLevels.get(node.asInstanceOf[BeliefNode].getName).get
+        //Keep children and (grand)+ childrens and the root itself
+      	if(!subTreeNodes.contains(node.asInstanceOf[BeliefNode].getVariable) && !node.equals(newRootNode)){
+  		    val edges = node.asInstanceOf[BeliefNode].getEdges.toArray
   		    for(edge <- edges){
   		      clone.removeEdge(edge.asInstanceOf[org.latlab.graph.Edge])
   		    }
-  		    clone.removeNode(node.asInstanceOf[org.latlab.graph.AbstractNode])
+  		    clone.removeNode(node.asInstanceOf[BeliefNode])
         }
       }
-      //return Some(clone)
-      clone
+      return clone
     }
     
     def getHeight = getLevelVariables.size
@@ -227,6 +269,14 @@ object HLTA {
     f.getValue(indices.map(states.apply).toArray)
   }
   
+  /**
+   * Inference, assign topic distribution to each document
+   * 
+   * Mathematically, it is finding P(z|d), where z is a topic variable and d is the given document
+   * It outputs a list of document d for each z, with P(Z|d) > 0.5
+   * 
+   * @return Assignment
+   */
   def assignTopics(model: LTM, data: Data, layer: Option[List[Int]] = None, threshold: Double = 0.5, narrow: Boolean = false) = {
     val binaryData = data.binary()
     val synchronizedData = binaryData.synchronize(model)
@@ -236,71 +286,88 @@ object HLTA {
       AssignBroadTopics(model, synchronizedData, layer, threshold)
   }
   
-//  def extractTopics(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, narrow: Boolean = false, data: Data = null){
-//    model.saveAsBif("./temp/temp.bif")
-//    if(data!=null)
-//      data.saveAsArff("temp", "./temp/temp.arff")
-//    extractTopics("./temp/temp.bif", outputName, layer, keywords, narrow, "./temp/temp.arff")
-//  }
-  
-  def extractTopics(modelFile: String, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, narrow: Boolean = false, data: String = null) = {
-    if(narrow){
-      if(data==null)
-        throw new Exception("not enough parameter")
-      ExtractNarrowTopics(modelFile, data, outputName, layer, keywords)
+  /**
+   * Topic keywords extraction, find keywords to characterize each topic
+   * 
+   * Mathematically, it is finding a list of word w for each z, with maximum MI(w;z)
+   * It outputs a topic tree, where each node represents a topic; each topic is characterize with the best keywords
+   * 
+   * @return TopicTree
+   */
+  def extractTopics(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, 
+      narrow: Boolean = false, data: Data = null, tempDir: String = "./temp") = {  
+    if(narrow){      
+      ExtractNarrowTopics(model, data.binary().toHLCMDataSet(), outputName, layer, keywords)
+    }else{
+      ExtractTopics(model, outputName, layer, keywords)
     }
-    else 
-      ExtractTopics(modelFile, outputName, layer, keywords)
   }
   
   /**
-   * Only works for arff, hlcm, or tuple(sparse.txt) file format
+   * Model building, build a latent tree model 
+   * Default using Stepwise EM, use PEM = true to use Progressive EM
+   * 
+   * Progressive EM
+   * EM parameters:
+   * 		emMaxStep: Maximum number of EM steps (e.g. 50).
+   * 		emNumRestarts: Number of restarts in EM (e.g. 5).
+   * 		emThreshold: Threshold of improvement to stop EM (e.g. 0.01).
+   * Model construction parameters:
+   * 		udThreshold: The threshold used in unidimensionality test for constructing islands (e.g. 3).
+   * 		maxIsland: Maximum number of variables in an island (e.g. 10).
+   * 		maxTop: Maximum number of variables in top level (e.g. 15).
+   * 
+   * Stepwise EM
+   * Local EM parameters:
+   * 		emMaxSteps: Maximum number of EM steps (e.g. 50).
+   * 		emNumRestarts: Number of restarts in EM (e.g. 5).
+   * 		emThreshold: Threshold of improvement to stop EM (e.g. 0.01).
+   * Model construction parameters:
+   * 		udThreshold: The threshold used in unidimensionality test for constructing islands (e.g. 3).
+   * 		maxIsland: Maximum number of variables in an island (e.g. 10).
+   * 		maxTop: Maximum number of variables in top level (e.g. 15).
+   * Global parameters:
+   * 		globalBatchsize: Number of data cases used in each stepwise EM step (e.g. 1000).
+   * 		globalMaxEpochs: Number of times the whole training dataset has been gone through (e.g. 10).
+   * 		globalMaxEmSteps: Maximum number of stepwise EM steps (e.g. 128).
+   * 		structBatchSize: Number of data cases used for building model structure.
+   * 
+   * @return LTM		latent tree model
    */
-  def buildModel(dataFile: String, modelName: String, emStep: Int = 50, stepwise: Boolean = true, 
-      udThreshold: Int = 3, maxIsland: Int = 10, maxTop: Int = 15, emRestart: Int = 5, emThreshold: Double = 0.01, 
-      globalBatchSize: Int = 5000, globalMaxEpoch: Int = 10, globalMaxEmStep: Int = 128, structBatchSize: Int = 8000){
-    
-    if(stepwise){
-      
-      val data = Reader.readData(dataFile)
-      val tupleFormatFile = if(dataFile.endsWith(".sparse.txt")) dataFile else{
-        val filePrefix = dataFile.slice(0, dataFile.lastIndexOf("."))
-        val tupleFormatFile = filePrefix + ".sparse.txt"
-        data.saveAsTuple(tupleFormatFile)
-        tupleFormatFile
-      }
-      val actualStructBatchSize = if(data.size > structBatchSize) structBatchSize.toString else "all"
-      
-      clustering.StepwiseEMHLTA.main(Array(tupleFormatFile, emStep.toString, emRestart.toString, emThreshold.toString, 
-          udThreshold.toString, modelName, maxIsland.toString, maxTop.toString, 
-          globalBatchSize.toString, globalMaxEpoch.toString, globalMaxEmStep.toString, actualStructBatchSize))
+  def buildModel(data: Data, modelName: String, emMaxStep: Int = 50, emNumRestart: Int = 3, emThreshold: Double = 0.01, 
+      udThreshold: Int = 3, maxIsland: Int = 15, maxTop: Int = 30, PEM: Boolean = false,
+      globalBatchSize: Int = 500, globalMaxEpochs: Int = 10, globalMaxEmStep: Int = 100, 
+      structBatchSize: Option[Int] = None, firstBatchUseAll: Boolean = false, tempDir: String = "./temp"): LTM = {
+    if(!PEM){
+      data.saveAsTuple(tempDir+"/data.sparse.txt")
+      StepwiseEmBuilder(new SparseDataSet(tempDir+"/data.sparse.txt"), modelName, emMaxStep, emNumRestart, emThreshold,
+      udThreshold, maxIsland, maxTop, globalBatchSize, globalMaxEpochs, 
+      globalMaxEmStep, structBatchSize, firstBatchUseAll)
           
-    }else{
-      
-      val arffOrHlcmFile = if(dataFile.endsWith(".sparse.txt")){
-        val filePrefix = dataFile.slice(0, dataFile.lastIndexOf("."))
-        val arffOrHlcmFile = filePrefix + ".arff"
-        Reader.readData(dataFile).saveAsArff(filePrefix, arffOrHlcmFile)
-        arffOrHlcmFile
-      } else dataFile
-      
-      clustering.PEM.main(Array(dataFile, emStep.toString, emRestart.toString, emThreshold.toString, 
-          udThreshold.toString, modelName, maxIsland.toString, maxTop.toString))
+    }else{      
+      ProgressiveEmBuilder(data.binary().toHLCMDataSet(), modelName, emMaxStep, emNumRestart, emThreshold, 
+      udThreshold, maxIsland, maxTop)
     }
   }
   
-  def apply(dataFile: String, outputName: String){
-    buildModel(dataFile, outputName)
-    val modelFile = outputName+".bif"
-    extractTopics(modelFile, outputName)
-    val (model, data) = tm.util.Reader.readModelAndData(modelFile, dataFile)
-    assignTopics(model, data)
-  }
-  
   class Conf(args: Seq[String]) extends Arguments(args) {
-    banner("Usage: tm.hlta.HLTA [OPTION]... data outputName")
+    banner("""Usage: tm.hlta.HLTA [OPTION]... data outputName
+    |a lazy HLTA call, takes in data file or text, and outputs topic tree and topic assignment(inference)
+    |if text is feeded in, it would first convert into data file then do HLTA
+    |
+    |make sure your data file extension is right
+    |text: .txt for plain text, ./dir for dir (can be .txt or .pdf inside)
+    |data: .arff for ARFF, .hlcm for HLCM, .sparse.txt for tuple format""")
+    
     val data = trailArg[String](descr = "Data file (e.g. data.txt)")
     val outputName = trailArg[String](descr = "Output name")
+    
+    val ndt = opt[Boolean](default = Some(false), descr = "use Narrow Defined Topic for extraction and assignment")
+    val pem = opt[Boolean](default = Some(false), descr = "use Progressive EM for parameter estimation")
+    val inputFormat = opt[String](descr = "Specify input data format if extension is not right, can be \"arff\", \"hlcm\", \"tuple\"")
+    val chinese = opt[Boolean](default = Some(false), 
+        descr = "use predefined setting for converting Chinese to data, only valid when conversion is needed")
+    val encoding = opt[String](default = Some("UTF-8"), descr = "Input text encoding, default UTF-8")
 
     verify
     checkDefaultOpts()
@@ -309,6 +376,29 @@ object HLTA {
   def main(args: Array[String]) {
     val conf = new Conf(args)
 
-    apply(conf.data(), conf.outputName())
+    val engSettings = tm.text.Convert.Settings(concatenations = 1, minCharacters = 3,
+        wordSelector = tm.text.WordSelector.ByTfIdf(3, 0, .25, 1000), asciiOnly = true, 
+        stopWords = null)
+    val chiSettings = tm.text.Convert.Settings(concatenations = 1, minCharacters = 1,
+        wordSelector = tm.text.WordSelector.ByTfIdf(1, 0, .25, 1000), asciiOnly = false, 
+        stopWords = null)
+    
+    val path = conf.data()
+    val data = if(conf.inputFormat.isEmpty && !path.endsWith(".arff") && !path.endsWith(".hlcm") && !path.endsWith(".sparse.txt")){
+      //A simple default setting
+      implicit val settings = if(conf.chinese()) chiSettings else engSettings
+      tm.text.Convert(conf.outputName(), conf.data(), encoding = conf.encoding())
+      Reader.readData(conf.outputName()+".sparse.txt")
+    }else{
+      Reader.readData(path, format = conf.inputFormat.toOption)
+    }
+    
+    val model = buildModel(data, conf.outputName(), PEM = conf.pem())
+    val extraction = extractTopics(model, conf.outputName(), narrow = conf.ndt(), data = data)
+    extraction.saveAsJson(conf.outputName()+".nodes.json")
+    val assignment = assignTopics(model, data)
+    assignment.saveAsJson(conf.outputName()+".topics.json")
+    extraction.saveAsHtml(conf.outputName()+".html")
+    //BuildWebsite(extraction, ".", conf.outputName(), conf.outputName())
   }
 }

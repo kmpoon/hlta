@@ -32,7 +32,7 @@ object Reader {
       val attributes = getAttributes()
       val instances = getDataCases()
 
-      Data(attributes.map(convert), instances)
+      new Data(attributes.map(convert), instances)
     }
   }
   
@@ -52,7 +52,7 @@ object Reader {
       val attributes = getAttributes()
       val instances = getDataCases()
 
-      Data(attributes, instances)
+      new Data(attributes, instances)
     }
   }
   
@@ -66,7 +66,12 @@ object Reader {
 
   def readModel(modelFile: String) = readLTM(modelFile)
   
-  def readHLCM(dataFile: String) = new DataSet(dataFile)
+  def readHLCM(dataFile: String) = HlcmReader.read(dataFile)
+  
+  /**
+   * Native HLCM reader
+   */
+  def readHLCM_native(dataFile: String) = new DataSet(dataFile)
 
   def readARFF(dataFile: String) = new DataSource(dataFile).getDataSet
   
@@ -75,16 +80,34 @@ object Reader {
   /**
    * Auto detect file format and cast it to scala Data
    */
-  def readData(dataFile: String):Data = {
-    if(dataFile.endsWith("arff"))
-      readARFF(dataFile).toData()
-   //else if(dataFile.endsWith("?????"))
-   //   readHLCM(dataFile).toData()
-    else
-      readTuple(dataFile)
+  def readData(dataFile: String, format: Option[String] = None):Data = {
+    if(format.isDefined){
+      format.get.toLowerCase match{
+        case "arff" => readARFF(dataFile).toData()
+        case "tuple" => readTuple(dataFile)
+        case "hlcm" => readHLCM(dataFile)
+        case _ => throw new Exception("Unknown format")
+      }
+    }else{
+      if(dataFile.endsWith(".arff"))
+        readARFF(dataFile).toData()
+      else if(dataFile.endsWith(".sparse.txt"))
+        readTuple(dataFile)
+      else
+        readHLCM(dataFile)
+    }
   }
   
-  def readLTMAndHLCM(modelFile: String, dataFile: String): (LTM, DataSet) = {
+  /**
+   * Native HLCM reader
+   */
+  def readLTMAndHLCM_native(modelFile: String, dataFile: String): (LTM, DataSet) = {
+    val model = readLTM(modelFile)
+    val data = readHLCM_native(dataFile).synchronize(model)
+    (model, data)
+  }
+  
+  def readLTMAndHLCM(modelFile: String, dataFile: String): (LTM, Data) = {
     val model = readLTM(modelFile)
     val data = readHLCM(dataFile).synchronize(model)
     (model, data)
@@ -125,7 +148,7 @@ object Reader {
       .unzip
     val indicesArray = indices.toArray
 
-    val data = Data(variables, instances.map(_.select(indicesArray)))
+    val data = new Data(variables, instances.map(_.select(indicesArray)))
     (model, data)
   }
   
@@ -133,15 +156,12 @@ object Reader {
    * Auto detect file format and cast it to scala Data
    */
   def readModelAndData(modelFile: String, dataFile: String): (LTM, Data) = {
-    if(dataFile.endsWith("arff"))
+    if(dataFile.endsWith(".arff"))
       readLTMAndARFF(modelFile, dataFile)
-   //else if(dataFile.endsWith("?????")){
-   // val (model, dataset) = readLTMAndHLCM(modelFile, dataFile)
-   // (model, dataset.toData())
-   //}
-    else{
+    else if(dataFile.endsWith(".sparse.txt"))
       readLTMAndTuple(modelFile, dataFile)
-    }
+    else
+      readLTMAndHLCM(modelFile, dataFile)
   }
 
   //  def replaceVariablesInDataByModel[M <: BayesNet](data: Data, model: M) = {

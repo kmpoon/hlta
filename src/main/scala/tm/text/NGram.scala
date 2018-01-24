@@ -16,16 +16,38 @@ object NGram {
   val separator = "-"
 }
 
+private class StringOrNGram[T]
+private object StringOrNGram {
+  implicit object StringWitness extends StringOrNGram[String]
+  implicit object NGramWitness extends StringOrNGram[NGram]
+}
+
 class Sentence(val tokens: Seq[NGram])
 
 object Sentence {
-  def apply(ts: Seq[NGram]): Sentence = new Sentence(ts)
-  def apply(text: String): Sentence =
-    new Sentence(Preprocessor.tokenizeBySpace(Preprocessor.preprocess(text, 3)).map(NGram.apply))
+  /**
+   * A work around for overloading with func(Seq[A]) and func(Seq[B]) in scala
+   */
+  def apply[T: StringOrNGram](ts: Seq[T]) = ts.head match{
+    case _: String => fromStrings(ts.asInstanceOf[Seq[String]])
+    case _: NGram => new Sentence(ts.asInstanceOf[Seq[NGram]])
+  }
+  
+  def fromStrings(ts: Seq[String]): Sentence = new Sentence(ts.map(NGram.apply))
+//  def apply(text: String)(implicit asciiOnly: Boolean): Sentence =
+//    new Sentence(Preprocessor.tokenizeBySpace(Preprocessor.preprocess(text, 3, asciiOnly = asciiOnly)).map(NGram.apply))
 }
 
-class Document(val sentences: Seq[Sentence])
+case class Document(val sentences: Seq[Sentence])
 
 object Document {
-  def apply(text: String) = new Document(Seq(Sentence(text)))
+  /**
+   * A work around for overloading with func(Seq[A]) and func(Seq[B]) in scala
+   */
+  def apply[T: StringOrNGram](ts: Seq[T]) = ts.head match{
+    case _: String => fromStrings(ts.asInstanceOf[Seq[String]])
+    case _: NGram => fromNGrams(ts.asInstanceOf[Seq[NGram]])
+  }
+  def fromNGrams(ts: Seq[NGram]): Document = new Document(Seq(Sentence(ts)))
+  def fromStrings(ts: Seq[String]): Document = new Document(Seq(Sentence(ts)))
 }

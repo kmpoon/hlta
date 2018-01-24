@@ -4,9 +4,9 @@ import scala.io.Source
 import tm.util.Data.Instance
 import org.latlab.util.Variable
 import java.util.ArrayList
-import weka.core.Attribute
 import scala.collection.mutable.MutableList
 import scala.collection.mutable.Map
+import tm.util.Data
 
 /**
  * Alternative approach use SparseDataSet.java to read then call SparseDataSet.SparseToDense()
@@ -35,14 +35,14 @@ object TupleReader {
       Instance(values, 1.0, name = docId)
     }
     
-    val b = new ArrayList[String]()
+    def convert(a: String) = {
+      val b = new ArrayList[String]()
       b.add(0, "s0")
       b.add(1, "s1")
-    def convert(a: String) = {
       new Variable(a, b)
     }
     
-    Data(variables.map(convert(_)).toIndexedSeq, instances.toIndexedSeq, isBinary = true)
+    new Data(variables.map(convert(_)).toIndexedSeq, instances.toIndexedSeq, isBinary = true)
   }
 
 }

@@ -2,6 +2,9 @@ package tm.hlta
 
 import java.nio.file.Files
 import java.nio.file.Paths
+import collection.JavaConverters._
+import scala.collection.immutable.Set
+import scala.io.Source
 
 object Test {
   def main(args: Array[String]) {
@@ -10,9 +13,16 @@ object Test {
 //      Files.copy(input, Paths.get(args(0)))
 //    } else
 //      println("Test file")
-    import tm.hlta.ExtractTopics
-    import tm.hlta.TopicTree._
-    val extraction = ExtractTopics("news1kmodel1.bif", "test", Some(List(1, 2)))
-    extraction.saveAsJson("test")
+    import tm.util.Reader
+    import org.latlab.learner.SparseDataSet
+    val source = Source.fromFile("./economy.txt")("UTF-8").bufferedReader()
+    import scala.util.control.Breaks._
+    while(true){
+      val line = source.readLine()
+      if(line == null)
+        break
+      else
+        println(line)
+    }
   }
 }
