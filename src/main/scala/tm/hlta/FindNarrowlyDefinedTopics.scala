@@ -77,7 +77,7 @@ object FindNarrowlyDefinedTopics {
   def readModelAndData(modelFile: String, dataFile: String) = {
     val (model, data) = Reader.readLTMAndARFF(modelFile, dataFile)
     val binaryData = data.binary
-    val hlcmData = data.toHLCMDataSet()
+    val hlcmData = data.toHlcmDataSet
     (model, binaryData, hlcmData)
   }
 
@@ -129,7 +129,7 @@ object FindNarrowlyDefinedTopics {
     var lcm = extractLCM(tree, c.marginals(variable))
     val baseData = convertToData(
       lowerLevel, c.data.instances.map(_.weight))
-    lcm = estimate(variable, lcm, baseData.toHLCMDataSet())
+    lcm = estimate(variable, lcm, baseData.toHlcmDataSet)
     lcm = reorder(variable, lcm)
     assign(variable, lcm, baseData)
   }

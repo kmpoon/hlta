@@ -23,92 +23,7 @@ import tm.util.Arguments
 import tm.util.Reader
 import tm.hlta.HLTA._
 
-object Assignment{
-  case class Entry(topic: String, doc: List[List[Any]])
-   def readJson(fileName: String) = {
-    import org.json4s.native.JsonMethods._
-    implicit val formats = DefaultFormats
-    val jsonString = Source.fromFile(fileName).mkString
-    val entries = parse(jsonString).extract[List[Entry]]
-    val b = new ArrayList[String]()
-      b.add(0, "s0")
-      b.add(1, "s1")
-    val map = entries.map { e => 
-      (new Variable(e.topic, b) -> e.doc.map { x => (x.get(0).asInstanceOf[String], x.get(1).asInstanceOf[Double]) })
-    }.toMap
-    Assignment(map)
-  }
-}
-
-case class Assignment(map: Map[Variable, Seq[(String, Double)]]){
-  
-  def apply(variable: String): Seq[(String, Double)] = map.find(v=>v._1.getName.equals(variable)).get._2
-  
-  def apply(variable: Variable): Seq[(String, Double)] = map.get(variable).get
-  
-  def apply(variable: String, docName: String): Double = apply(variable).find{case (d, p) => d.equals(docName)}.get._2
-  
-  def apply(variable: Variable, docName: String): Double = apply(variable).find{case (d, p) => d.equals(docName)}.get._2
-  
-  def saveAsJs(outputFile: String, decimalPlaces: Int = 2){
-    val writer = new PrintWriter(outputFile)
-
-    writer.println("var topicMap = {")
-
-    writer.println(map.map { p =>
-      val variable = p._1
-      val documents = p._2.map(p => f"""["${p._1}%s", ${p._2}%.2f]""").mkString(", ")
-      s"  ${variable.getName}: [${documents}]"
-    }.mkString(",\n"))
-
-    writer.println("};")
-
-    writer.close
-  }
-
-  def saveAsJson(outputFile: String, decimalPlaces: Int = 2){
-    val writer = new PrintWriter(outputFile)
-
-    writer.println("[")
-
-    writer.println(map.map { p =>
-      val variable = p._1
-      val documents = p._2.map(p => f"""["${p._1}%s", ${p._2}%.2f]""").mkString(",")
-      "{\"topic\":\"" + variable.getName + "\",\"doc\":[" + documents + "]}"
-    }.mkString(",\n"))
-
-    writer.println("]")
-
-    writer.close
-  }
-}
-
 trait AssignTopics {
-  
-  implicit final class toAssignment(data: Data){
-    /**
-     * Generates a list of documents for each topic.
-     *
-     * Each map value is a sequence of pairs where first element indicates
-     * the probability and second element the document index.
-     * The sequence is sorted in descending order of probability.
-   	 */
-    def toAssignment(threshold: Double = 0.0): Assignment = {
-      val map = (0 until data.variables.size).map { v =>
-        val documents = data.instances.view.zipWithIndex.map{case (d, i) =>
-          // map to value of v
-          if(d.name.isEmpty)
-            (i.toString(), d.values(v))//use index as document name
-          else
-            (d.name, d.values(v))//use the provided instance name
-          } 
-          .filter(_._2 >= threshold).force // keep only those values >= threshold
-          .sortBy(-_._2) // sort by descending values
-        (data.variables(v), documents)
-      }.toMap
-      Assignment(map)
-    }
-  }
   
   class Conf(args: Seq[String]) extends Arguments(args) {
     banner("""Usage: """+name+""" [OPTION]... model_file data_file outputName
@@ -117,12 +32,13 @@ trait AssignTopics {
              |"The number of decimal places is used in the ARFF file only.""")
              
     val modelFile = trailArg[String]()
-    val dataFile = trailArg[String]()
+    val dataFile = trailArg[String](descr = "**Special** Only .arff or .sparse.txt are allowed")
     val outputName = trailArg[String]()
     
     val decimalPlaces = opt[Int](descr="Significant figure", default = Some(2))
     val layer = opt[List[Int]](descr = "Layer number, i.e. 2,3,4", default = None)
-    //val variable = opt[String]
+    val confidence = opt[Double](descr = "Only document with P(topic|document)>c will be listed in the list, default 0.5", default = Some(0.5))
+
 
     verify
     checkDefaultOpts()
@@ -135,12 +51,13 @@ trait AssignTopics {
   def main(args: Array[String]) {
      val conf = new Conf(args)
 
-     run(conf.modelFile(), conf.dataFile(), conf.outputName(), conf.decimalPlaces(), conf.layer.toOption)
+    if(conf.dataFile().endsWith(".hlcm"))
+      throw new Exception("Invalid data format")
+     
+     run(conf.modelFile(), conf.dataFile(), conf.outputName(), conf.decimalPlaces(), conf.layer.toOption, conf.confidence())
   }
 
-  def getFileName(output: String, ext: String) = s"${output}${suffix}.topics.${ext}"
-
-  def run(modelFile: String, dataFile: String, outputName: String, decimalPlaces: Int = 2, layer: Option[List[Int]]): Unit = {
+  def run(modelFile: String, dataFile: String, outputName: String, decimalPlaces: Int, layer: Option[List[Int]], threshold : Double): Unit = {
     val topicDataFile = getFileName(outputName, "arff")
     val topicData = if (Files.exists(Paths.get(topicDataFile))) {
       logger.info("Topic data file ({}) exists.  Skipped computing topic data.", topicDataFile)
@@ -157,7 +74,7 @@ trait AssignTopics {
     }
 
     logger.info("Generating topic map")
-    val map = topicData.toAssignment(threshold = 0.5)
+    val map = topicData.toAssignment(threshold = threshold)
 
     logger.info("Saving topic map")
     map.saveAsJs(getFileName(outputName, "js"), decimalPlaces)
@@ -165,7 +82,15 @@ trait AssignTopics {
 
     logger.info("Done")
   }
-
+  
+  /**
+   * For external call
+   */
+  def apply(model: LTM, binaryData: Data, layer: Option[List[Int]] = None, threshold: Double = 0.5): Assignment = 
+    computeTopicData(model, binaryData, layer).toAssignment(threshold = threshold)
+    
+  def getFileName(output: String, ext: String) = s"${output}${suffix}.topics.${ext}"
+  
   def computeTopicData(modelFile: String, dataFile: String, layer: Option[List[Int]]): Data = {
     logger.info("reading model and data")
     val (model, data) = Reader.readLTMAndARFF(modelFile, dataFile)
@@ -181,12 +106,31 @@ trait AssignTopics {
   }
 
   def computeTopicData(model: LTM, binaryData: Data, layer: Option[List[Int]]): Data
-  
-  /**
-   * For external call
-   */
-  def apply(model: LTM, binaryData: Data, layer: Option[List[Int]] = None, threshold: Double = 0.5): Assignment = 
-    computeTopicData(model, binaryData, layer).toAssignment(threshold = threshold)
+    
+  implicit final class toAssignment(data: Data){
+    /**
+     * Generates a list of documents for each topic.
+     *
+     * Each map value is a sequence of pairs where first element indicates
+     * the probability and second element the document index.
+     * The sequence is sorted in descending order of probability.
+   	 */
+    def toAssignment(threshold: Double): Assignment = {
+      val map = (0 until data.variables.size).map { v =>
+        val documents = data.instances.view.zipWithIndex.map{case (d, i) =>
+          // map to value of v
+          if(d.name.isEmpty)
+            (i.toString(), d.values(v))//use index as document name
+          else
+            (d.name, d.values(v))//use the provided instance name
+          } 
+          .filter(_._2 >= threshold).force // keep only those values >= threshold
+          .sortBy(-_._2) // sort by descending values
+        (data.variables(v), documents)
+      }.toMap
+      Assignment(map)
+    }
+  }
   
 }
 
@@ -241,7 +185,7 @@ object AssignNarrowTopics extends AssignTopics {
     val _layer = if(layer.isDefined)  layer.get.map{l => if(l<=0) l+model.getHeight-1 else l} else null
 
     def apply(): Data = {
-      initialize(model, data.toHLCMDataSet(), Array("", "", "tmp", "no", "no", "7"))
+      initialize(model, data.toHlcmDataSet, Array("", "", "tmp", "no", "no", "7"))
       extractTopics()
       convertProbabilities()
     }
@@ -321,4 +265,64 @@ object AssignNarrowTopics extends AssignTopics {
     new Extractor(model, binaryData, layer).apply()
   }
 
+}
+
+object Assignment{
+  case class Entry(topic: String, doc: List[List[Any]])
+   def readJson(fileName: String) = {
+    import org.json4s.native.JsonMethods._
+    implicit val formats = DefaultFormats
+    val jsonString = Source.fromFile(fileName).mkString
+    val entries = parse(jsonString).extract[List[Entry]]
+    val b = new ArrayList[String]()
+      b.add(0, "s0")
+      b.add(1, "s1")
+    val map = entries.map { e => 
+      (new Variable(e.topic, b) -> e.doc.map { x => (x.get(0).asInstanceOf[String], x.get(1).asInstanceOf[Double]) })
+    }.toMap
+    Assignment(map)
+  }
+}
+
+case class Assignment(map: Map[Variable, Seq[(String, Double)]]){
+  
+  def apply(variable: String): Seq[(String, Double)] = map.find(v=>v._1.getName.equals(variable)).get._2
+  
+  def apply(variable: Variable): Seq[(String, Double)] = map.get(variable).get
+  
+  def apply(variable: String, docName: String): Double = apply(variable).find{case (d, p) => d.equals(docName)}.get._2
+  
+  def apply(variable: Variable, docName: String): Double = apply(variable).find{case (d, p) => d.equals(docName)}.get._2
+  
+  def saveAsJs(outputFile: String, decimalPlaces: Int = 2, jsVarName: String = "topicMap"){
+    val writer = new PrintWriter(outputFile)
+
+    writer.println("var "+jsVarName+" = {")
+
+    writer.println(map.map { p =>
+      val variable = p._1
+      val documents = p._2.map(p => f"""["${p._1}%s", ${p._2}%.2f]""").mkString(", ")
+      s"  ${variable.getName}: [${documents}]"
+    }.mkString(",\n"))
+
+    writer.println("};")
+
+    writer.close
+  }
+
+  def saveAsJson(outputFile: String, decimalPlaces: Int = 2){
+    val writer = new PrintWriter(outputFile)
+
+    writer.println("[")
+
+    writer.println(map.map { p =>
+      val variable = p._1
+      val documents = p._2.map(p => f"""["${p._1}%s", ${p._2}%.2f]""").mkString(",")
+      "{\"topic\":\"" + variable.getName + "\",\"doc\":[" + documents + "]}"
+    }.mkString(",\n"))
+
+    writer.println("]")
+
+    writer.close
+  }
 }

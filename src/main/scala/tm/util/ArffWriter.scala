@@ -1,7 +1,6 @@
 package tm.util
 
 import java.io.PrintWriter
-import tm.util.Data
 
 object ArffWriter {
   object AttributeType extends Enumeration {

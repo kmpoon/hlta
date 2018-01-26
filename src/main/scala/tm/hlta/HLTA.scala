@@ -297,7 +297,7 @@ object HLTA {
   def extractTopics(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, 
       narrow: Boolean = false, data: Data = null, tempDir: String = "./temp") = {  
     if(narrow){      
-      ExtractNarrowTopics(model, data.binary().toHLCMDataSet(), outputName, layer, keywords)
+      ExtractNarrowTopics(model, data.binary().toHlcmDataSet, outputName, layer, keywords)
     }else{
       ExtractTopics(model, outputName, layer, keywords)
     }
@@ -327,25 +327,26 @@ object HLTA {
    * 		maxIsland: Maximum number of variables in an island (e.g. 10).
    * 		maxTop: Maximum number of variables in top level (e.g. 15).
    * Global parameters:
-   * 		globalBatchsize: Number of data cases used in each stepwise EM step (e.g. 1000).
+   * 		globalBatchSize: Number of data cases used in each stepwise EM step (e.g. 1000).
    * 		globalMaxEpochs: Number of times the whole training dataset has been gone through (e.g. 10).
    * 		globalMaxEmSteps: Maximum number of stepwise EM steps (e.g. 128).
    * 		structBatchSize: Number of data cases used for building model structure.
+   * 
+   * Parameter follows the suggested numbers in clustering.PEM and clustering.StepwiseEMHLTA
    * 
    * @return LTM		latent tree model
    */
   def buildModel(data: Data, modelName: String, emMaxStep: Int = 50, emNumRestart: Int = 3, emThreshold: Double = 0.01, 
       udThreshold: Int = 3, maxIsland: Int = 15, maxTop: Int = 30, PEM: Boolean = false,
-      globalBatchSize: Int = 500, globalMaxEpochs: Int = 10, globalMaxEmStep: Int = 100, 
+      globalBatchSize: Int = 500, globalMaxEpochs: Int = 10, globalMaxEmSteps: Int = 100, 
       structBatchSize: Option[Int] = None, firstBatchUseAll: Boolean = false, tempDir: String = "./temp"): LTM = {
     if(!PEM){
-      data.saveAsTuple(tempDir+"/data.sparse.txt")
-      StepwiseEmBuilder(new SparseDataSet(tempDir+"/data.sparse.txt"), modelName, emMaxStep, emNumRestart, emThreshold,
+      StepwiseEmBuilder(data.toTupleSparseDataSet, modelName, emMaxStep, emNumRestart, emThreshold,
       udThreshold, maxIsland, maxTop, globalBatchSize, globalMaxEpochs, 
-      globalMaxEmStep, structBatchSize, firstBatchUseAll)
+      globalMaxEmSteps, structBatchSize, firstBatchUseAll)
           
     }else{      
-      ProgressiveEmBuilder(data.binary().toHLCMDataSet(), modelName, emMaxStep, emNumRestart, emThreshold, 
+      ProgressiveEmBuilder(data.binary().toHlcmDataSet, modelName, emMaxStep, emNumRestart, emThreshold, 
       udThreshold, maxIsland, maxTop)
     }
   }
@@ -359,12 +360,12 @@ object HLTA {
     |text: .txt for plain text, ./dir for dir (can be .txt or .pdf inside)
     |data: .arff for ARFF, .hlcm for HLCM, .sparse.txt for tuple format""")
     
-    val data = trailArg[String](descr = "Data file (e.g. data.txt)")
+    val data = trailArg[String](descr = "Data file, auto convert to data if text or pdf is feeded (e.g. data.txt)")
     val outputName = trailArg[String](descr = "Output name")
     
     val ndt = opt[Boolean](default = Some(false), descr = "use Narrow Defined Topic for extraction and assignment")
     val pem = opt[Boolean](default = Some(false), descr = "use Progressive EM for parameter estimation")
-    val inputFormat = opt[String](descr = "Specify input data format if extension is not right, can be \"arff\", \"hlcm\", \"tuple\"")
+    val format = opt[String](descr = "Specify data format if extension is not right, can be \"arff\", \"hlcm\", \"tuple\"")
     val chinese = opt[Boolean](default = Some(false), 
         descr = "use predefined setting for converting Chinese to data, only valid when conversion is needed")
     val encoding = opt[String](default = Some("UTF-8"), descr = "Input text encoding, default UTF-8")
@@ -376,6 +377,8 @@ object HLTA {
   def main(args: Array[String]) {
     val conf = new Conf(args)
 
+    //Simple default settings
+    //See tm.text.Convert for more options
     val engSettings = tm.text.Convert.Settings(concatenations = 1, minCharacters = 3,
         wordSelector = tm.text.WordSelector.ByTfIdf(3, 0, .25, 1000), asciiOnly = true, 
         stopWords = null)
@@ -384,21 +387,27 @@ object HLTA {
         stopWords = null)
     
     val path = conf.data()
-    val data = if(conf.inputFormat.isEmpty && !path.endsWith(".arff") && !path.endsWith(".hlcm") && !path.endsWith(".sparse.txt")){
-      //A simple default setting
+    //Detect if data is converted
+    val (data, paths) = if(conf.format.isEmpty && !path.endsWith(".arff") && !path.endsWith(".hlcm") && !path.endsWith(".sparse.txt")){
       implicit val settings = if(conf.chinese()) chiSettings else engSettings
-      tm.text.Convert(conf.outputName(), conf.data(), encoding = conf.encoding())
-      Reader.readData(conf.outputName()+".sparse.txt")
+      //Converts a raw text / pdf to .sparse.txt file
+      //Allow external edits on paths before passing to BuildWebsite
+      val (_data, paths) = tm.text.Convert(conf.outputName(), conf.data(), encoding = conf.encoding())
+      _data.saveAsTuple(conf.outputName()+".sparse.txt")
+      (_data, paths)
     }else{
-      Reader.readData(path, format = conf.inputFormat.toOption)
+      (tm.util.Reader.readData(path, format = conf.format.toOption), null)
     }
     
     val model = buildModel(data, conf.outputName(), PEM = conf.pem())
-    val extraction = extractTopics(model, conf.outputName(), narrow = conf.ndt(), data = data)
-    extraction.saveAsJson(conf.outputName()+".nodes.json")
+    val topicTree = extractTopics(model, conf.outputName(), narrow = conf.ndt(), data = data)
+    topicTree.saveAsJson(conf.outputName()+".nodes.json")
     val assignment = assignTopics(model, data)
     assignment.saveAsJson(conf.outputName()+".topics.json")
-    extraction.saveAsHtml(conf.outputName()+".html")
-    //BuildWebsite(extraction, ".", conf.outputName(), conf.outputName())
+    //Generate one html file
+    topicTree.saveAsHtml(conf.outputName()+".simple.html")
+    //Generate a nice and pretty website, no server required
+    //Use paths as Document names
+    tm.hlta.BuildWebsite("./webiste/", conf.outputName(), conf.outputName(), topicTree = topicTree, assignment = assignment, docNames = paths)
   }
 }

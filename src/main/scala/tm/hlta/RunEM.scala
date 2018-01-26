@@ -23,7 +23,7 @@ object EM{
       , threshold: Double = 1e-2, smooth: Boolean = true) = 
   data match {
     case _: DataSet => em(model, data.asInstanceOf[DataSet], steps, numOfRestarts, threshold, smooth)
-    case _: Data => em(model, data.asInstanceOf[Data].toHLCMDataSet(), steps, numOfRestarts, threshold, smooth)
+    case _: Data => em(model, data.asInstanceOf[Data].toHlcmDataSet, steps, numOfRestarts, threshold, smooth)
   }
  
   private def em(model: LTM, data: DataSet, steps: Int, numOfRestarts: Int, threshold: Double, smooth: Boolean) = {
@@ -68,8 +68,7 @@ object StepwiseEM{
    * TODO: randomSplit unimplemented
    */
   def apply[T: DataOrSparseDataSet](model: LTM, data: T, steps: Int = 50, numOfRestarts: Int = 5
-      , threshold: Double = 1e-2, batchSize : Int = 1000, maxEpochs: Int = 10, smooth: Boolean = true, randomSplit: Int = 1, outputDir: String = "./temp/"): LTM = {
-    val dataFile = outputDir+"temp.sparse.txt"
+      , threshold: Double = 1e-2, batchSize : Int = 1000, maxEpochs: Int = 10, smooth: Boolean = true, randomSplit: Int = 1): LTM = {
     data match {
       case _: SparseDataSet => {
         //import tm.util.Data._
@@ -77,10 +76,7 @@ object StepwiseEM{
         em(model, data.asInstanceOf[SparseDataSet], steps, numOfRestarts, threshold, batchSize, maxEpochs, smooth)
       }
       case _: Data => {
-        //TODO: needs variable synchronization
-        data.asInstanceOf[Data].saveAsTuple(dataFile)
-        val sparseDataSet = new SparseDataSet(dataFile)
-        model.synchronize(sparseDataSet.getVariables)
+        val sparseDataSet = data.asInstanceOf[Data].toTupleSparseDataSet()
         em(model, sparseDataSet, steps, numOfRestarts, threshold, batchSize, maxEpochs, smooth)
       }
     }

@@ -22,12 +22,18 @@ object FileHelpers {
    * Find files with the specified extension (e.g. pdf) in the specified
    * directory.
    */
-  def findFiles(directory: Path, extension: String) = {
+  def findFiles(directory: Path, extension: String): Vector[Path] = findFiles(directory, List(extension))
+  
+  /**
+   * Find files with the specified extensions (e.g. pdf, txt) in the specified
+   * directory.
+   */
+  def findFiles(directory: Path, extensions: List[String]): Vector[Path] = {
     val files = collection.mutable.Buffer.empty[Path]
-    val suffix = "." + extension
+    val suffixes = extensions.map("." + _)
     val visitor = new SimpleFileVisitor[Path] {
       override def visitFile(file: Path, attr: BasicFileAttributes) = {
-        if (file.toString.endsWith(suffix))
+        if (suffixes.exists(file.toString.endsWith(_)))
           files += directory.relativize(file)
 
         CONTINUE

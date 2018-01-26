@@ -5,10 +5,9 @@ import tm.util.Data.Instance
 import org.latlab.util.Variable
 import java.util.ArrayList
 import scala.collection.mutable.MutableList
-import tm.util.Data
 
 /**
- * This is a fix of the Issue - DataSet reader does not allot non-ascii character
+ * This is a fix of the Issue - DataSet reader does not allow non-ascii character
  */
 object HlcmReader {
   
@@ -26,7 +25,7 @@ object HlcmReader {
           variables += convert(variableName, statesName)
         }else{
           val (states, weight) = getSample(line)
-          instances += Instance(states, weight)
+          instances += new Instance(states, weight)
         }
       }
     }

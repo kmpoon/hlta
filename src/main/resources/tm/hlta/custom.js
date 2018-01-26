@@ -48,13 +48,11 @@ function generateTopicDocumentTable(topic, max) {
 	var rows = [];
 	for (var i = 0; i < topicDocuments.length && i < max; i++) {
 		var d = topicDocuments[i];
-		var doc = documents[d[0]];
-		rows.push("<tr><td>" + doc.source + "</td><td>" + doc.year
-				+ "</td><td>" + doc.title + "</td><td>" + d[1].toFixed(2)
-				+ "</td></tr>");
+		var doc = documents[d[0]]; //documents is an array of document name
+		rows.push("<tr><td>" + doc + "</td><td>" + d[1].toFixed(2)+ "</td></tr>");
 	}
 
-	var table = $("<table class=\"tablesorter\"><thead><tr><th>Conf</th><th>Year</th><th>Title</th><th>Prob</th></tr></thead></table>")
+	var table = $("<table class=\"tablesorter\"><thead><tr><th>Document</th><th>Prob</th></tr></thead></table>")
 			.append("<tbody/>").append(rows.join(""));
 
 	table.tablesorter({
@@ -109,8 +107,6 @@ function constructTree(n) {
 				var topicDocuments = topicMap[data.node.id]
 				max = 500
 	
-				$("#topic-modal-body").append("<h5>Number of documents by year:</h5>")
-				$("#topic-modal-body").append(generateCountTable(data.node.id));
 				$("#topic-modal-body").append("<h5>Document details (showing only the top " + max +"):</h5>")
 				$("#topic-modal-body").append(generateTopicDocumentTable(
 						data.node.id, max));
@@ -146,13 +142,19 @@ function showLevels(top, bottom) {
 
 	for (var i = top; i > bottom; i--) {
 		$.each(levels[i - 1], function(i, v) {
-			v.state.opened = true;
+			if(typeof(v.state) === "undefined")
+				v.state = {opened: true}
+			else
+				v.state.opened = true;
 		})
 	}
 
 	for (var i = bottom; i > 0; i--) {
 		$.each(levels[i - 1], function(i, v) {
-			v.state.opened = false;
+			if(typeof(v.state) === "undefined")
+				v.state = {opened: false}
+			else
+				v.state.opened = false;
 		})
 	}
 

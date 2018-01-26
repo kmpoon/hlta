@@ -7,13 +7,13 @@ import java.text.SimpleDateFormat
 import scala.collection.mutable
 import scala.collection.GenSeq
 import tm.text.Preprocessor
-import tm.text.StopWords
 import tm.text.DataConverter
 import scala.collection.JavaConversions._
 import java.io.InputStream
 import java.io.InputStreamReader
 import java.io.FileInputStream
 import tm.text.Document
+import tm.text.Sentence
 import java.nio.file.Paths
 import org.slf4j.LoggerFactory
 
@@ -26,12 +26,12 @@ object Convert {
     else {
       import Parameters.implicits.settings
 
-      tm.text.Convert(args(0), args(1))
+      tm.text.Convert.main(args)
     }
   }
 
   def printUsage() = {
-    println("tm.hillary.Convert name source_directory")
+    println("tm.hillary.Convert name source_directory maxWords")
   }
 
   def run() = {
@@ -44,9 +44,9 @@ object Convert {
       //Not yet tested
       val cleanText = Preprocessor.preprocess(email.content)
       val tokens = Preprocessor.tokenizeBySpace(cleanText)
-      Document(tokens)
+      Document(Sentence(tokens))
     }.toList.par
 
-    DataConverter.convert("hillary", bodies)
+    DataConverter("hillary", bodies)
   }
 }

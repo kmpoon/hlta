@@ -58,13 +58,15 @@ public class SparseDataSet {
 	
 	/**
 	 * Store the mapping from datacase ID from input file to internal user ID
+	 * Changed to non-static by Leung Chun Fai
 	 */
-	static IEntityMapping _user_mapping;  
+	IEntityMapping _user_mapping;  
 	
 	/**
 	 * Store the mapping between variable name from file and internal item ID
+	 * Changed to non-static by Leung Chun Fai
 	 */
-	static IEntityMapping _item_mapping;  
+	IEntityMapping _item_mapping;  
 	
 	
 	/**
@@ -108,6 +110,41 @@ public class SparseDataSet {
         	Variable var = new Variable(item_external_ID, states);
         	_VariablesSet[i] = var;
         	_mapNameToIndex.put(item_external_ID,i);
+        	i++;
+        }
+        
+   //     Arrays.sort(_VariablesSet); // check if this is needed , if need then change mapNameToIndex 
+	}
+	
+	/**
+	 * Convert into SparseDataSet without IO
+	 * For Data.scala call
+	 * 
+	 * @author Leung Chun Fai
+	 * 
+	 * @param userMapping
+	 * @param itemMapping
+	 * @param sDataSet
+	 * @throws Exception
+	 */
+	public SparseDataSet(Variable[] variables, IEntityMapping userMapping, IEntityMapping itemMapping, IPosOnlyFeedback sDataSet) throws Exception{
+		
+        _user_mapping      = userMapping;  
+        
+        _item_mapping      = itemMapping;
+		
+		SDataSet = sDataSet;
+	
+		_totalDatacases = SDataSet.maxUserID()+1;
+        
+        // Make name to index MAP
+        _mapNameToIndex = new  HashMap<String,Integer>();
+        _VariablesSet = variables;//new Variable[SDataSet.maxItemID()+1];
+        
+        // creating variables corresponding to the external ID and adding them
+        int i = 0;
+        for(Variable variable : variables){
+        	_mapNameToIndex.put(variable.getName(),i);
         	i++;
         }
         

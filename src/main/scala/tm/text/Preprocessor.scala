@@ -106,6 +106,9 @@ object Preprocessor {
   //        counts.filter(_._2 >= 5)
   //    }
 
+  /**
+   * A 1-gram tokenizer, for higher grams, use DataConverter.countTokensWithNGrams after tokenizeBySpace
+   */
   def tokenizeBySpace(text: String): Seq[String] =
     // It needs to handle the case of an empty string, otherwise an array
     // containing a single element of empty string will be returned.

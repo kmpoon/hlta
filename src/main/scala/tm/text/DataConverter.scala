@@ -10,42 +10,15 @@ import tm.util.Data
 
 object DataConverter {
   val logger = LoggerFactory.getLogger(DataConverter.getClass)
-//  object AttributeType extends Enumeration {
-//    val binary, numeric = Value
-//  }
-
-//Moved to tm.text.Convert
-//  /**
-//   * minDf is computed when the number of documents is given.
-//   */
-//  class Settings(val concatenations: Int, val minCharacters: Int,
-//    val wordSelector: WordSelector, val asciiOnly: Boolean)
-//
-//  object Settings {
-//    def apply(concatenations: Int = 0, minCharacters: Int = 3, minTf: Int = 6,
-//      minDf: (Int) => Int = (Int) => 6, asciiOnly: Boolean = true): Settings =
-//      new Settings(concatenations, minCharacters,
-//        WordSelector.basic(minCharacters, minTf, minDf), asciiOnly)
-//
-//    def apply(concatenations: Int, minCharacters: Int,
-//      wordSelector: WordSelector, asciiOnly: Boolean): Settings =
-//      new Settings(concatenations, minCharacters, wordSelector, asciiOnly)
-//  }
 
   type TokenCounts = Map[NGram, Int]
 
-  def convert(name: String, documents: GenSeq[Document])(
+  /**
+   * For external call
+   */
+  def apply(name: String, documents: GenSeq[Document])(
     implicit settings: Convert.Settings): Data = {
-//    import settings._
-
-    val (countsByDocuments, dictionary) =
-      countTokensWithNGrams(name, documents)
-
-    //    log("Converting to bow")
-    //    val bow = convertToBow(countsByDocuments, dictionary.map)
-
-    //val bowConverter = toBow(dictionary.map)(_)
-    
+    val (countsByDocuments, dictionary) = countTokensWithNGrams(name, documents)
     Data.fromDictionaryAndTokenCounts(dictionary, countsByDocuments.toList, name = name)
   }
 
@@ -55,12 +28,9 @@ object DataConverter {
    */
   def countTokensWithNGrams(name: String, documents: GenSeq[Document])(
       implicit settings: Convert.Settings): (GenSeq[TokenCounts], Dictionary) = {
-    //import settings._
-    //    import Preprocessor._
 
     @tailrec
-    def loop(documents: GenSeq[Document],
-      previous: Option[Dictionary],
+    def loop(documents: GenSeq[Document], previous: Option[Dictionary],
       frequentWords: Set[NGram], n: Int): (GenSeq[Document], Dictionary) = {
       logger.info("Counting n-grams (after {} concatentations) in each document", n)
 
@@ -99,7 +69,7 @@ object DataConverter {
         logger.info("Replacing constituent tokens by n-grams after {} concatenations", n)
         documents.map(_.sentences.map(s =>
           Preprocessor.replaceConstituentTokensByNGrams(s, dictionary.map.contains(_))))
-          .map(ss => new Document(ss))
+          .map(ss => Document(ss))
       }
 
       if (n == settings.concatenations) (documentsWithLargerNGrams, dictionary)
@@ -167,27 +137,40 @@ object DataConverter {
 
     Dictionary.buildFrom(info)
   }
+  
+  /**
+   * Converts data to bag-of-words representation, based on the given word
+   * counts and dictionary.
+   */
+  def convertToBow(countsByDocuments: GenSeq[TokenCounts], indices: Map[NGram, Int]) = {
+    countsByDocuments.map(toBow(indices))
+  }
+  
+  /**
+   * Converts data to bag-of-words representation, based on the given word
+   * counts and dictionary.
+   */
+  def toBow(indices: Map[NGram, Int])(counts: TokenCounts): Array[Int] = {
+    val values = Array.fill(indices.size)(0)
+    counts.foreach { wc =>
+      indices.get(wc._1).foreach { i => values(i) = wc._2 }
+    }
+    values
+  }
+  
+  /**
+   * Given a sequence of tokens, build the n-grams based on the tokens.  The
+   * n-grams are built from two consecutive tokens.  Besides,
+   * the constituent tokens must be contained in the given {@code base} dictionary.
+   * It is possible that after c concatenations n-grams, where n=2^c, may appear.
+   */
+  def buildNextNGrams(tokens: Seq[NGram],
+    shouldConsider: (NGram) => Boolean): Iterator[NGram] =
+    tokens.sliding(2)
+      .filter(_.forall(shouldConsider))
+      .map(NGram.fromNGrams(_))
+  
 //Now use tm.util.Data
-//  /**
-//   * Converts data to bag-of-words representation, based on the given word
-//   * counts and dictionary.
-//   */
-//  def toBow(indices: Map[NGram, Int])(counts: TokenCounts): Array[Int] = {
-//    val values = Array.fill(indices.size)(0)
-//    counts.foreach { wc =>
-//      indices.get(wc._1).foreach { i => values(i) = wc._2 }
-//    }
-//    values
-//  }
-//
-//  /**
-//   * Converts data to bag-of-words representation, based on the given word
-//   * counts and dictionary.
-//   */
-//  def convertToBow(countsByDocuments: GenSeq[TokenCounts], indices: Map[NGram, Int]) = {
-//    countsByDocuments.map(toBow(indices))
-//  }
-//
 //  def saveAsArff(name: String, filename: String,
 //    attributeType: AttributeType.Value, words: Seq[String],
 //    countsByDocuments: Seq[TokenCounts], toBow: (TokenCounts) => Array[Int]) = {
@@ -243,16 +226,22 @@ object DataConverter {
 //
 //    writer.close
 //  }
-
-  /**
-   * Given a sequence of tokens, build the n-grams based on the tokens.  The
-   * n-grams are built from two consecutive tokens.  Besides,
-   * the constituent tokens must be contained in the given {@code base} dictionary.
-   * It is possible that after c concatenations n-grams, where n=2^c, may appear.
-   */
-  def buildNextNGrams(tokens: Seq[NGram],
-    shouldConsider: (NGram) => Boolean): Iterator[NGram] =
-    tokens.sliding(2)
-      .filter(_.forall(shouldConsider))
-      .map(NGram.fromNGrams(_))
+  
+//Moved to tm.text.Convert
+//  /**
+//   * minDf is computed when the number of documents is given.
+//   */
+//  class Settings(val concatenations: Int, val minCharacters: Int,
+//    val wordSelector: WordSelector, val asciiOnly: Boolean)
+//
+//  object Settings {
+//    def apply(concatenations: Int = 0, minCharacters: Int = 3, minTf: Int = 6,
+//      minDf: (Int) => Int = (Int) => 6, asciiOnly: Boolean = true): Settings =
+//      new Settings(concatenations, minCharacters,
+//        WordSelector.basic(minCharacters, minTf, minDf), asciiOnly)
+//
+//    def apply(concatenations: Int, minCharacters: Int,
+//      wordSelector: WordSelector, asciiOnly: Boolean): Settings =
+//      new Settings(concatenations, minCharacters, wordSelector, asciiOnly)
+//  }
 }

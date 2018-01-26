@@ -3,8 +3,10 @@ package tm.util
 import org.latlab.util.Variable
 import org.latlab.util.DataSet
 import org.latlab.learner.SparseDataSet
+import org.mymedialite.data.EntityMapping
+import org.mymedialite.data.PosOnlyFeedback
+import org.mymedialite.datatype.SparseBooleanMatrix
 import scala.collection.JavaConversions._
-import scala.collection.LinearSeq
 import java.text.DecimalFormat
 import java.util.ArrayList
 import org.latlab.model.LTM
@@ -15,43 +17,32 @@ import tm.text.NGram
 
 object Data{
   
-//  def apply(variables: IndexedSeq[Variable], instances: IndexedSeq[Data.Instance]) = 
-//    new Data(variables, instances)
-//  
-//  def apply(variables: IndexedSeq[Variable], instances: IndexedSeq[Data.Instance], isBinary: Boolean) = 
-//    new Data(variables, instances, isBinary)
-//  
-//  def apply(dictionary: Dictionary, tokenCountsSeq: Seq[TokenCounts], isBinary: Boolean = false, name: String = "data") = 
-//    fromDictionaryAndTokenCounts(dictionary, tokenCountsSeq, isBinary, name)
-  
-//  def apply(dictionary: Dictionary, tokenCountsSeq: Seq[TokenCounts]) = fromDictionaryAndTokenCounts(dictionary, tokenCountsSeq)
-  
   type TokenCounts = Map[NGram, Int]
-  def fromDictionaryAndTokenCounts(dictionary: Dictionary, tokenCountsSeq: Seq[TokenCounts], isBinary: Boolean = false, name: String = "data"): Data = {
-    def _toVariable(a: String) = {
+  def fromDictionaryAndTokenCounts(dictionary: Dictionary, tokenCountsSeq: Seq[TokenCounts], isBinary: Boolean = false, name: String = "data"): Data = { 
+    
+    def _newVariable(name: String) = {
       val b = new ArrayList[String]()
       b.add(0, "s0")
       b.add(1, "s1")
-      new Variable(a, b)
+      new Variable(name, b)
     }
     
-    /**
-     * Converts data to bag-of-words representation, based on the given word
-     * counts and dictionary.
-     */
     def _toBow(indices: Map[NGram, Int], counts: TokenCounts): Array[Double] = {
       val values = Array.fill(indices.size)(0.0)
       counts.foreach { wc =>
-        indices.get(wc._1).foreach { i => values(i) = wc._2.toDouble }
+        indices.get(wc._1).foreach { i => values(i) = wc._2 }
       }
       values
     }
     
     val tokenIndices = dictionary.map
-    val variables = dictionary.info.map{wordInfo => _toVariable(wordInfo.token.identifier)}
-    val instances = tokenCountsSeq.map{tokenCounts => 
+    val variables = dictionary.info.map{wordInfo => _newVariable(wordInfo.token.identifier)}
+    //variables.foreach { a => println(a.getName) }
+    val instances = tokenCountsSeq.zip(Stream from 1).map{ case(tokenCounts, index) => 
       val values = _toBow(tokenIndices, tokenCounts)
-      Instance(values, 1.0)
+      //Each instance has a unique name
+      //Such that even data is cut, instance name remain the same as tokenCountsSeq's order
+      new Data.Instance(values, 1.0, name = index.toString())
     }
     new Data(variables, instances.toIndexedSeq, isBinary, name)
   }
@@ -59,11 +50,11 @@ object Data{
   private def binarize(value: Double): Double = if (value > 0) 1.0 else 0.0
   private def binarize(variable: Variable): Variable = new Variable(variable.getName, new ArrayList(Seq("s0", "s1")))
   
-  object Instance{
-    def apply(values: Array[Double], weight: Double, name: String = "") = new Instance(values, weight, name)
-  }
+//  object Instance{
+//    def apply(values: Array[Double], weight: Double, name: String = "") = new Instance(values, weight, name)
+//  }
   
-  class Instance(val values: Array[Double], val weight: Double, val name: String = "") {    
+  case class Instance(val values: Array[Double], val weight: Double, val name: String = "") {    
     def copy(values: Array[Double] = values, weight: Double = weight, name: String = name) = new Instance(values, weight, name)
     def select(indices: Array[Int]) = copy(values = indices.map(values.apply))
     def apply(variablePos: Int) : Double = values.apply(variablePos)
@@ -184,7 +175,11 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
     new Data(variables, instances.map(_.select(indicesArray)), isBinary)
   }
 
-  def toHLCMDataSet(): DataSet = {
+  /**
+   * Convert to DataSet (HLCM format)
+   * Note that HLCM format do not preserve ordering
+   */
+  def toHlcmDataSet(): DataSet = {
     val data = new DataSet(variables.toArray)
 
     // map from new index to old index
@@ -199,6 +194,41 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
     data
   }
 
+  /**
+   * Convert to SparseDataSet (the Tuple format)
+   * Note that tuple format itself is binary
+   * 
+   * Implementation refer to org.mymedialite.io.ItemData.Read
+   */
+  def toTupleSparseDataSet(): SparseDataSet = {
+    val feedback = new PosOnlyFeedback[SparseBooleanMatrix](classOf[SparseBooleanMatrix]);
+    val userMapping = new EntityMapping();
+    val itemMapping = new EntityMapping();
+		instances.zipWithIndex.foreach{ case (instance, docSeq) =>
+      instance.values.zipWithIndex.filter { case (x, wordId) => x>=1.0 }.foreach{ case (x, wordId) => 
+        val docId = if(instance.name.length()>0) instance.name else (docSeq+1).toString()
+        val word = variables(wordId).getName
+        val user_id = userMapping.toInternalID(docId)
+		    val item_id = itemMapping.toInternalID(word)
+        feedback.add(user_id, item_id);
+      }
+    }
+		new SparseDataSet(variables.toArray[Variable], userMapping, itemMapping, feedback)		
+  }
+  
+//  /**
+//   * Convert to a structurally tuple form, but not wrapped with SparseDataSet (the Tuple format)
+//   */
+//  def toTuples: Seq[(String, String)] = {   
+//    instances.zipWithIndex.flatMap{ case (instance, docSeq) =>
+//      instance.values.zipWithIndex.filter { case (x, wordId) => x>=1.0 }.foreach { case (x, wordId) => 
+//        val docId = if(instance.name.length()>0) instance.name else (docSeq+1).toString()
+//        val word = variables(wordId)
+//        (docId, word)
+//      }
+//    }
+//  }
+
   def saveAsArff(filename: String, df: DecimalFormat = new DecimalFormat("#0.##")) = {
     ArffWriter.write(name, filename,
       if(isBinary) ArffWriter.AttributeType.binary else ArffWriter.AttributeType.numeric,
@@ -206,7 +236,7 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
   }
   
   def saveAsHlcm(filename: String) = {
-    toHLCMDataSet().save(filename)
+    toHlcmDataSet().save(filename)
   }
   
   /**

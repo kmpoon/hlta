@@ -1,5 +1,7 @@
 package tm.util
 
+import java.io.PrintWriter
+
 /**
  * We define class TreeList to avoid function calling mess
  * For example, for Seq[Tree[A]], to do .map() on every node
@@ -13,6 +15,8 @@ class TreeList[+A](val roots: Seq[Tree[A]]){
       
   def findSubTrees(p: (A) => Boolean): TreeList[A] = new TreeList(roots.map{_.findSubTrees(p)}.flatten)
   
+  def foreach(f: A => Unit): Unit = roots.foreach(_.foreach(f))
+  
   def map[B](f: A => B): TreeList[B] = new TreeList(roots.map(_.map(f)))
   
   def foldLeft[B](z: B)(op: (B, A) => B): Seq[B] = roots.map(_.foldLeft(z)(op))
@@ -24,11 +28,12 @@ class TreeList[+A](val roots: Seq[Tree[A]]){
   /**
    * Returns a map that contains the levels of the nodes of the trees.
    */
-  def findLevels[B >: A]: Map[B, Int] = Tree.findLevels(roots)
+  def findLevels[B >: A](): Map[B, Int] = Tree.findLevels(roots)
   
   def trimLevels(takeLevels: List[Int]): TreeList[A] = new TreeList(Tree.trimLevels(roots, takeLevels))
   
   def sortRoots[B](f: Tree[A] => B)(implicit ord: Ordering[B]) = new TreeList(roots.sortBy(f))
+  
 }
 
 class Tree[+A](val value: A, val children: List[Tree[A]]) {
@@ -52,10 +57,13 @@ class Tree[+A](val value: A, val children: List[Tree[A]]) {
   }
 
   def getChild[B >: A](key: B) = children.find(_.value == key)
-
-  def map[B](f: (A) => B): Tree[B] = {
-    new Tree(f(value), children.map(_.map(f)))
+  
+  def foreach(f: A => Unit): Unit = {
+    f(value)
+    children.foreach(_.foreach(f))
   }
+
+  def map[B](f: (A) => B): Tree[B] = new Tree(f(value), children.map(_.map(f)))
 
   def foldLeft[B](z: B)(op: (B, A) => B): B = {
     val c = children.foldLeft(z)((x, t) => t.foldLeft(x)(op))

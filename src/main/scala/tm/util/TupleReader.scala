@@ -6,7 +6,6 @@ import org.latlab.util.Variable
 import java.util.ArrayList
 import scala.collection.mutable.MutableList
 import scala.collection.mutable.Map
-import tm.util.Data
 
 /**
  * Alternative approach use SparseDataSet.java to read then call SparseDataSet.SparseToDense()
@@ -32,7 +31,7 @@ object TupleReader {
     val instances = docList.map{case (docId, doc) =>
       val indexes = doc.map { word => variables.indexOf(word) }
       val values = (0 until variables.size).map{ i => if(indexes.contains(i)) 1.0 else 0.0}.toArray
-      Instance(values, 1.0, name = docId)
+      new Instance(values, 1.0, name = docId)
     }
     
     def convert(a: String) = {

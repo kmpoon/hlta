@@ -25,7 +25,7 @@ class NarrowlyDefinedTopicSpec extends BaseSpec {
         val v = newVar("Z141")
         val cs = Vector("parsing", "grammar").map(s => d.variables.find(_.getName == s).get)
         val m = buildLCM(v, cs)
-        val m1 = FindNarrowlyDefinedTopics.estimate(v, m, d.toHLCMDataSet())
+        val m1 = FindNarrowlyDefinedTopics.estimate(v, m, d.toHlcmDataSet)
         m1.getNodes.map(_.asInstanceOf[BeliefNode].getCpt).foreach(println)
       }
     }

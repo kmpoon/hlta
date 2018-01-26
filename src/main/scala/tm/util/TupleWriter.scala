@@ -1,10 +1,10 @@
 package tm.util
 
 import java.io.PrintWriter
-import tm.util.Data
 
 /**
  * SparseDataSet Writer
+ * Note that SparseDataSet is binary in nature
  * 
  * see org.latlab.learner.SparseDataSet
  */
@@ -18,12 +18,11 @@ object TupleWriter {
     
     val writer = new PrintWriter(fileName)
     
-    instances.zipWithIndex.foreach{ case (instance, docSeq) =>
+    instances.zip(Stream from 1).foreach{ case (instance, docSeq) =>
       instance.values.zipWithIndex.filter { case (x, wordId) => x>=1.0 }
       .foreach { case (x, wordId) => 
-        //Not sure what is the format for .sparse.txt
-        //Is user name allowed to be non-integer?
-        val docId = if(instance.name.length()>0) instance.name else docSeq.toInt+1
+        //user-name can be non-integer
+        val docId = if(instance.name.length()>0) instance.name else docSeq
         val word = variables(wordId)
         writer.println(docId+", "+word)
       }
