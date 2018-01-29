@@ -196,6 +196,16 @@ The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_re
 # Compactness Scores
 Install gensim (https://radimrehurek.com/gensim/) before using the python codes for computing compactness scores in AAAI17 paper (http://www.aaai.org/Conferences/AAAI/2017/PreliminaryPapers/12-Chen-Z-14201.pdf). One pre-trained Word2Vec model by Google is available at https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing. The description of the model can be found at https://code.google.com/archive/p/word2vec/ under the section "Pre-trained word and phrase vectors".
 
+# Topic Coherence Score
+
+- To compute topic coherence score:
+
+```
+java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ComputeTopicCoherence --exclude-levels 1 4 data.txt TopicsTable.html
+```
+
+where: `4` is the number of words to be used for each topic, `data.txt` is the name of data file, `TopicsTable.html` is a file in the output directory when `tm.hlta.ExtractTopics` is run.  Run `tm.hlta.ComputeTopicCoherence` without any arugments to see an explanation for the options.
+
 # Class Path in Windows
 
 It seems that the delimiter used in class path in Windows is `;` rather than `:`.  So you may need to run a command like
