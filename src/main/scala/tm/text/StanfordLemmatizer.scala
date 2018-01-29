@@ -1,16 +1,8 @@
 package tm.text
 
-import edu.stanford.nlp.pipeline.StanfordCoreNLP
-import java.util.Properties
-import edu.stanford.nlp.pipeline.Annotation
-import edu.stanford.nlp.ling.CoreAnnotations.SentencesAnnotation
-import scala.collection.JavaConversions._
-import edu.stanford.nlp.ling.CoreAnnotations.TokensAnnotation
-import edu.stanford.nlp.ling.CoreAnnotations.LemmaAnnotation
-import tm.pdf.ExtractText
-import scala.language.implicitConversions
-import scala.util.matching.Regex
 import java.nio.file.Paths
+
+import scala.collection.JavaConversions._
 
 /**
  * Used to split sentences, tag POS, and lemmatize.
@@ -21,24 +13,33 @@ object StanfordLemmatizer {
 
   def main(args: Array[String]) {
     if (args.length < 1)
-      println("Lemmatizer file")
+      println("StanfordLemmatizer pdf-file")
     else {
       run(args(0))
     }
   }
 
   def run(filename: String) = {
-    import StopWords.implicits.default
-    val d = process(ExtractText.extractText(Paths.get(filename)))
+    import tm.corpus.pdf.ExtractText
+    val d = process(ExtractText.extractSingleText(Paths.get(filename)))
     println(d.sentences.map(_.tokens.mkString(", ")).mkString("\n"))
   }
 
-  def process(text: String): Document = {
-    val document = new edu.stanford.nlp.simple.Document(text)
-    val sentences = document.sentences
-      .map(_.lemmas.map(NGram.apply))
-      .map(Sentence.apply)
-    new Document(sentences.toSeq)
+  def process(text: String, lemmatization: Boolean = true,
+    sentenceSplitting: Boolean = true): Document = {
+
+    val ss: Seq[edu.stanford.nlp.simple.Sentence] =
+      if (sentenceSplitting)
+        new edu.stanford.nlp.simple.Document(text).sentences
+      else
+        new edu.stanford.nlp.simple.Sentence(text) :: Nil
+
+    def lemmatize(s: edu.stanford.nlp.simple.Sentence) =
+      if (lemmatization) s.lemmas()
+      else s.words
+
+    val sentences = ss.map(lemmatize).map(ts => Sentence(ts.map(NGram.apply)))
+    Document(sentences.toSeq)
   }
 
   def processAsSentence(s: String): Sentence = {

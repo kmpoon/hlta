@@ -30,7 +30,7 @@ sealed case class Tree[+A](value: A, children: List[Tree[A]]) {
     op(c, value)
   }
 
-  def toList(): List[A] = foldLeft(List.empty[A])(_ :+ _)
+  def toList(): List[A] = foldLeft(List.empty[A])(_.`+:`(_)).reverse
 }
 
 object Tree {

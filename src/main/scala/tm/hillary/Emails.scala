@@ -1,19 +1,14 @@
 package tm.hillary
 
 import java.io.FileInputStream
-import java.util.Date
 import java.io.InputStream
-import java.text.SimpleDateFormat
 import java.io.InputStreamReader
-import org.apache.commons.csv.CSVFormat
-import tm.text.Preprocessor
+import java.text.SimpleDateFormat
+import java.util.Date
+
 import scala.collection.JavaConversions._
-import tm.text.StanfordLemmatizer
-import tm.text.Sentence
-import scala.util.matching.Regex.Match
-import scala.util.matching.Regex
-import tm.text.StopWords
-import tm.text.Document
+
+import org.apache.commons.csv.CSVFormat
 
 case class Email(id: Int, date: Option[Date], subject: String, body: String) {
   def content = subject + "\n" + body

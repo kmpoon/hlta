@@ -17,6 +17,7 @@ import java.util.concurrent.RecursiveAction;
 import org.latlab.graph.DirectedNode;
 import org.latlab.graph.Edge;
 import org.latlab.learner.ParallelEmLearner;
+import org.latlab.learner.Parallelism;
 import org.latlab.model.BeliefNode;
 import org.latlab.model.LTM;
 import org.latlab.util.DataSet;
@@ -605,7 +606,7 @@ public class IslandFinder {
 			// }
 
 			private void computeParallel() {
-				ForkJoinPool pool = new ForkJoinPool();
+				ForkJoinPool pool = new ForkJoinPool(Parallelism.instance().getLevel());
 				pool.invoke(new ParallelComputation(0, variables.size()));
 			}
 

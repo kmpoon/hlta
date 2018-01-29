@@ -6,6 +6,7 @@ import scala.annotation.tailrec
 import org.slf4j.LoggerFactory
 import tm.util.ParMapReduce.mapReduce
 import scalaz.Scalaz._
+import tm.text.Convert.SeedTokens
 
 object DataConverter {
   val logger = LoggerFactory.getLogger(DataConverter.getClass)
@@ -32,12 +33,12 @@ object DataConverter {
 
   type TokenCounts = Map[NGram, Int]
 
-  def convert(name: String, documents: GenSeq[Document])(
-    implicit settings: Settings) = {
+  def convert(name: String, documents: GenSeq[Document], maxWords: Int,
+    seeds: Option[SeedTokens] = None)(implicit settings: Settings) = {
     import settings._
 
     val (countsByDocuments, dictionary) =
-      countTokensWithNGrams(name, documents)
+      countTokensWithNGrams(name, documents, maxWords, seeds)
 
     //    log("Converting to bow")
     //    val bow = convertToBow(countsByDocuments, dictionary.map)
@@ -60,63 +61,95 @@ object DataConverter {
    * Counts the number of tokens with the consideration of n-grams for a n
    * specified in the {@ code settings}.
    */
-  def countTokensWithNGrams(
-    name: String, documents: GenSeq[Document])(
-      implicit settings: Settings): (GenSeq[TokenCounts], Dictionary) = {
+  def countTokensWithNGrams(name: String, documents: GenSeq[Document],
+    maxWords: Int, seeds: Option[SeedTokens])(
+    implicit settings: Settings): (GenSeq[TokenCounts], Dictionary) = {
     import settings._
     //    import Preprocessor._
 
+    def replaceByNGrams(ds: GenSeq[Document], check: NGram => Boolean) = {
+      ds.map(_.sentences.map(s =>
+        Preprocessor.replaceConstituentTokensByNGrams(s, check)))
+        .map(ss => new Document(ss))
+    }
+
     @tailrec
-    def loop(documents: GenSeq[Document],
-      previous: Option[Dictionary],
+    def loop(documents: GenSeq[Document], previous: Option[Dictionary],
       frequentWords: Set[NGram], n: Int): (GenSeq[Document], Dictionary) = {
-      logger.info("Counting n-grams (after {} concatentations) in each document", n)
+      val noAppend = n == 0 || n > concatenations
+      val last = (n == concatenations && noAppend) || (n > concatenations)
+
+      if (!last)
+        logger.info("Counting n-grams (after {} concatentations) in each document", n)
+      else
+        logger.info("Counting n-grams after replacing constituent tokens in each document", n)
 
       // construct a sequence with tokens including those in the original
-      // sentence and n-grams with that are built from the original tokens after 
+      // sentence and n-grams with that are built from the original tokens after
       // concatenation
       def appendNextNGram(sentence: Sentence): Seq[NGram] = {
-        if (n == 0) sentence.tokens
+        if (noAppend)
+          sentence.tokens
         else {
-          sentence.tokens ++
-            buildNextNGrams(sentence.tokens,
-              (w: NGram) => previous.get.map.contains(w) || frequentWords.contains(w))
+          sentence.tokens ++ buildNextNGrams(sentence.tokens, (w: NGram) =>
+            previous.get.map.contains(w) || frequentWords.contains(w))
         }
       }
 
+      // select words
       val (dictionary, currentFrequent) = {
         logger.info("Building Dictionary")
-        val whole = buildDictionary(documents, appendNextNGram)
+        val allWordInfo = computeWordInfo(documents, appendNextNGram)
 
         logger.info("Saving dictionary before selection")
-        whole.save(s"${name}.whole_dict-${n}.csv")
+        Dictionary.save(s"${name}.whole_dict-${n}.csv", allWordInfo)
+
+        val (preSelected, remaining) = seeds match {
+          case Some(sf) => allWordInfo.partition(w => sf.contains(w.token))
+          case None     => (IndexedSeq.empty, allWordInfo)
+        }
+
+        if (preSelected.size > 0)
+          logger.info("Using {} seed tokens", preSelected.size)
 
         logger.info("Selecting words in dictionary")
         val (selected, frequent) =
-          settings.wordSelector.select(whole, documents.size)
+          settings.wordSelector.select(
+            remaining, documents.size, maxWords - preSelected.size)
+
+        val allSelected = preSelected ++ selected
+        logger.info("Number of selected tokens is {}.", allSelected.size)
 
         logger.info("Saving dictionary after selection")
-        selected.save(s"${name}.dict-${n}.csv")
+        Dictionary.save(s"${name}.dict-${n}.csv", allSelected)
 
-        (selected, frequent)
+        (Dictionary.buildFrom(allSelected), frequent)
       }
 
-      val documentsWithLargerNGrams = if (n == 0)
+      val documentsWithLargerNGrams = if (noAppend)
         documents
       else {
         logger.info("Replacing constituent tokens by n-grams after {} concatenations", n)
-        documents.map(_.sentences.map(s =>
-          Preprocessor.replaceConstituentTokensByNGrams(s, dictionary.map.contains(_))))
-          .map(ss => new Document(ss))
+        replaceByNGrams(documents, dictionary.map.contains)
       }
 
-      if (n == concatenations) (documentsWithLargerNGrams, dictionary)
-      else loop(documentsWithLargerNGrams,
-        Some(dictionary), frequentWords ++ currentFrequent, n + 1)
+      if (last)
+        (documentsWithLargerNGrams, dictionary)
+      else loop(documentsWithLargerNGrams, Some(dictionary),
+        frequentWords ++ currentFrequent, n + 1)
     }
 
+    logger.info(
+      "Using the following word selector. {}",
+      settings.wordSelector.description)
+
+    val ds = seeds.map { sf =>
+      logger.info("Replacing constituent tokens by seed tokens")
+      replaceByNGrams(documents, sf.contains)
+    }.getOrElse(documents)
+
     logger.info("Extracting words")
-    val (newDocuments, dictionary) = loop(documents, None, Set.empty, 0)
+    val (newDocuments, dictionary) = loop(ds, None, Set.empty, 0)
     (newDocuments.map(countTermFrequencies), dictionary)
   }
 
@@ -140,8 +173,8 @@ object DataConverter {
     countTokens(d.sentences.flatMap(tokenizer))
   }
 
-  def buildDictionary(documents: GenSeq[Document],
-    tokenizer: (Sentence) => Seq[NGram] = _.tokens) = {
+  def computeWordInfo(documents: GenSeq[Document],
+    tokenizer: (Sentence) => Seq[NGram] = _.tokens): IndexedSeq[WordInfo] = {
     import Preprocessor._
     import tm.util.ParMapReduce._
 
@@ -157,7 +190,7 @@ object DataConverter {
       (c1._1 |+| c2._1, c1._2 |+| c2._2, c1._3 + c2._3)
     }
 
-    //    // compute the counts of original tokens and new n-grams by 
+    //    // compute the counts of original tokens and new n-grams by
     //    // documents
     //    val countsByDocuments =
     //      // convert each document to tokens
@@ -170,11 +203,7 @@ object DataConverter {
     def buildWordInfo(token: NGram, tf: Int, df: Int) =
       WordInfo(token, tf, df, computeTfIdf(tf, df, n))
 
-    val info = tf.keys.map { w =>
-      buildWordInfo(w, tf(w), df(w))
-    }
-
-    Dictionary.buildFrom(info)
+    tf.keys.map { w => buildWordInfo(w, tf(w), df(w)) }.toIndexedSeq
   }
 
   /**
@@ -202,7 +231,7 @@ object DataConverter {
     countsByDocuments: Seq[TokenCounts], toBow: (TokenCounts) => Array[Int]) = {
 
     val at = attributeType match {
-      case AttributeType.binary => "{0, 1}"
+      case AttributeType.binary  => "{0, 1}"
       case AttributeType.numeric => "numeric"
     }
 
@@ -245,7 +274,7 @@ object DataConverter {
 
     countsByDocuments.zipWithIndex.foreach { p =>
       val rowId = p._2 + 1 // since the indices from zipWithIndex start with zero
-      // filter out any words not contained in the indices or those with zero counts 
+      // filter out any words not contained in the indices or those with zero counts
       p._1.filter(tc => indices.contains(tc._1) && tc._2 > 0)
         .foreach { tc => writer.println(s"${rowId},${tc._1}") }
     }
@@ -261,7 +290,6 @@ object DataConverter {
    */
   def buildNextNGrams(tokens: Seq[NGram],
     shouldConsider: (NGram) => Boolean): Iterator[NGram] =
-    tokens.sliding(2)
-      .filter(_.forall(shouldConsider))
+    tokens.sliding(2).filter(_.forall(shouldConsider))
       .map(NGram.fromNGrams(_))
 }

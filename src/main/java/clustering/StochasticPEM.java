@@ -24,6 +24,7 @@ import org.latlab.graph.DirectedNode;
 import org.latlab.graph.Edge;
 import org.latlab.graph.UndirectedGraph;
 import org.latlab.learner.ParallelEmLearner;
+import org.latlab.learner.Parallelism;
 import org.latlab.model.BayesNet;
 import org.latlab.model.BeliefNode;
 import org.latlab.model.LTM;
@@ -978,7 +979,7 @@ public class StochasticPEM {
 			// }
 
 			private void computeParallel() {
-				ForkJoinPool pool = new ForkJoinPool();
+				ForkJoinPool pool = new ForkJoinPool(Parallelism.instance().getLevel());
 				pool.invoke(new ParallelComputation(0, variables.size()));
 			}
 

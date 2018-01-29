@@ -1,8 +1,6 @@
-package tm.pdf
+package tm.corpus.pdf
 
-import java.io.File
 import scala.collection.JavaConversions._
-import tm.util.FileHelpers
 import java.nio.file._
 import java.nio.file.attribute.BasicFileAttributes
 import java.nio.file.FileVisitResult._

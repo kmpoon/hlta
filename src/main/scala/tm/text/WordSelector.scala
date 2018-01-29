@@ -3,44 +3,64 @@ package tm.text
 object WordSelector {
   def basic(minCharacters: Int, minTf: Int, minDf: (Int) => Int): WordSelector = {
     new WordSelector {
-      def select(d: Dictionary, df: Int) =
-        (d.filter(w =>
-          w.token.words.forall(_.length > minCharacters)
+      def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = (
+        ws.filter(w =>
+          w.token.words.forall(_.length >= minCharacters)
             && w.tf >= minTf
-            && w.df >= minDf(df)),
-          Set.empty)
+            && w.df >= minDf(docCount)),
+        Set.empty)
+      val description = s"Select tokens by basic constraints. Min characters: ${minCharacters}, minTf: ${minTf}, minDf: ${minDf}."
     }
   }
 
-  def byTfIdf(minCharacters: Int, minDfFraction: Double,
-    maxDfFraction: Double, maxWords: Int): WordSelector =
+  /**
+   * Used to filter words based on TF-IDF.  The words must:
+   *
+   * - have at least {@code minCharacters} characters;
+   * - appear in at least {@code minDfFraction} of documents; and
+   * - appear in as most {@code maxDfFraction} of documents.
+   *
+   * If the eligible words have more than {@code maxWords} words, then
+   * the words will be ordered according to TF-IDF.  Only those words
+   * that have TF-IDF greater than the TF-IDF of the word at
+   * the ({@code maxWords} + 1) position will be retained.  The resulting
+   * collection of words will have at most {@code maxWords} number of
+   * words.
+   */
+  def byTfIdf(minCharacters: Int = 3, minDfFraction: Double = 0,
+    maxDfFraction: Double = 0.25): WordSelector =
     new WordSelector {
-      def select(d: Dictionary, df: Int) = {
-        val filteredWords = d.info.filter(w =>
-          w.token.words.forall(_.length > minCharacters)
-            && w.df >= minDfFraction * df)
+      def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
+        val (eligibleWords, frequentWords) = {
+          // filter words by constraints
+          val filteredWords = ws.filter(w =>
+            w.token.words.forall(_.length >= minCharacters)
+              && w.df >= minDfFraction * docCount)
 
-        val eligibleWords =
-          filteredWords.filter(_.df <= maxDfFraction * df)
-        val frequentWords =
-          filteredWords.filterNot(_.df <= maxDfFraction * df)
-        val filteredAndSortedWords =
-          eligibleWords.sortBy(w => (-w.tfidf, w.token.identifier))
+          val (eligibleWords, frequentWords) =
+            filteredWords.partition(_.df <= maxDfFraction * docCount)
 
-        val (selected, frequentWords1) = if (filteredAndSortedWords.size > maxWords) {
-          // using the tfidf of the (maxWords+1)-th word as minimum 
-          val minTfIdf = filteredAndSortedWords(maxWords).tfidf
-          val s = filteredAndSortedWords.takeWhile(_.tfidf > minTfIdf)
-          val fws = frequentWords.filter(_.tfidf > minTfIdf)
-          (s, fws)
-        } else {
-          val minTfIdf = filteredAndSortedWords.last.tfidf
-          val fws = frequentWords.filter(_.tfidf > minTfIdf)
-          (filteredAndSortedWords, fws)
+          val filteredAndSortedWords =
+            eligibleWords.sortBy(w => (-w.tfidf, w.token.identifier))
+
+          (filteredAndSortedWords, frequentWords)
         }
 
-        (Dictionary.buildFrom(selected), frequentWords1.map(_.token).toSet)
+        val (selected, minTfIdf) =
+          if (eligibleWords.size > maxWords) {
+            // using the tf-idf of the (maxWords+1)-th word as minimum
+            val minTfIdf = eligibleWords(maxWords).tfidf
+            val s = eligibleWords.takeWhile(_.tfidf > minTfIdf)
+            (s, minTfIdf)
+          } else {
+            val minTfIdf = eligibleWords.last.tfidf
+            (eligibleWords, minTfIdf)
+          }
+
+        (selected, frequentWords.filter(_.tfidf > minTfIdf).map(_.token).toSet)
       }
+
+      val description = s"Select tokens by TF-IDF. Min characters: ${minCharacters}, minDfFraction: ${minDfFraction}, maxDfFraction: ${maxDfFraction}."
     }
 }
 
@@ -50,5 +70,8 @@ sealed trait WordSelector {
    * return another dictionary.  It also returns a set of tokens that should
    * be selected but are filtered away due to high document frequency.
    */
-  def select(d: Dictionary, n: Int): (Dictionary, Set[NGram])
+  def select(ws: IndexedSeq[WordInfo], docCount: Int,
+    maxWords: Int): (IndexedSeq[WordInfo], Set[NGram])
+
+  def description: String
 }

@@ -4,7 +4,7 @@ name := "HLTA"
 
 version := "1.1"
 
-scalaVersion := "2.11.8"
+scalaVersion := "2.11.11"
 
 libraryDependencies ++= 
   "org.scalatest" %% "scalatest" % "2.2.6" % "test" ::
@@ -27,6 +27,7 @@ libraryDependencies ++=
   "org.apache.pdfbox" % "pdfbox" % "1.8.10" ::
   "colt" % "colt" % "1.2.0" ::
   "nz.ac.waikato.cms.weka" % "weka-stable" % "3.6.13" ::
+   "org.scala-lang.modules" %% "scala-xml" % "1.0.6" ::
 //    "io.argonaut" %% "argonaut" % "6.1" ::
 Nil
 

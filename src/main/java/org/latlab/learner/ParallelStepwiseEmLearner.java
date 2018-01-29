@@ -411,7 +411,7 @@ public class ParallelStepwiseEmLearner {
 
 	protected static ForkJoinPool getForkJoinPool() {
 		if (threadPool == null)
-			threadPool = new ForkJoinPool();
+			threadPool = new ForkJoinPool(Parallelism.instance().getLevel());
 
 		return threadPool;
 	}
