@@ -2,12 +2,10 @@ package tm.util
 
 object NormalizedMutualInformation{
   def apply(counts: Array[Array[Double]]) = MIComputer.compute(counts).normalized
-  //def apply(x0y0: Double, x0y1: Double, x1y0: Double, x1y1: Double) = MIComputer.compute(Array(Array(x0y0, x0y1), Array(x1y0, x1y1))).normalized
 }
 
 object MutualInformation {
   def apply(counts: Array[Array[Double]]) = MIComputer.compute(counts).mi
-  //def apply(x0y0: Double, x0y1: Double, x1y0: Double, x1y1: Double) = MIComputer.compute(Array(Array(x0y0, x0y1), Array(x1y0, x1y1))).mi
 }
 
 object MIComputer {

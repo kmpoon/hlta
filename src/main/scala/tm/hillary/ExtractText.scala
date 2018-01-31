@@ -9,7 +9,7 @@ import scala.util.matching.Regex.Match
 import java.io.FileInputStream
 import java.io.PrintWriter
 import java.nio.file.Paths
-import tm.text.Convert.Settings
+import tm.text.DataConverter.Settings
 
 object ExtractText {
   val minChars = 3

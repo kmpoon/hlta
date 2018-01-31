@@ -36,7 +36,7 @@ trait AssignTopics {
     val outputName = trailArg[String]()
     
     val decimalPlaces = opt[Int](descr="Significant figure", default = Some(2))
-    val layer = opt[List[Int]](descr = "Layer number, i.e. 2,3,4", default = None)
+    val layer = opt[List[Int]](descr = "Layer number, i.e. 2 3 4", default = None)
     val confidence = opt[Double](descr = "Only document with P(topic|document)>c will be listed in the list, default 0.5", default = Some(0.5))
 
 
@@ -253,7 +253,7 @@ object AssignNarrowTopics extends AssignTopics {
       val variables = names.map(model.getNodeByName).map(_.getVariable)
 
       val instances = data.instances.indices.map { i =>
-        Data.Instance(columns.map(_.apply(i)), data.instances(i).weight)
+        Data.Instance(columns.map(_.apply(i)), data.instances(i).weight, name = data.instances(i).name)
       }
 
       new Data(variables, instances)

@@ -28,6 +28,48 @@ tree given by HLTA.
 - Build latent tree models from binary data.(Will extend HLTA to include word count information later)
 - Extract topic hierarchies shown as HTML documents.
 
+# Quick Example
+
+We show a quick example of how to run the HLTA tools on a few example PDF files distributed along the source.  Note that HLTA works better with more data, so this example only serves as an illustration of how to run the code.
+
+1. Change directory to the base directory.
+2. Run the following command to build the JAR files from source code:
+
+   ```
+   sbt clean assembly assemblyPackageDependency && ./rename-deps.sh
+   ```
+   
+3. Change to the `quickstart` directory:
+
+   ```
+   cd quickstart
+   ```
+   
+4. Extract text from PDF files:
+
+   ```
+   java -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar tm.pdf.ExtractText pdfs extracted
+   ```
+
+5. Convert text files to bag-of-word representation:
+
+   ```
+   java -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar tm.text.Convert sample 40 2 extracted
+   ```
+   
+6. Build a LTM with PEM:
+
+   ```
+   java -Xmx15G -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar PEM sample.txt 50  5  0.01 3 model 15 20
+   ```
+
+7. Extract topics from the LTM:
+
+   ```
+   java -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar tm.hlta.ExtractTopics sample model.bif
+   ```
+   
+8. You can now look at the topic hierarchy by opening the file `sample.html` in the `quickstart` directory.
 
 # Prerequisites
 
@@ -150,6 +192,9 @@ The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_re
   ```
 
   Where: `data.txt` is the data file.
+
+# Compactness Scores
+Install gensim (https://radimrehurek.com/gensim/) before using the python codes for computing compactness scores in AAAI17 paper (http://www.aaai.org/Conferences/AAAI/2017/PreliminaryPapers/12-Chen-Z-14201.pdf). One pre-trained Word2Vec model by Google is available at https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing. The description of the model can be found at https://code.google.com/archive/p/word2vec/ under the section "Pre-trained word and phrase vectors".
 
 # Class Path in Windows
 

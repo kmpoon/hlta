@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
 
+import org.latlab.learner.Parallelism;
 import org.latlab.util.DataSet;
 import org.latlab.util.DataSet.DataCase;
 import org.latlab.util.Variable;
@@ -91,7 +92,7 @@ public class EmpiricalMiComputerForBinaryData{
 		public ArrayList<double[]> computeParallel() {
 			ParallelComputation c =
 					new ParallelComputation(0, data.getNumberOfEntries());
-			ForkJoinPool pool = new ForkJoinPool();
+			ForkJoinPool pool = new ForkJoinPool(Parallelism.instance().getLevel());
 			pool.invoke(c);
 			return c.frequencies;
 		}

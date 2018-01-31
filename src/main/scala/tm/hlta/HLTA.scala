@@ -158,6 +158,9 @@ object HLTA {
       return clone
     }
     
+    /**
+     * Height of LTM, this includes the leaves (observed variables)
+     */
     def getHeight = getLevelVariables.size
   }
 
@@ -379,11 +382,11 @@ object HLTA {
 
     //Simple default settings
     //See tm.text.Convert for more options
-    val engSettings = tm.text.Convert.Settings(concatenations = 1, minCharacters = 3,
-        wordSelector = tm.text.WordSelector.ByTfIdf(3, 0, .25, 1000), asciiOnly = true, 
+    val engSettings = tm.text.DataConverter.Settings(concatenations = 1, minCharacters = 3, maxWords = 1000,
+        wordSelector = tm.text.WordSelector.ByTfIdf(3, 0, .25), asciiOnly = true, 
         stopWords = null)
-    val chiSettings = tm.text.Convert.Settings(concatenations = 1, minCharacters = 1,
-        wordSelector = tm.text.WordSelector.ByTfIdf(1, 0, .25, 1000), asciiOnly = false, 
+    val chiSettings = tm.text.DataConverter.Settings(concatenations = 1, minCharacters = 1, maxWords = 1000,
+        wordSelector = tm.text.WordSelector.ByTfIdf(1, 0, .25), asciiOnly = false, 
         stopWords = null)
     
     val path = conf.data()

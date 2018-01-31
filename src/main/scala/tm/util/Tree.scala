@@ -1,7 +1,5 @@
 package tm.util
 
-import java.io.PrintWriter
-
 /**
  * We define class TreeList to avoid function calling mess
  * For example, for Seq[Tree[A]], to do .map() on every node
@@ -70,9 +68,9 @@ class Tree[+A](val value: A, val children: List[Tree[A]]) {
     op(c, value)
   }
 
-  def toList(): List[A] = foldLeft(List.empty[A])(_ :+ _)
-  
   def toSeq(): Seq[A] = toList.toSeq
+
+  def toList(): List[A] = foldLeft(List.empty[A])(_.`+:`(_)).reverse
 }
 
 object Tree {

@@ -7,7 +7,7 @@ import org.json4s._
 import java.util.ArrayList
 import java.io.PrintWriter
 
-class Word(w: String, probability: Option[Double]) {
+class Word(val w: String, val probability: Option[Double]) {
   override def toString = probability match {
     case Some(p) => f"$w ($p%.03f)"
     case None => w
@@ -120,7 +120,7 @@ object HTMLTopicTable {
   val lineRegex = """<p level ="([^"]*)" name ="([^"]*)" parent = "([^"]*)" (?:percentage ="([^"]*)" )?(?:MI = "([^"]*)" )?style="text-indent:(.+?)em;"> ([.0-9]+) (.*?)</p>""".r
   val wordsWithProbRegex = """\s*(([^ ]+) ([.0-9]+)\s*)*""".r
 
-  def readTopicTree(topicTableFile: String) = {
+  def readTopicTree(topicTableFile: String): TopicTree = {
     val topics = readTopics(topicTableFile)
     val ltmTrees = buildLTMTrees(topics)
     TopicTree(buildTopicTree(ltmTrees))

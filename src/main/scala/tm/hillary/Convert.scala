@@ -26,7 +26,7 @@ object Convert {
     else {
       import Parameters.implicits.settings
 
-      tm.text.Convert.main(args)
+      tm.text.Convert.convert(args(0), Paths.get(args(1)), 0, None)
     }
   }
 
@@ -47,6 +47,6 @@ object Convert {
       Document(Sentence(tokens))
     }.toList.par
 
-    DataConverter("hillary", bodies)
+    DataConverter.convert("hillary", bodies, 0)
   }
 }

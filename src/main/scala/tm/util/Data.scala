@@ -90,38 +90,39 @@ object Data{
   }
 }
 
-class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.Instance], val isBinary: Boolean = false, var name : String = "data") {
+class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.Instance], val isBinary: Boolean = false, val name : String = "data") {
 
   val logger = LoggerFactory.getLogger(Data.getClass)
   
   def copy(variables: IndexedSeq[Variable] = variables, instances: IndexedSeq[Data.Instance] = instances, isBinary: Boolean = isBinary) = new Data(variables, instances, isBinary)
-  
-  def apply(i: Int) : Data.Instance = instances(i)
-  
-  def apply(i: String) : Data.Instance = instances.find { instance => instance.name==Some(i) }.get
-  
-  def apply(i: Int, v: String): Double = {
-    val pos = variables.zipWithIndex.find {case (variable, index) => variable.getName.equals(v) }
-    if(pos.isEmpty)
-      0.0
-    else
-      apply(i).apply(pos.get._2)
-  }
-  
-  def apply(i: String, v: String): Double = {
-    val pos = variables.zipWithIndex.find {case (variable, index) => variable.getName.equals(v) }
-    if(pos.isEmpty)
-      0.0
-    else
-      apply(i).apply(pos.get._2)
-  }
-  
-  def apply(i: Int, j: Int): Double = {
-    if(j>=variables.size)
-      0.0
-    else
-      instances.apply(i).apply(j)
-  }
+
+  //not necessary apply-s
+//  def apply(i: Int) : Data.Instance = instances(i)
+//  
+//  def apply(i: String) : Data.Instance = instances.find { instance => instance.name==Some(i) }.get
+//  
+//  def apply(i: Int, v: String): Double = {
+//    val pos = variables.zipWithIndex.find {case (variable, index) => variable.getName.equals(v) }
+//    if(pos.isEmpty)
+//      0.0
+//    else
+//      apply(i).apply(pos.get._2)
+//  }
+//  
+//  def apply(i: String, v: String): Double = {
+//    val pos = variables.zipWithIndex.find {case (variable, index) => variable.getName.equals(v) }
+//    if(pos.isEmpty)
+//      0.0
+//    else
+//      apply(i).apply(pos.get._2)
+//  }
+//  
+//  def apply(i: Int, j: Int): Double = {
+//    if(j>=variables.size)
+//      0.0
+//    else
+//      instances.apply(i).apply(j)
+//  }
   
   def tf(v: String): Double = tf(Seq[String](v))
   

@@ -13,16 +13,23 @@ object Test {
 //      Files.copy(input, Paths.get(args(0)))
 //    } else
 //      println("Test file")
+    
+    
+//    import tm.util.Reader
+//    import scala.util.control.Breaks._
+//    
+//    val data = Reader.readData("./papers9.Z66.sparse.txt")
+//    val model = Reader.readModel("./subject.bif")
+//    val topicTree = ExtractTopics(model, "bdt", layer = Some(List(1, 3)))
+//    val assignment = AssignBroadTopics(model, data, layer = Some(List(1, 3)))
+//    BuildWebsite("./", "bdt", "BDT", topicTree = topicTree)
+    
     import tm.util.Reader
-    import org.latlab.learner.SparseDataSet
-    val source = Source.fromFile("./economy.txt")("UTF-8").bufferedReader()
-    import scala.util.control.Breaks._
-    while(true){
-      val line = source.readLine()
-      if(line == null)
-        break
-      else
-        println(line)
-    }
+    val data = Reader.readData("./papers9.Z66.sparse.txt")
+    val l = List(382, 414).map(_.toString())
+    println(l)
+    val data1 = data.subset(l)
+    val data2 = data.subset(List(544, 724).map(_.toString()))
+    println(data1.size(), data2.size())
   }
 }

@@ -1,5 +1,9 @@
 package tm.text
 
+import java.nio.file.Path
+import scala.io.Source
+import tm.util.manage
+
 case class NGram(val words: Seq[String]) {
   lazy val identifier = words.mkString(NGram.separator)
 
@@ -14,6 +18,11 @@ object NGram {
   def fromNGrams(tokens: Seq[NGram]) = new NGram(tokens.flatMap(_.words))
 
   val separator = "-"
+
+  def readFile(file: String): Seq[NGram] = {
+    manage(Source.fromFile(file)("UTF-8"))(s =>
+      s.getLines().map(NGram.fromConcatenatedString).toIndexedSeq)
+  }
 }
 
 private class StringOrNGram[T]

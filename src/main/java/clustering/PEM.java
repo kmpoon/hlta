@@ -28,6 +28,7 @@ import org.latlab.graph.UndirectedGraph;
 import org.latlab.io.Parser;
 import org.latlab.io.bif.BifParser;
 import org.latlab.learner.ParallelEmLearner;
+import org.latlab.learner.Parallelism;
 import org.latlab.model.BayesNet;
 import org.latlab.model.BeliefNode;
 import org.latlab.model.LTM;
@@ -236,13 +237,16 @@ public class PEM {
 		System.out.println("Initializing......");
 		// Read the data set
 	
-
+		System.out.println("Reading data file......");
 		if(args.length == 0){
 			 _Origdata = new DataSet(DataSetLoader.convert("./data/SampleData_5000.arff"));
 
 		}else{
 			_Origdata = new DataSet(DataSetLoader.convert(args[0]));
 		}
+		
+		System.out.println("Reading data file completed.");
+
 
 		if(args.length == 8){
 			_EmMaxSteps = Integer.parseInt(args[1]);
@@ -862,7 +866,7 @@ public class PEM {
 			// }
 
 			private void computeParallel() {
-				ForkJoinPool pool = new ForkJoinPool();
+				ForkJoinPool pool = new ForkJoinPool(Parallelism.instance().getLevel());
 				pool.invoke(new ParallelComputation(0, variables.size()));
 			}
 

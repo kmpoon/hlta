@@ -26,7 +26,7 @@ object Dictionary {
     val map = info.zipWithIndex.map(p => (p._1.token -> p._2)).toMap
     new Dictionary(info, map)
   }
-  
+
   /**
    * Reads a dictionary from a given source.
    */
@@ -37,14 +37,14 @@ object Dictionary {
         .map(_.split(","))
         .map(_ match {
           case Array(w, tf, df, tfidf) =>
-            WordInfo(NGram.fromConcatenatedString(w),
+            WordInfo(
+              NGram.fromConcatenatedString(w),
               tf.toInt, df.toInt, tfidf.toDouble)
         })
         .toIterable)
   }
 
-  
-  def read(input: InputStream):Dictionary = {
+  def read(input: InputStream): Dictionary = {
     read(Source.fromInputStream(input))
   }
 
@@ -54,6 +54,17 @@ object Dictionary {
   def read(filename: String): Dictionary = {
     read(Source.fromFile(filename))
   }
+
+  def save(filename: String, ws: Iterable[WordInfo]) = {
+    val writer = new PrintWriter(filename)
+
+    writer.println("word,tf,df,tfidf")
+    ws.map(i => s"${i.token.identifier},${i.tf},${i.df},${i.tfidf}")
+      .foreach(writer.println)
+
+    writer.close
+  }
+
 }
 
 class Dictionary(val info: IndexedSeq[WordInfo], val map: Map[NGram, Int]) {
@@ -67,13 +78,5 @@ class Dictionary(val info: IndexedSeq[WordInfo], val map: Map[NGram, Int]) {
 
   def getMap[T](f: (WordInfo) => T) = map.mapValues(i => f(info(i)))
 
-  def save(filename: String) = {
-    val writer = new PrintWriter(filename)
-
-    writer.println("word,tf,df,tfidf")
-    info.map(i => s"${i.token.identifier},${i.tf},${i.df},${i.tfidf}")
-      .foreach(writer.println)
-
-    writer.close
-  }
+  def save(filename: String) = Dictionary.save(filename, info)
 }
