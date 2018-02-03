@@ -81,7 +81,7 @@ object Convert {
 
   def convert(name: String, source: Path, maxWords: Int, seeds: Option[SeedTokens])(
     implicit settings: Settings) = {
-    val documents = readFiles(Some(name), source)
+    val documents = readFiles(Some(name), source, settings.minCharacters)
     DataConverter.convert(name, documents, maxWords, seeds)
   }
 
@@ -111,7 +111,7 @@ object Convert {
     }
   }
 
-  def readFiles(name: Option[String], source: Path): GenSeq[Document] = {
+  def readFiles(name: Option[String], source: Path, minChars: Int): GenSeq[Document] = {
     logger.info("Finding files under {}", source)
     val paths = getFiles(source)
     if (paths.isEmpty) {
@@ -121,10 +121,10 @@ object Convert {
 
     for (n <- name) saveFileList(n, paths)
 
-    readFiles(paths)
+    readFiles(paths, minChars)
   }
 
-  def readFiles(paths: Vector[Path]) = {
+  def readFiles(paths: Vector[Path], minChars: Int) = {
     val cache = buildCache(paths)
 
     logger.info("Reading stopword file")
@@ -134,7 +134,7 @@ object Convert {
     paths.par.map(readFile { l =>
       new Document(l.map { ts =>
         val s = Sentence(ts.map(cache.apply))
-        Sentence(Preprocessor.preprocess(3)(s).map(NGram.apply))
+        Sentence(Preprocessor.preprocess(minChars)(s).map(NGram.apply))
       })
     })
   }

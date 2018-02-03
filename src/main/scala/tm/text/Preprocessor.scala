@@ -52,20 +52,20 @@ object Preprocessor {
   /**
    * Another way to preprocess.  This is probably the right way to do it.
    */
-  def preprocess(minChars: Int)(s: Sentence)(
-    implicit stopwords: StopWords): Seq[String] = s.tokens
-    .map(_.toString.toLowerCase)
-    .map(normalize)
-    .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
-    .map(useRegexToReplace(replaceNonAlnum))
-    .map(useRegexToReplace(replaceStartingDigit))
-    .filter(withProperLength(minChars))
-    .filterNot(stopwords.contains)
+  def preprocess(minChars: Int)(s: Sentence)(implicit stopwords: StopWords): Seq[String] =
+    s.tokens
+      .map(_.toString.toLowerCase)
+      .map(normalize)
+      .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
+      .map(useRegexToReplace(replaceNonAlnum))
+      .map(useRegexToReplace(replaceStartingDigit))
+      .filter(withProperLength(minChars))
+      .filterNot(stopwords.contains)
 
   def withProperLength(min: Int)(word: String) =
     word.replaceAll("[^\\p{Alpha}\\n]+", "").length >= min
 
-  // Perform compatibility decomposition, followed by canonical composition, 
+  // Perform compatibility decomposition, followed by canonical composition,
   // to convert ligature (fi) and remove accents
   def normalize(text: String) =
     Normalizer.normalize(text, Normalizer.Form.NFKC)
@@ -193,24 +193,22 @@ object Preprocessor {
   //    }
 
   /*
-     * Replace the constituent tokens by n-grams, up to a specified 
-     * {@code maxN}. 
-     * 
-     * For example, if "hong" and "kong" are two consecutive 
-     * tokens, and check "hong-kong" returns true, then "hong-kong" will be 
+     * Replace the constituent tokens by n-grams, up to a specified
+     * {@code maxN}.
+     *
+     * For example, if "hong" and "kong" are two consecutive
+     * tokens, and check "hong-kong" returns true, then "hong-kong" will be
      * included in the resulting sequence but not two individual words "hong"
      * and "kong".
      *
      * @param words sequence of words.
      * @param check used to check whether a n-gram will be used.
      */
-  def replaceConstituentTokensByNGrams(
-    tokens: Seq[NGram], check: (NGram) => Boolean): Seq[NGram] = {
+  def replaceConstituentTokensByNGrams(tokens: Seq[NGram], check: (NGram) => Boolean): Seq[NGram] = {
     replaceByNGrams(tokens, check, 2)
   }
 
-  def replaceConstituentTokensByNGrams(
-    sentence: Sentence, check: (NGram) => Boolean): Sentence = {
+  def replaceConstituentTokensByNGrams(sentence: Sentence, check: (NGram) => Boolean): Sentence = {
     new Sentence(replaceConstituentTokensByNGrams(sentence.tokens, check))
   }
 
