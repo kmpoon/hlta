@@ -24,6 +24,8 @@ An IJCAI tutorial and demonstration can be found at:
 
 # Quick Example
 
+- Download the `HLTA.jar` and `HLTA-deps.jar` from the [Releases page](https://github.com/kmpoon/hlta/releases).
+
 - An all-in-one command brings you through data conversion, model building, topic extraction and topic assignment.
    ```
    java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA ./quickstart modelName
@@ -46,13 +48,6 @@ An IJCAI tutorial and demonstration can be found at:
    Lorem ipsum dolor sit amet, consectetur adipiscing elit
    Maecenas in ligula at odio convallis consectetur eu ut erat
    ```
-
-# Prerequisites
-
-1. Have your Java8 on your machine.
-2. Download the `HLTA.jar` and `HLTA-deps.jar` from the [Releases page](https://github.com/kmpoon/hlta/releases).
-   Or you may assemble the .jar by yourself. See below Assemble section.
-
 
 # Convert Text Files to Data
  
@@ -88,7 +83,7 @@ The output files include:
 
 # Extract Topic Hierarchies
 
-- Build topic tree from topic model
+- Exract topic from topic model
    ```
    java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopics topicTreeName model.bif
    ```
@@ -105,8 +100,9 @@ The output files include:
    ```
 
 # Assign Topics to Documents
-- To find out which documents belongs to that topic (i.e. inference)
-   ```
+
+- Find out which documents belongs to that topic (i.e. inference)
+   ```
    java -cp HLTA.jar:HLTA-deps.jar tm.hlta.AssignBroadTopics topicTreeName model.bif data.sparse.txt outputName
    ```
   The output files include:
@@ -141,55 +137,54 @@ Java version WIP.
 
 The original HLTA algorithm published in the paper [*Latent Tree Models for Hierarchical Topic Detection.*]. 
 
-To build the model with PEM:
+- To build the model with PEM:
+   ```
+   java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.hlcm 50  5  0.01 3 model 15 20
+   ```
 
-```
-java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.hlcm 50  5  0.01 3 model 15 20
-```
+   Where: `sample.hlcm` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
 
-Where: `sample.hlcm` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
-
-The full parameter list is: `PEM training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top`.  The numerical parameters can be divided into two parts:
-
-
-* EM parameters:
-  * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
-  * `num_EM_restarts`: Number of restarts in EM (e.g. 5).
-  * `EM_threshold`: Threshold of improvement to stop EM (e.g. 0.01).
-* Model construction parameters:
-  * `UD_test_threshold`: The threshold used in unidimensionality test for constructing islands (e.g. 3).
-  * `max_island`: Maximum number of variables in an island (e.g. 10).
-  * `max_top`: Maximum number of variables in top level (e.g. 15).
-  
-To run the HLTA using **stepwise EM**, replace the main class `PEM` by `StepwiseEMHLTA`, and build the model using 
-
-```
-java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StepwiseEMHLTA  sample.sparse.txt 50  5  0.01 3 model 10 15 1000 10 128 8000
-```
-
-Where: `sample.sparse.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
-
-The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top global_batch_size global_max_epochs global_max_EM_steps struct_batch_size`.  The numerical parameters can be divided into three parts:
-
-* Local EM parameters:
-  * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
-  * `num_EM_restarts`: Number of restarts in EM (e.g. 5).
-  * `EM_threshold`: Threshold of improvement to stop EM (e.g. 0.01).
-* Model construction parameters:
-  * `UD_test_threshold`: The threshold used in unidimensionality test for constructing islands (e.g. 3).
-  * `max_island`: Maximum number of variables in an island (e.g. 10).
-  * `max_top`: Maximum number of variables in top level (e.g. 15).
-* Global parameters:
-  * `global_batch_size`: Number of data cases used in each stepwise EM step (e.g. 1000).
-  * `global_max_epochs`: Number of times the whole training dataset has been gone through (e.g. 10).
-  * `global_max_EM_steps`: Maximum number of stepwise EM steps (e.g. 128).
-  * `struct_batch_size`: Number of data cases used for building model structure.
+   The full parameter list is: `PEM training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top`.  The numerical parameters can be divided into two parts:
 
 
-You may get the HLCM data format for PEM through
-```
-java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --outputHlcm datasetName ./source 1000
-```
+   * EM parameters:
+     * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
+     * `num_EM_restarts`: Number of restarts in EM (e.g. 5).
+     * `EM_threshold`: Threshold of improvement to stop EM (e.g. 0.01).
+   * Model construction parameters:
+     * `UD_test_threshold`: The threshold used in unidimensionality test for constructing islands (e.g. 3).
+     * `max_island`: Maximum number of variables in an island (e.g. 10).
+     * `max_top`: Maximum number of variables in top level (e.g. 15).
+
+- To run the HLTA using **stepwise EM**, replace the main class `PEM` by `StepwiseEMHLTA`, and build the model using 
+
+   ```
+   java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StepwiseEMHLTA  sample.sparse.txt 50  5  0.01 3 model 10 15 1000 10 128 8000
+   ```
+
+   Where: `sample.sparse.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
+
+   The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top global_batch_size global_max_epochs global_max_EM_steps struct_batch_size`.  The numerical parameters can be divided into three parts:
+
+   * Local EM parameters:
+     * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
+     * `num_EM_restarts`: Number of restarts in EM (e.g. 5).
+     * `EM_threshold`: Threshold of improvement to stop EM (e.g. 0.01).
+   * Model construction parameters:
+     * `UD_test_threshold`: The threshold used in unidimensionality test for constructing islands (e.g. 3).
+     * `max_island`: Maximum number of variables in an island (e.g. 10).
+     * `max_top`: Maximum number of variables in top level (e.g. 15).
+   * Global parameters:
+     * `global_batch_size`: Number of data cases used in each stepwise EM step (e.g. 1000).
+     * `global_max_epochs`: Number of times the whole training dataset has been gone through (e.g. 10).
+     * `global_max_EM_steps`: Maximum number of stepwise EM steps (e.g. 128).
+     * `struct_batch_size`: Number of data cases used for building model structure.
+
+
+- You may get the HLCM data format for PEM through
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --outputHlcm datasetName ./source 1000
+   ```
 
 # Enquiry
 
