@@ -102,18 +102,12 @@ object StepwiseEmBuilder {
     val maxIsland = opt[Int](descr = "Maximum number of variables in an island (e.g. 10)", default = Some(10))
     val maxTop = opt[Int](descr = "Maximum number of variables in top level (e.g. 15)", default = Some(15))
     
-    val global = new Subcommand("global") {
-      val batchSize = opt[Int](descr = "Number of data cases used in each stepwise EM step", default = Some(1000))
-      val maxEpochs = opt[Int](descr = "Number of times the whole training dataset has been gone through (e.g. 10)", default = Some(10))
-      val maxEmSteps = opt[Int](descr = "Maximum number of stepwise EM steps (e.g. 128)", default = Some(128))
-    }
+    val globalBatchSize = opt[Int](descr = "Number of data cases used in each stepwise EM step", default = Some(1000))
+    val globalMaxEpochs = opt[Int](descr = "Number of times the whole training dataset has been gone through (e.g. 10)", default = Some(10))
+    val globalMaxEmSteps = opt[Int](descr = "Maximum number of stepwise EM steps (e.g. 128)", default = Some(128))
     
-    addSubcommand(global)
-    val struct = new Subcommand("struct") {
-      val batchSize = opt[Int](descr = "Number of data cases used for building model structure", default = None)
-      val all = opt[Boolean](descr = "Use all data cases for building model structure", default = Some(false))
-    }
-    addSubcommand(struct)
+    val structBatchSize = opt[Int](descr = "Number of data cases used for building model structure", default = None)
+    val structUseAll = opt[Boolean](descr = "Use all data cases for building model structure", default = Some(false))
 
     verify
     checkDefaultOpts()
@@ -124,16 +118,16 @@ object StepwiseEmBuilder {
     
     val data = Reader.readData(conf.dataFile())
     
-    val _sizeFirstBatch = if(conf.struct.all()) "all"
-      else if(conf.struct.batchSize.isEmpty){//auto determine structBatchSize
+    val _sizeFirstBatch = if(conf.structUseAll()) "all"
+      else if(conf.structBatchSize.isEmpty){//auto determine structBatchSize
         if(data.size > 10000) 5000.toString() else "all"
       }else{          
-        conf.struct.batchSize().toString()
+        conf.structBatchSize().toString()
       }
       
     val builder = new clustering.StepwiseEMHLTA()
     builder.initialize(data.toTupleSparseDataSet(), conf.emMaxStep(), conf.emNumRestart(), conf.emThreshold(), conf.udThreshold(), conf.outputName(), 
-        conf.maxIsland(), conf.maxTop(), conf.global.batchSize(), conf.global.maxEpochs(), conf.global.maxEmSteps(), _sizeFirstBatch)
+        conf.maxIsland(), conf.maxTop(), conf.globalBatchSize(), conf.globalMaxEpochs(), conf.globalMaxEmSteps(), _sizeFirstBatch)
     builder.IntegratedLearn()
   }
   

@@ -20,12 +20,12 @@ import tm.util.Arguments
 
 object Convert {
   class Conf(args: Seq[String]) extends Arguments(args) {
-    banner("Usage: tm.text.Convert [OPTION]... name source max-words")
+    banner("Usage: tm.text.Convert [OPTION]... name source max-words concat")
     val name = trailArg[String](descr = "Name of data, default as \"data\"")
     val source = trailArg[String](descr = "Source directory or source file, if dir, 1 file = 1 doc; if file, 1 line = 1 doc")
     val maxWords = trailArg[Int](descr = "Dictionary size, maximum number of words (n-gram)")
+    val concat = trailArg[Int](descr = "Concatenate words/tokens to produce n-grams with the given number of repetitions, where n can be 2^c.  Default is 0")
     
-    val concat = opt[Int](default = Some(1), descr = "Concatenate words/tokens to produce n-grams with the given number of repetitions, where n can be 2^c.  Default is 1")
     val nonAscii = opt[Boolean](default = Some(false), descr = "Accept non ascii as well")
     val minChar = opt[Int](
       default = Some(3),
