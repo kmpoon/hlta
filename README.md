@@ -1,3 +1,7 @@
+# HLTA New Scala Branch
+
+This branch simplifies and merges HLTA procedures. Working in progress.
+
 # Hierarchical Latent Tree Analysis (HLTA)
 HLTA is a novel method for hierarchical topic detection. Specifically, it models document collections using a class of graphical models called *hierarchical latent tree models (HLTMs)*. The variables at the bottom level of an HLTM are observed binary variables that represent the presence/absence of words in a document. The variables at other levels are binary latent variables, with those at the lowest latent level representing word co-occurrence patterns and those at higher levels representing co-occurrence of patterns at the level below. Each latent variable gives a soft partition of the documents, and document clusters in the partitions are interpreted as topics. Unlike LDA-based topic models,  HLTMs do not refer to a document generation process and use word variables instead of token variables. They use a tree structure to model the relationships between topics and words, which is conducive to the discovery of meaningful topics and topic hierarchies.
 
@@ -17,21 +21,115 @@ Peixian Chen, Nevin L. Zhang et al.
 An IJCAI tutorial and demonstration can be found at:
 [*Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)*](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
 
-This package provides functions for hierarchical latent tree analysis on text 
-data.  The workflow supported may start with PDF files and result in a topic
-tree given by HLTA.
-
-# Functions Provided
-
-- Convert PDF files to text files.
-- Convert text files to data in bag-of-words representation (including n-grams)
-- Build latent tree models from binary data.(Will extend HLTA to include word count information later)
-- Extract topic hierarchies shown as HTML documents.
 
 # Quick Example
 
-We show a quick example of how to run the HLTA tools on a few example PDF files distributed along the source.  Note that HLTA works better with more data, so this example only serves as an illustration of how to run the code.
+- An all-in-one command brings you through data conversion, model building, topic extraction and topic assignment.
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA ./quickstart modelName
+   ``` 
 
+  If you are in windows, remember to use semicolon instead
+   ```
+   java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HLTA ./quickstart modelName
+   ``` 
+   
+- You can also do
+   ```
+   java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HLTA documents.txt modelName
+   ``` 
+   
+  Your `documents.txt`:
+   ```
+   One line is one single document. You can have many sentences as you want.
+   The quick brown fox jump over the lazy dog. But the lazy dog is too big to be jumped over!
+   Lorem ipsum dolor sit amet, consectetur adipiscing elit
+   Maecenas in ligula at odio convallis consectetur eu ut erat
+   ```
+
+# Prerequisites
+
+1. Have your Java8 on your machine.
+2. Download the `HLTA.jar` and `HLTA-deps.jar` from the [Releases page](https://github.com/kmpoon/hlta/releases).
+   Or you may assemble the .jar by yourself. See below Assemble section.
+
+
+# Convert Text Files to Data
+ 
+- Convert text files to bag-of-words representation with 1000 words and 1 concatenation:
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert datasetName ./source 1000 1
+   ```
+  After conversion, you can find:
+  - `sample.sparse.txt`: binary data in sparse format for LTM
+  - `sample.dict-2.csv`: information of words after selection after 2 possible concatenations
+  - `sample.whole_dict-2.csv`: information of words before selection after 2 possible concatenations 
+  
+  You may put your files anywhere in ./source. It accepts txt and pdf.
+   ```
+   ./source/IAmPDF.pdf
+   ./source/OneDocument.txt
+   ./source/Folder1/Folder2/Folder3/HiddenSecret.txt
+   ```
+
+# Model Building
+
+- Build model through StepwiseEM with maximum 50 em steps
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.StepwiseEmBuilder data.sparse.txt 50 modelName
+   ```
+The output files include:
+  * `model.bif`: HLTA model file
+
+- Or if you want Progressive EM, use `ProgressiveEmBuilder` instead:
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ProgressiveEmBuilder data.sparse.txt 50 modelName
+   ```
+
+# Extract Topic Hierarchies
+
+- Build topic tree from topic model
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopics topicTreeName model.bif
+   ```
+
+  The output files include:
+  * `topicTreeName.html`: HTML file for the topic tree
+  * `topicTreeName.nodes.js`: data for the topic nodes
+  * `lib`: Javascript and CSS files required by the main HTML file
+  * `fonts`: fonts used by some CSS files
+
+- If you want to extract narrowly defined topics, you can use `ExtractNarrowTopics` instead:
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractNarrowTopics topicTreeName model.bif data.sparse.txt
+   ```
+
+# Assign Topics to Documents
+- To find out which documents belongs to that topic (i.e. inference)
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.AssignBroadTopics topicTreeName model.bif data.sparse.txt outputName
+   ```
+  The output files include:
+  * `output.nodes.json`: topic assignments
+
+- If you want to use narrowly defined topics, you can use `AssignNarrowTopics` instead:
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.AssignNarrowTopics topicTreeName model.bif data.sparse.txt outputName
+   ``` 
+  
+# Evaluate Topic Model
+
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ComputeTopicCoherence data.sparse.txt topic-file
+   ```
+IO issue, WIP.
+
+- If you want Compactness Score, use python instead
+Install gensim (https://radimrehurek.com/gensim/) before using the python codes for computing compactness scores in AAAI17 paper (http://www.aaai.org/Conferences/AAAI/2017/PreliminaryPapers/12-Chen-Z-14201.pdf). One pre-trained Word2Vec model by Google is available at https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing. The description of the model can be found at https://code.google.com/archive/p/word2vec/ under the section "Pre-trained word and phrase vectors".
+
+Java version WIP.
+
+# Assemble
 1. Change directory to the base directory.
 2. Run the following command to build the JAR files from source code:
 
@@ -39,91 +137,17 @@ We show a quick example of how to run the HLTA tools on a few example PDF files 
    sbt clean assembly assemblyPackageDependency && ./rename-deps.sh
    ```
    
-3. Change to the `quickstart` directory:
+# Original HLTA
 
-   ```
-   cd quickstart
-   ```
-   
-4. Extract text from PDF files:
-
-   ```
-   java -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar tm.pdf.ExtractText pdfs extracted
-   ```
-
-5. Convert text files to bag-of-word representation:
-
-   ```
-   java -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar tm.text.Convert sample 40 2 extracted
-   ```
-   
-6. Build a LTM with PEM:
-
-   ```
-   java -Xmx15G -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar PEM sample.txt 50  5  0.01 3 model 15 20
-   ```
-
-7. Extract topics from the LTM:
-
-   ```
-   java -cp ../target/scala-2.11/HLTA.jar:../target/scala-2.11/HLTA-deps.jar tm.hlta.ExtractTopics sample model.bif
-   ```
-   
-8. You can now look at the topic hierarchy by opening the file `sample.html` in the `quickstart` directory.
-
-# Prerequisites
-
-You should first obtain two JAR files for this package, by either one of the following ways:
-
-1. Run the SBT.  Then run `assembly` and `assemblyPackageDependency`.  Rename the generated *dependency file* to `HLTA-deps.jar`, which we assume in the steps below.
-2. Download the `HLTA.jar` and `HLTA-deps.jar` from the [Releases page](https://github.com/kmpoon/hlta/releases).
-
-# Extract Text from PDF files
-
-- To extract text from PDF files:
-
-  ```
-  java -cp HLTA.jar:HLTA-deps.jar tm.pdf.ExtractText papers extracted
-  ```
-
-  Where: `papers` is input directory and `extracted` is output directory
-  
-- The extraction step also does some preprocessing including:
-  - Converting letters to lower case
-  - Normalizing characters for accents, ligatures, etc. and replace non-alphabet characters by `_`
-  - Lemmatization
-  - Replace starting digits in words with `_`
-  - Remove words shorter than 3 characters
-  - Remove stop-words
-
-# Convert Text Files to Data
- 
-- To convert text files to bag-of-words representation:
-
-  ```
-  java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert sample 20 2 extracted
-  ```
-  
-  Where: `sample` is a name to give and `extracted` is directory of extracted text, `20` is the number of words to be included in the resulting data, `2` is the number of concatenations used to build n-grams.
- 
-  After conversion, you can find:
-  - `sample.arff`: count data in ARFF format
-  - `sample.txt`: binary data in format for LTM
-  - `sample.sparse.txt`: binary data in sparse format for LTM
-  - `sample.dict-2.csv`: information of words after selection after 2 possible concatenations
-  - `sample.whole_dict-2.csv`: information of words before selection after 2 possible concatenations
-
-- In the input, each file represents the text content of one document.  The text content is assumed to have been preprocessed.
-
-# Model Building
+The original HLTA algorithm published in the paper [*Latent Tree Models for Hierarchical Topic Detection.*]. 
 
 To build the model with PEM:
 
 ```
-java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.txt 50  5  0.01 3 model 15 20
+java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.hlcm 50  5  0.01 3 model 15 20
 ```
 
-Where: `sample.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
+Where: `sample.hlcm` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
 
 The full parameter list is: `PEM training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top`.  The numerical parameters can be divided into two parts:
 
@@ -161,47 +185,10 @@ The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_re
   * `global_max_EM_steps`: Maximum number of stepwise EM steps (e.g. 128).
   * `struct_batch_size`: Number of data cases used for building model structure.
 
-# Testing
-- To test the model using test data, you can  use *PEM*  as :
+
+You may get the HLCM data format for PEM through
 ```
-  java -Xmx15G -cp HLTA.jar:HLTA-deps.jar  PEM  modelname test_data outpath
-```
-  There will be a file named " EvaluationResult.txt" storing the per-document loglikelihood of test data on this model.
-
-# Extract Topic Hierarchies
-
-- To extract topic hierarchy:
-
-  ```
-  java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopics sample model.bif
-  ```
-
-  Where: `sample` is the name of the files to be generated, `model.bif` is the name of the model file from PEM.
-
-  The output files include:
-  * `sample.html`: HTML file for the topic tree
-  * `sample.nodes.js`: data for the topic nodes
-  * `lib`: Javascript and CSS files required by the main HTML file
-  * `fonts`: fonts used by some CSS files
-  * `topic_output`: directory holding some information of the extracted topics
-
-- If you want to extract narrowly defined topics, you can use `ExtractNarrowTopics` instead:
-
-  ```
-  java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractNarrowTopics sample model.bif data.txt
-  ```
-
-  Where: `data.txt` is the data file.
-
-# Compactness Scores
-Install gensim (https://radimrehurek.com/gensim/) before using the python codes for computing compactness scores in AAAI17 paper (http://www.aaai.org/Conferences/AAAI/2017/PreliminaryPapers/12-Chen-Z-14201.pdf). One pre-trained Word2Vec model by Google is available at https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing. The description of the model can be found at https://code.google.com/archive/p/word2vec/ under the section "Pre-trained word and phrase vectors".
-
-# Class Path in Windows
-
-It seems that the delimiter used in class path in Windows is `;` rather than `:`.  So you may need to run a command like
-
-```
-java -cp HLTA.jar;HLTA-deps.jar tm.pdf.ExtractText papers extracted
+java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --outputHlcm datasetName ./source 1000
 ```
 
 # Enquiry
