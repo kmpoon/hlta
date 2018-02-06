@@ -42,7 +42,7 @@ object ComputeTopicCoherence {
     logger.info("Data file: {}", conf.dataFile())
 
     def shouldExcludeByLevels(excludedLevels: Option[Seq[Int]])(topic: Topic) =
-      excludedLevels.map(_.contains(topic.level)).getOrElse(false)
+      excludedLevels.map(_.contains(topic.level.get)).getOrElse(false)
 
     val topics = topLevelTrees
       .toList()

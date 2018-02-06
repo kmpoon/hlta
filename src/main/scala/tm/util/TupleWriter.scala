@@ -6,6 +6,8 @@ import java.io.PrintWriter
  * SparseDataSet Writer
  * Note that SparseDataSet is binary in nature
  * 
+ * Note that now document index start from 0
+ * 
  * see org.latlab.learner.SparseDataSet
  */
 object TupleWriter {
@@ -18,7 +20,7 @@ object TupleWriter {
     
     val writer = new PrintWriter(fileName)
     
-    instances.zip(Stream from 1).foreach{ case (instance, docSeq) =>
+    instances.zipWithIndex.foreach{ case (instance, docSeq) =>
       instance.values.zipWithIndex.filter { case (x, wordId) => x>=1.0 }
       .foreach { case (x, wordId) => 
         //user-name can be non-integer

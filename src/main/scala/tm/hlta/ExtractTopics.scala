@@ -20,10 +20,11 @@ object ExtractTopics {
   }
 
   class Conf(args: Seq[String]) extends BaseConf(args) {
-    banner("Usage: tm.hlta.ExtractTopics [OPTION]... model name")
+    banner("Usage: tm.hlta.ExtractTopics [OPTION]... name model")
     
-    val model = trailArg[String](descr = "Name of model file (e.g. model.bif)")
     val name = trailArg[String](descr = "Name of files to be generated")
+    val model = trailArg[String](descr = "Name of model file (e.g. model.bif)")
+    
 
     verify
     checkDefaultOpts()
@@ -66,12 +67,12 @@ object ExtractTopics {
 
 object ExtractNarrowTopics {
   class Conf(args: Seq[String]) extends ExtractTopics.BaseConf(args) {
-    banner("Usage: tm.hlta.ExtractNarrowTopics [OPTION]... model data name")
-    
+    banner("Usage: tm.hlta.ExtractNarrowTopics [OPTION]... name model data")
+
+    val name = trailArg[String](descr = "Name of files to be generated")
     val model = trailArg[String](descr = "Name of model file (e.g. model.bif)")
     val data = trailArg[String](descr = "Data file (e.g. data.txt)")
-    val name = trailArg[String](descr = "Name of files to be generated")
-
+    
     verify
     checkDefaultOpts()
   }

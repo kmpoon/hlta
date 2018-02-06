@@ -44,7 +44,7 @@ object ComputeMIBetweenYearAndTopic {
     val delimiter = "\t"
     val output = documentTopics.variables.zip(mi).map { p =>
       val topic = topics(p._1.getName)
-      Seq(topic.name, topic.level, topic.words.mkString(","),
+      Seq(topic.name, topic.level.get, topic.words.mkString(","),
         miToCSV(delimiter)(p._2)).mkString(delimiter)
     }
 

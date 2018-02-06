@@ -70,7 +70,7 @@ object ComputeTopicConferenceAssociation {
   }
 
   def topicInfo(topic: Topic) = {
-    topic.name +: topic.level.toString +: topic.words.mkString(",") +: Nil
+    topic.name +: topic.level.get.toString +: topic.words.mkString(",") +: Nil
   }
 
   def computePhiCoefficientsForConferences(

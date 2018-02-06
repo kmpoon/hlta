@@ -20,12 +20,12 @@ import tm.util.Arguments
 
 object Convert {
   class Conf(args: Seq[String]) extends Arguments(args) {
-    banner("Usage: tm.text.Convert [OPTION]... name max-words concat source")
+    banner("Usage: tm.text.Convert [OPTION]... name source max-words")
     val name = trailArg[String](descr = "Name of data, default as \"data\"")
-    val maxWords = trailArg[Int](descr = "Dictionary size, maximum number of words (n-gram)")
-    val concat = opt[Int](default = Some(1), descr = "Concatenate word to procude n-gram, where n=2^c, default as 1")
     val source = trailArg[String](descr = "Source directory or source file, if dir, 1 file = 1 doc; if file, 1 line = 1 doc")
+    val maxWords = trailArg[Int](descr = "Dictionary size, maximum number of words (n-gram)")
     
+    val concat = opt[Int](default = Some(1), descr = "Concatenate words/tokens to produce n-grams with the given number of repetitions, where n can be 2^c.  Default is 1")
     val nonAscii = opt[Boolean](default = Some(false), descr = "Accept non ascii as well")
     val minChar = opt[Int](
       default = Some(3),
@@ -40,17 +40,11 @@ object Convert {
     val seedNumber = opt[Int](descr = "Number of seed tokens to be included. Need to be specified when seed file is given.")
     val stopWords = opt[String](default = None, descr = "stopword file, default \"stopwords-lewis.csv\" inside the package")
     
-    val input = new Subcommand("input") {
-      val ext = opt[List[String]](default = Some(List("txt", "pdf")), descr = "Look for these extensions if a directory is given, default \"txt pdf\"")
-      val encoding = opt[String](default = Some("UTF-8"), descr = "Input .txt encoding, default UTF-8, see java.nio.charset.Charset for available encodings")
-    }
-    addSubcommand(input)
+    val inputExt = opt[List[String]](default = Some(List("txt", "pdf")), descr = "Look for these extensions if a directory is given, default \"txt pdf\"")
+    val inputEncoding = opt[String](default = Some("UTF-8"), descr = "Input .txt encoding, default UTF-8, see java.nio.charset.Charset for available encodings")
     
-    val output = new Subcommand("output") {
-      val hlcm = opt[Boolean](default = Some(false), descr = "Additionally output hlcm format")
-      val arff = opt[Boolean](default = Some(false), descr = "Additionally output arff format")
-    }
-    addSubcommand(output)
+    val outputHlcm = opt[Boolean](default = Some(false), descr = "Additionally output hlcm format")
+    val outputArff = opt[Boolean](default = Some(false), descr = "Additionally output arff format")
 
     verify
     checkDefaultOpts()
@@ -75,7 +69,7 @@ object Convert {
         stopWords = if(conf.stopWords.isDefined) conf.stopWords() else null,
         seedWords = if(conf.seedFile.isDefined) seed else None)
 
-    val (data, paths) = apply(conf.name(), conf.source(), extensions = conf.input.ext(), encoding = conf.input.encoding())
+    val (data, paths) = apply(conf.name(), conf.source(), extensions = conf.inputExt(), encoding = conf.inputEncoding())
     logger.info("done")
     
     //Write file order
@@ -83,11 +77,11 @@ object Convert {
     paths.foreach(writer.println)
     writer.close
     
-    if(conf.output.arff()){
+    if(conf.outputArff()){
       logger.info("Saving in ARFF format (count data)")
       data.saveAsArff(s"${conf.name()}.arff")
     }
-    if(conf.output.hlcm()){
+    if(conf.outputHlcm()){
       logger.info("Saving in HLCM format (binary data)")
       data.binary().saveAsHlcm(s"${conf.name()}.hlcm")
     }
@@ -106,11 +100,6 @@ object Convert {
       val cleanedText = Preprocessor.preprocess(text, minChars = settings.minCharacters, asciiOnly = settings.asciiOnly)
       val tokens = Preprocessor.tokenizeBySpace(cleanedText)
       Document(Sentence(tokens))
-  //      new Document(l.map{ts => 
-  //        Sentence(ts.mkString(" "))
-  //        val s = Sentence(ts.map(cache.apply))
-  //        Sentence(Preprocessor.preprocess(3)(s).map(NGram.apply))
-  //      })
     }
     
     val _path = Paths.get(path)

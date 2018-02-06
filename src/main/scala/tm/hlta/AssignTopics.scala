@@ -26,7 +26,7 @@ import tm.hlta.HLTA._
 trait AssignTopics {
   
   class Conf(args: Seq[String]) extends Arguments(args) {
-    banner("""Usage: """+name+""" [OPTION]... model_file data_file outputName
+    banner("""Usage: """+name+""" [OPTION]... model_file data_file output_name
              |E.g. """+name+""" model.bif data.arff output
              |The output file will be """+getFileName("output", "js")+""" and """+getFileName("output", "arff")+"""
              |"The number of decimal places is used in the ARFF file only.""")
@@ -61,7 +61,16 @@ trait AssignTopics {
     val topicDataFile = getFileName(outputName, "arff")
     val topicData = if (Files.exists(Paths.get(topicDataFile))) {
       logger.info("Topic data file ({}) exists.  Skipped computing topic data.", topicDataFile)
-      Reader.readData(topicDataFile)
+      val topicData = Reader.readData(topicDataFile)
+      if(layer.isDefined){
+        val variableNameLevels = Reader.readModel(modelFile).getVariableNameLevels
+        val topicToBeKept = topicData.variables.filter { variable => 
+          val level = variableNameLevels(variable.getName)
+          layer.get.contains(level)
+        }
+        topicData.project(topicToBeKept)
+      }else
+        topicData
     } else {
       val topicData = computeTopicData(modelFile, dataFile, layer)
 
@@ -93,7 +102,7 @@ trait AssignTopics {
   
   def computeTopicData(modelFile: String, dataFile: String, layer: Option[List[Int]]): Data = {
     logger.info("reading model and data")
-    val (model, data) = Reader.readLTMAndARFF(modelFile, dataFile)
+    val (model, data) = Reader.readModelAndData(modelFile, dataFile)
     val variableNames = data.variables.map(_.getName)
 
     //TODO: check if binary + sync still works

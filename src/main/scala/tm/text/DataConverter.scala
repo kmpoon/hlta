@@ -267,6 +267,9 @@ object DataConverter {
     writer.close
   }
 
+  /**
+   * Note that new standard is document index start from 0 but not 1
+   */
   @Deprecated
   def saveAsSparseData(filename: String,
     countsByDocuments: Seq[TokenCounts], indices: Map[NGram, Int]) = {
