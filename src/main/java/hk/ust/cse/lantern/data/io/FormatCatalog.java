@@ -91,11 +91,15 @@ public class FormatCatalog {
         new Format("ARFF_GZ", "Gzipped Weka ARFF File", "arff.gz");
     public final static Format CSV =
         new Format("CSV", "Comma Separated Value (CSV) Document", "csv");
-    public final static Format HLCM = new Format("HLCM", "HLCM format", "txt");
+    //New standard, use .hlcm for HLCM format
+    //To avoid conflict with general text
+    public final static Format HLCM = new Format("HLCM", "HLCM format", "hlcm");
+    @Deprecated
+    public final static Format HLCM_ = new Format("HLCM", "HLCM format (.txt ext)", "txt");
 
     public final static SortedSet<Format> INPUT_FORMATS =
         Collections.unmodifiableSortedSet(new TreeSet<Format>(Arrays.asList(
-            ARFF, ARFF_GZ, CSV, HLCM)));
+            ARFF, ARFF_GZ, CSV, HLCM, HLCM_)));
 
     public final static SortedSet<Format> OUTPUT_FORMATS =
         Collections.unmodifiableSortedSet(new TreeSet<Format>(Arrays.asList(

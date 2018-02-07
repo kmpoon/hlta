@@ -67,7 +67,7 @@ public class DataSetLoader {
 	public static InputStream convert(String filename) throws Exception {
 		Format format = FormatCatalog.getInputFormat(filename);
 		
-		if(format == FormatCatalog.HLCM)
+		if(format == FormatCatalog.HLCM || format == FormatCatalog.HLCM_)
 		{
 			return (new FileInputStream(filename));
 		}
