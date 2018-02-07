@@ -131,7 +131,7 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
     if(pos.size!=vs.size)
       0.0
     else
-      instances.map(instance => pos.map{ p => instance.apply(p) }.min).sum
+      instances.map(instance => pos.map{ p => instance.apply(p) }.min * instance.weight).sum
   }
   
   def df(v: String): Double = df(Seq[String](v))
@@ -141,7 +141,7 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
     if(pos.size!=vs.size)
       0.0
     else
-      instances.filter(instance => pos.forall{ p => instance.apply(p)>=1.0 }).size
+      instances.filter(instance => pos.forall{ p => instance.apply(p)>=1.0 }).map(_.weight).sum
   }
   
   def size() = instances.size

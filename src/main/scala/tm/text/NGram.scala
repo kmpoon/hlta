@@ -39,14 +39,16 @@ object Sentence {
    * Overloading apply this way probably not the best way to mimic a constructor
    * Open for discussion
    */
-  def apply[T: StringOrNGram](ts: Seq[T]) = ts.head match{
-    case _: String => fromWords(ts.asInstanceOf[Seq[String]])
-    case _: NGram => new Sentence(ts.asInstanceOf[Seq[NGram]])
+  def apply[T: StringOrNGram](ts: Seq[T]) = {
+    if(ts.isEmpty)
+      new Sentence(Seq.empty[NGram])
+    ts.head match{
+      case _: String => fromWords(ts.asInstanceOf[Seq[String]])
+      case _: NGram => new Sentence(ts.asInstanceOf[Seq[NGram]])
+    }
   }
   
   def fromWords(ts: Seq[String]): Sentence = new Sentence(ts.map(NGram.apply))
-//  def apply(text: String)(implicit asciiOnly: Boolean): Sentence =
-//    new Sentence(Preprocessor.tokenizeBySpace(Preprocessor.preprocess(text, 3, asciiOnly = asciiOnly)).map(NGram.apply))
 }
 
 //Force calling Document(Sentence(words)) to expose the possibility that n-gram could form across an actual sentence

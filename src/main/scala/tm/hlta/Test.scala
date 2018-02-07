@@ -26,10 +26,6 @@ object Test {
     
     import tm.util.Reader
     val data = Reader.readData("./papers9.Z66.sparse.txt")
-    val l = List(382, 414).map(_.toString())
-    println(l)
-    val data1 = data.subset(l)
-    val data2 = data.subset(List(544, 724).map(_.toString()))
-    println(data1.size(), data2.size())
+    data.saveAsHlcm("papers9.Z66.hlcm")
   }
 }

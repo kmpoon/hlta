@@ -1,59 +1,111 @@
 package tm.hlta
 
 import tm.util.Data
+import tm.util.Arguments
 import org.deeplearning4j.models.word2vec.Word2Vec
 import org.deeplearning4j.models.embeddings.loader.WordVectorSerializer;
 import java.io.File
 import tm.util.Reader
 
-object EvaluateTopics {
+object TopicCoherence {
+  
+  class Conf(args: Array[String]) extends Arguments(args){
+    banner(s"Usage: ${TopicCoherence.getClass.getName.replaceAll("\\$$", "")} [OPTIONS]... topicFile dataFile")
+    val topicFile = trailArg[String](descr = "topic file, in json or html")
+    val dataFile = trailArg[String]()
+    val m = opt[Int](descr = "numberOfWords", default = Some(4))
+    val layer = opt[List[Int]](descr = "select specific level, i.e. 2 3 4", default = None)
+    
+    verify
+    checkDefaultOpts()
+  }
   
   def main(args: Array[String]): Unit = {
-    //val topicFile = "nips1000.nodes.json"
-    //val dataFile = "nips-1000-train-nolabel-bin.arff"
-    val topicFile = "test.nodes.json"
-    //val topicFile = "nodes.json"
-    val dataFile = "papers9.Z66.sparse.txt"
-    val topicTree = TopicTree.readJson(topicFile)
-    //val topicTree = Extraction.readJson(topicFile).findSubTrees(_.name.equals("Z66"))
-    val data = Reader.readData(dataFile)
-    val coherences = topicTree.map { x =>  
-      topicCoherence(x.words.map(_.toString()), data)
-    }.toList()
-    println(coherences.sum/coherences.size)
+    val conf = new Conf(args)
+    
+    val topicTree = if(conf.topicFile().endsWith(".json")) TopicTree.readJson(conf.topicFile()) else TopicTree.readHtml(conf.topicFile())
+    val data = Reader.readData(conf.dataFile())
+    val topics = if(conf.layer.isDefined) topicTree.trimLevels(conf.layer()).toList() else topicTree.toList()
+    val averageCoherence = averageTopicCoherence(topics, data, conf.m())
+    println(averageCoherence)
   }
   
-  def topicCoherence(words: Seq[String], data: Data, m: Int = 4): Double = {
-    val combination = words.take(m).toSet.subsets(2).map(_.toList)
-    val logs = combination.map { x => 
-      val word_i = x(0)
-      val word_j = x(1)
-      val coexists = data.df(Seq(word_i, word_j))
-      val exists = data.df(word_j)
-      //println(coexists+" "+exists+" "+(coexists+1)/exists)
+  def apply(topics: Seq[Topic], data: Data, m: Int = 4) = averageTopicCoherence(topics, data, m)
+    
+  def averageTopicCoherence(topics: Seq[Topic], data: Data, m: Int): Double = {
+    val coherences = topics.filter(_.words.size >= m).par.map { x =>  
+      topicCoherence(x, data, m)
+    }
+    coherences.sum/coherences.size
+  }
+  
+  def topicCoherence(topic: Topic, data: Data, m: Int): Double = {
+    val combination = topic.words.take(m).toSet.subsets(2)
+    combination.map { x =>
+      val word = x.toList.map(_.w)
+      val coexists = data.df(Seq(word(0), word(1)))
+      val exists = data.df(word(0))
       Math.log((coexists+1)/exists)
-    }.toList
-    logs.sum/Math.log(2)
+    }.sum
+  }
+}
+
+object TopicCompactness {
+  
+  class Conf(args: Array[String]) extends Arguments(args){
+    banner(s"Usage: ${TopicCoherence.getClass.getName.replaceAll("\\$$", "")} [OPTIONS]... topicFile dataFile word2vec")
+    val topicFile = trailArg[String](descr = "topic file, in json or html")
+    val dataFile = trailArg[String]()
+    val word2vec = trailArg[String](descr = "pretrained word2vec binary model")
+    val m = opt[Int](descr = "numberOfWords", default = Some(4))
+    val layer = opt[List[Int]](descr = "select specific level, i.e. 2 3 4", default = None)
+    
+    verify
+    checkDefaultOpts()
+  }
+    
+  def main(args: Array[String]){
+    val conf = new Conf(args)
+    
+    val topicTree = if(conf.topicFile().endsWith(".json")) TopicTree.readJson(conf.topicFile()) else TopicTree.readHtml(conf.topicFile())
+    val data = Reader.readData(conf.dataFile())
+    val gModel = new File(conf.word2vec())
+    val w2v = WordVectorSerializer.readWord2VecModel(gModel);
+    val topics = if(conf.layer.isDefined) topicTree.trimLevels(conf.layer()).toList() else topicTree.toList()
+    val averageCoherence = averageTopicCompactness(topics, data, conf.m(), w2v)
+    println(averageCoherence)
+    
+  }
+    
+  def averageTopicCompactness(topics: Seq[Topic], data: Data, m: Int, w2v: Word2Vec): Double = {
+    val compactnesses = topics.filter(_.words.size >= m).par.flatMap { x =>  
+      topicCompactness(x, data, m, w2v)
+    }
+    compactnesses.sum/compactnesses.size
   }
   
-  def topicCompactness(words: Seq[String], data: Data, modelFile: String): Double = {
-     val w2v = WordVectorSerializer.readWord2VecModel(modelFile)
-     topicCompactness(words, data, w2v)
+  def topicCompactness(topic: Topic, data: Data, m: Int, w2v: Word2Vec): Option[Double] = {
+    val combination = topic.words.take(4).toSet.subsets(2)
+    val similarities = combination.toList.flatMap { x => 
+      val wordVector = x.toList.map(word => w2v.getWordVector(word.w))
+      if(wordVector(0) != null && wordVector(1) != null)
+        Some(cosineSimilarity(wordVector(0), wordVector(1)))
+      else
+        None
+    }
+    if(similarities.size==0) None
+    else Some(similarities.sum/similarities.size)
   }
   
-  def topicCompactness(words: Seq[String], data: Data, w2v: Word2Vec): Double = {
-    //val gModel = new File("/Developer/Vector Models/GoogleNews-vectors-negative300.bin.gz")
-    val combination = words.toSet.subsets(2).map(_.toList)
-    val similarities = combination.map { x => 
-      val word_i = x(0)
-      val word_j = x(1)
-      val word_iVector = w2v.getWordVector(word_i)
-      val word_jVector = w2v.getWordVector(word_j)
-      val dotProduct = (0 until word_iVector.size).map{k => word_iVector(k)*word_jVector(k)}.sum
-      val word_iNorm = (0 until word_iVector.size).map{k => word_iVector(k)*word_iVector(k)}.sum
-      val word_jNorm = (0 until word_jVector.size).map{k => word_jVector(k)*word_jVector(k)}.sum
-      dotProduct.toFloat / (word_iNorm*word_jNorm)
-    }.toList
-    similarities.sum/similarities.size
-  }
+  def cosineSimilarity(vectorA: Array[Double], vectorB: Array[Double]) = {
+    var dotProduct = 0.0;
+    var normA = 0.0;
+    var normB = 0.0;
+    for (i <- 0 until vectorA.length) {
+        dotProduct += vectorA(i) * vectorB(i)
+        normA += Math.pow(vectorA(i), 2)
+        normB += Math.pow(vectorB(i), 2)
+    }   
+    dotProduct / (Math.sqrt(normA * normB))
+}
 }

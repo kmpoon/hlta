@@ -38,9 +38,15 @@ object ExtractTopics {
 
     clustering.HLTAOutputTopics_html_Ltm.main(
         Array(conf.model(), conf.tempDir(), "no", "no", "7"))
-
-    val topicFile = output.resolve("TopicsTable.html")
-    RegenerateHTMLTopicTree.run(topicFile.toString(), conf.name(), conf.title(), conf.layer.toOption)
+    val topicFile = output.resolve("TopicsTable.html").toString()
+    
+    val order = RegenerateHTMLTopicTree.readIslands(FindTopLevelSiblingClusters.getIslandsFileName(conf.name()))
+    var topLevelTrees = TopicTree.readHtml(topicFile)
+    if(conf.layer.isDefined)
+      topLevelTrees = topLevelTrees.trimLevels(conf.layer())
+    topLevelTrees = topLevelTrees.sortRoots { t => order(t.value.name) }
+    BuildWebsite(".", conf.name(), conf.name(), topLevelTrees)
+    topLevelTrees.saveAsJson("bdt.nodes.json")
   }
   
   /**
@@ -56,7 +62,7 @@ object ExtractTopics {
     bdtExtractor.run()
 
     val topicFile = output.resolve("TopicsTable.html")
-    val topicTree = TopicTree.readHTML(topicFile.toString())
+    val topicTree = TopicTree.readHtml(topicFile.toString())
     if(layer.isDefined){
       val _layer = layer.get.map{l => if(l<=0) l+model.getHeight-1 else l}
       topicTree.trimLevels(_layer)
@@ -104,7 +110,7 @@ object ExtractNarrowTopics {
     lcmNdtExtractor.run()
     
     val topicFile = output.resolve("TopicsTable.html")
-    val topicTree = TopicTree.readHTML(topicFile.toString())
+    val topicTree = TopicTree.readHtml(topicFile.toString())
     if(layer.isDefined){
       val _layer = layer.get.map{l => if(l<=0) l+model.getHeight-1 else l}
       topicTree.trimLevels(_layer)

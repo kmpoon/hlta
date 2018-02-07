@@ -2,9 +2,11 @@
 
 name := "HLTA"
 
-version := "1.2"
+version := "1.2.1"
 
 scalaVersion := "2.11.11"
+
+classpathTypes += "maven-plugin"
 
 libraryDependencies ++= 
   "org.scalatest" %% "scalatest" % "2.2.6" % "test" ::
@@ -30,6 +32,7 @@ libraryDependencies ++=
    "org.scala-lang.modules" %% "scala-xml" % "1.0.6" ::
 //    "io.argonaut" %% "argonaut" % "6.1" ::
 // https://mvnrepository.com/artifact/org.deeplearning4j
+  "org.nd4j" % "nd4j-native-platform" % "0.9.1" ::
   "org.deeplearning4j" % "deeplearning4j-core" % "0.9.1" ::
   "org.deeplearning4j" % "deeplearning4j-nlp" % "0.9.1" ::
   "org.json4s" %% "json4s-native" % "3.6.0-M2" ::

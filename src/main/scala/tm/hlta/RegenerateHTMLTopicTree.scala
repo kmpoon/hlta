@@ -46,7 +46,7 @@ object RegenerateHTMLTopicTree {
   def run(topicsFile: String, outputName: String, title: String, layer: Option[List[Int]] = None) = {
     val order = readIslands(
       FindTopLevelSiblingClusters.getIslandsFileName(outputName))
-    var topLevelTrees = TopicTree.readHTML(topicsFile)
+    var topLevelTrees = TopicTree.readHtml(topicsFile)
     if(layer.isDefined)
       topLevelTrees = topLevelTrees.trimLevels(layer.get)
     topLevelTrees = topLevelTrees.sortRoots { t => order(t.value.name) }
@@ -234,6 +234,7 @@ object JstreeWriter{
 
   /**
    * Plain html, no jstree plugin
+   * TODO: change this to be the format of Peixian's html
    */
   def writeSimpleHtml[A](roots: Seq[Tree[A]], outputFile: String, jstreeContent: A => Node){
 
