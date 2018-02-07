@@ -115,15 +115,20 @@ The output files include:
   
 # Evaluate Topic Model
 
+- Evaluate by topic coherence
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ComputeTopicCoherence data.sparse.txt topic-file
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCoherence topic.nodes.json data.sparse.txt
    ```
-IO issue, WIP.
 
-- If you want Compactness Score, use python instead
-Install gensim (https://radimrehurek.com/gensim/) before using the python codes for computing compactness scores in AAAI17 paper (http://www.aaai.org/Conferences/AAAI/2017/PreliminaryPapers/12-Chen-Z-14201.pdf). One pre-trained Word2Vec model by Google is available at https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing. The description of the model can be found at https://code.google.com/archive/p/word2vec/ under the section "Pre-trained word and phrase vectors".
+- Evaluate by topic compactness. 
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCompactness topic.nodes.json data.sparse.txt GoogleNews-vectors-negative300.bin
+   ```
+   Download pre-trained word2vec model from https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing
 
-Java version WIP.
+- Compute topic compactness in Python
+
+   Install gensim (https://radimrehurek.com/gensim/) before using the python codes for computing compactness scores in AAAI17 paper (http://www.aaai.org/Conferences/AAAI/2017/PreliminaryPapers/12-Chen-Z-14201.pdf). One pre-trained Word2Vec model by Google is available at https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing. The description of the model can be found at https://code.google.com/archive/p/word2vec/ under the section "Pre-trained word and phrase vectors".
 
 # Assemble
 1. Change directory to the base directory.
@@ -155,6 +160,11 @@ The original HLTA algorithm published in the paper [*Latent Tree Models for Hier
      * `UD_test_threshold`: The threshold used in unidimensionality test for constructing islands (e.g. 3).
      * `max_island`: Maximum number of variables in an island (e.g. 10).
      * `max_top`: Maximum number of variables in top level (e.g. 15).
+     
+- You can get HLCM format for PEM through
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --output-hlcm datasetName ./source 1000
+   ```
 
 - To run the HLTA using **stepwise EM**, replace the main class `PEM` by `StepwiseEMHLTA`, and build the model using 
 
@@ -180,11 +190,6 @@ The original HLTA algorithm published in the paper [*Latent Tree Models for Hier
      * `global_max_EM_steps`: Maximum number of stepwise EM steps (e.g. 128).
      * `struct_batch_size`: Number of data cases used for building model structure.
 
-
-- You may get the HLCM data format for PEM through
-   ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --outputHlcm datasetName ./source 1000
-   ```
 
 # Enquiry
 
