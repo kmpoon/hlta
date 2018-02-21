@@ -42,10 +42,11 @@ object Sentence {
   def apply[T: StringOrNGram](ts: Seq[T]) = {
     if(ts.isEmpty)
       new Sentence(Seq.empty[NGram])
-    ts.head match{
-      case _: String => fromWords(ts.asInstanceOf[Seq[String]])
-      case _: NGram => new Sentence(ts.asInstanceOf[Seq[NGram]])
-    }
+    else
+      ts.head match{
+        case _: String => fromWords(ts.asInstanceOf[Seq[String]])
+        case _: NGram => new Sentence(ts.asInstanceOf[Seq[NGram]])
+      }
   }
   
   def fromWords(ts: Seq[String]): Sentence = new Sentence(ts.map(NGram.apply))

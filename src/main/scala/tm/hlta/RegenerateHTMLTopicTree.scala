@@ -16,6 +16,7 @@ import java.nio.file.Path
 import tm.util.FileHelpers
 import tm.util.Arguments
 import scala.collection.GenSeq
+import org.apache.commons.lang.StringEscapeUtils
 
 object RegenerateHTMLTopicTree {
   
@@ -90,12 +91,17 @@ object BuildWebsite{
   def writeDocNames(docNames: GenSeq[String], outputFile: String) = {
     val writer = new PrintWriter(outputFile)
     writer.println("var documents = [")
-    writer.println(docNames.map{docName=>"\""+docName+"\""}.mkString(",\n"))
+    writer.println(docNames.map{docName=>"\""+StringEscapeUtils.escapeJavaScript(docName)+"\""}.mkString(",\n"))
     writer.println("]")
     writer.close
   }
   
   def writeHtmlOutput(title: String, outputName: String, outputFile: String) = {
+    
+    implicit class Escape(str: String){
+      def escape = StringEscapeUtils.escapeHtml(str)
+    }
+    
     val template = Source.fromInputStream(
       this.getClass.getResourceAsStream("/tm/hlta/template.html"))
       .getLines.mkString("\n")
@@ -108,7 +114,7 @@ object BuildWebsite{
 
     var content = Seq("nodes.js", "topics.js", "titles.js")
       .foldLeft(template)(replace)
-    content = content.replaceAll("<!-- title-placeholder -->", title)
+    content = content.replaceAll("<!-- title-placeholder -->", title.escape)
 
     writer.print(content)
     writer.close
@@ -187,16 +193,20 @@ object JstreeWriter{
   case class Node(id: String, label: String, data: Map[String, Any])
   
   def writeJs[A](roots: Seq[Tree[A]], outputFile: String, jsVarName: String, jstreeContent: A => Node){
+    
+    implicit class Escape(str: String){
+      def escape = StringEscapeUtils.escapeJavaScript(str)
+    }
 
     def _treeToJs(tree: Tree[A], indent: Int): String = {
       val node = jstreeContent(tree.value)
       val children = tree.children.map(_treeToJs(_, indent + 4))
       val js = """{
       |  id: "%s", text: "%s", data: { %s }, children: [%s]
-      |}""".format(node.id, node.label, node.data.map{
-        case (variable: String, value: String) => variable+": \""+value+"\""
-        case (variable: String, value: Number) => variable+": "+value
-        case (variable: String, value) => variable+": "+value
+      |}""".format(node.id.escape, node.label.escape, node.data.map{
+        case (variable: String, value: String) => variable.escape+": \""+value.escape+"\""
+        case (variable: String, value: Number) => variable.escape+": "+value
+        case (variable: String, value) => variable.escape+": "+value
         }.mkString(", "), children.mkString(", "))
         .replaceAll(" +\\|", " " * indent)
       js
@@ -237,11 +247,15 @@ object JstreeWriter{
    * TODO: change this to be the format of Peixian's html
    */
   def writeSimpleHtml[A](roots: Seq[Tree[A]], outputFile: String, jstreeContent: A => Node){
+    
+    implicit class Escape(str: String){
+      def escape = StringEscapeUtils.escapeHtml(str)
+    }
 
     def _treeToHtml(tree: Tree[A], indent: Int): String = {
       val node = jstreeContent(tree.value)
-      val start = """<li class="jstree-open" id="%s" >""".format(node.id)
-      val content = node.label
+      val start = """<li class="jstree-open" id="%s" >""".format(node.id.escape)
+      val content = node.label.escape
       val end = "</li>"
   
       if (tree.children.isEmpty)

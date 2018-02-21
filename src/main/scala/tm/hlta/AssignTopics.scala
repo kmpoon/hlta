@@ -17,6 +17,7 @@ import java.util.ArrayList
 import org.latlab.graph.DirectedNode
 import org.latlab.reasoner.CliqueTreePropagation
 import org.latlab.model.BeliefNode
+import org.apache.commons.lang.StringEscapeUtils
 
 import org.rogach.scallop._
 import tm.util.Arguments
@@ -304,14 +305,19 @@ case class Assignment(map: Map[Variable, Seq[(String, Double)]]){
   def apply(variable: Variable, docName: String): Double = apply(variable).find{case (d, p) => d.equals(docName)}.get._2
   
   def saveAsJs(outputFile: String, decimalPlaces: Int = 2, jsVarName: String = "topicMap"){
+    
+    implicit class Escape(str: String){
+      def escape = StringEscapeUtils.escapeJavaScript(str)
+    }
+    
     val writer = new PrintWriter(outputFile)
 
     writer.println("var "+jsVarName+" = {")
 
     writer.println(map.map { p =>
       val variable = p._1
-      val documents = p._2.map(p => f"""["${p._1}%s", ${p._2}%.2f]""").mkString(", ")
-      s"  ${variable.getName}: [${documents}]"
+      val documents = p._2.map(p => f"""["${p._1.escape}%s", ${p._2}%.2f]""").mkString(", ")
+      s"  ${variable.getName.escape}: [${documents}]"
     }.mkString(",\n"))
 
     writer.println("};")

@@ -37,6 +37,7 @@ libraryDependencies ++=
   "org.deeplearning4j" % "deeplearning4j-nlp" % "0.9.1" ::
   "org.json4s" %% "json4s-native" % "3.6.0-M2" ::
   "com.github.tototoshi" %% "scala-csv" % "1.3.5" ::
+  "org.apache.commons" % "commons-lang3" % "3.0" ::
 Nil
 
 
