@@ -17,6 +17,9 @@ import weka.core.Attribute
 import java.util.ArrayList
 import scala.collection.LinearSeq
 import org.slf4j.LoggerFactory
+import java.io.InputStream
+import org.apache.commons.compress.compressors.CompressorStreamFactory
+import java.io.BufferedInputStream
 
 object Reader {
   implicit final class ARFFToData(val d: Instances) {
@@ -50,7 +53,15 @@ object Reader {
 
   def readHLCMData(dataFile: String) = new DataSet(dataFile)
 
-  def readARFFData(dataFile: String) = new DataSource(dataFile).getDataSet
+  def readARFFData(dataFile: String): Instances = {
+    val input = if (dataFile.endsWith(".arff"))
+      new FileInputStream(dataFile)
+    else
+      new CompressorStreamFactory()
+        .createCompressorInputStream(new BufferedInputStream(new FileInputStream(dataFile)))
+    readARFFData(input)
+  }
+  def readARFFData(dataFile: InputStream): Instances = new DataSource(dataFile).getDataSet
 
   def readData(dataFile: String) = readARFFData(dataFile).toData
 
