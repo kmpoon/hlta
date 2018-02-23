@@ -11,6 +11,7 @@ libraryDependencies ++=
   "org.scalactic" %% "scalactic" % "2.2.6" % "test" ::
   "org.scalaz" %% "scalaz-core" % "7.2.1" ::
   "org.apache.commons" % "commons-csv" % "1.2" ::
+   "org.apache.commons" % "commons-compress" % "1.16.1" ::
   "commons-io" % "commons-io" % "2.4" ::
   "edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" ::
   ("edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" classifier "models") ::
