@@ -12,6 +12,7 @@ import weka.core.Attribute
 import java.util.ArrayList
 import org.slf4j.LoggerFactory
 import scala.Range
+import java.nio.file.{Paths, Files}
 
 object Reader {
   implicit final class ARFFToData(val d: Instances) {
@@ -69,23 +70,27 @@ object Reader {
   def readHLCM(dataFile: String) = HlcmReader.read(dataFile)
   
   /**
-   * Native HLCM reader
+   * Native Java HLCM reader
    */
   def readHLCM_native(dataFile: String) = new DataSet(dataFile)
 
   def readARFF(dataFile: String) = new DataSource(dataFile).getDataSet
   
   def readTuple(dataFile: String) = TupleReader.read(dataFile)
+  
+  def readLda(dataFile: String, vocabFile: String) = LdaReader.read(dataFile, vocabFile)
 
   /**
    * Auto detect file format and cast it to scala Data
+   * If lda format, please provide vocab file
    */
-  def readData(dataFile: String, format: Option[String] = None):Data = {
+  def readData(dataFile: String, vocabFile: String = null, format: Option[String] = None):Data = {
     if(format.isDefined){
       format.get.toLowerCase match{
         case "arff" => readARFF(dataFile).toData()
         case "tuple" => readTuple(dataFile)
         case "hlcm" => readHLCM(dataFile)
+        case "lda" => readLda(dataFile, vocabFile)
         case _ => throw new Exception("Unknown format")
       }
     }else{
@@ -93,6 +98,8 @@ object Reader {
         readARFF(dataFile).toData()
       else if(dataFile.endsWith(".sparse.txt"))
         readTuple(dataFile)
+      else if(dataFile.endsWith(".lda.txt"))
+        readLda(dataFile, vocabFile)
       else
         readHLCM(dataFile)
     }

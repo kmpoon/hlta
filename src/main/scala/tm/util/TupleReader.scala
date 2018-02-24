@@ -28,7 +28,7 @@ object TupleReader {
       docList.get(docId).get += variable
     }
     
-    val instances = docList.map{case (docId, doc) =>
+    val instances = docList.toIndexedSeq.map{case (docId, doc) =>
       val indexes = doc.map { word => variables.indexOf(word) }
       val values = (0 until variables.size).map{ i => if(indexes.contains(i)) 1.0 else 0.0}.toArray
       new Instance(values, 1.0, name = docId)
@@ -41,7 +41,7 @@ object TupleReader {
       new Variable(a, b)
     }
     
-    new Data(variables.map(convert(_)).toIndexedSeq, instances.toIndexedSeq, isBinary = true)
+    new Data(variables.map(convert(_)).toIndexedSeq, instances, isBinary = true)
   }
 
 }

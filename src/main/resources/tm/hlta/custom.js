@@ -49,7 +49,11 @@ function generateTopicDocumentTable(topic, max) {
 	for (var i = 0; i < topicDocuments.length && i < max; i++) {
 		var d = topicDocuments[i];
 		var doc = documents[d[0]]; //documents is an array of document name
-		rows.push("<tr><td>" + doc + "</td><td>" + d[1].toFixed(2)+ "</td></tr>");
+		if(Array.isArray(doc)){
+			rows.push("<tr><td><a href=\"" + doc[1] + "\">" + doc[0] + "</a></td><td>" + d[1].toFixed(2)+ "</td></tr>");
+		}else
+			rows.push("<tr><td>" +doc + "</td><td>" + d[1].toFixed(2)+ "</td></tr>");
+		
 	}
 
 	var table = $("<table class=\"tablesorter\"><thead><tr><th>Document</th><th>Prob</th></tr></thead></table>")

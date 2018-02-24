@@ -9,9 +9,17 @@ import scala.io.Source
 import org.latlab.model.LTM
 import tm.hlta.HLTA._
 import org.latlab.util.DataSet
+import tm.util.Reader
+import tm.util.Data
 
-object ExtractTopics {
-  class BaseConf(args: Seq[String]) extends Arguments(args) {    
+object ExtractTopicTree {
+  class Conf(args: Seq[String]) extends Arguments(args) {    
+    banner("Usage: tm.hlta.ExtractTopicTree [OPTION]... name model")
+    val name = trailArg[String](descr = "Name of files to be generated")
+    val model = trailArg[String](descr = "Name of model file (e.g. model.bif)")
+    val data = trailArg[String](default = None, descr = "Data file, if using --broad, this is not required")
+    
+    val broad = opt[Boolean](default = Some(false), descr = "use broad defined topic, run faster but more document will be categorized into the topic")
     val title = opt[String](default = Some("Topic Tree"), descr = "Title in the topic tree")
     val layer = opt[List[Int]](descr = "Layer number, i.e. --layer 1 3")
     val keywords = opt[Int](default = Some(7), descr = "number of keywords for each topic")
@@ -19,98 +27,66 @@ object ExtractTopics {
       descr = "Temporary output directory for extracted topic files (default: topic_output)")
   }
 
-  class Conf(args: Seq[String]) extends BaseConf(args) {
-    banner("Usage: tm.hlta.ExtractTopics [OPTION]... name model")
-    
-    val name = trailArg[String](descr = "Name of files to be generated")
-    val model = trailArg[String](descr = "Name of model file (e.g. model.bif)")
-    
-
-    verify
-    checkDefaultOpts()
-  }
-
   def main(args: Array[String]) {
     val conf = new Conf(args)
-
-    val output = Paths.get(conf.tempDir())
-    FileHelpers.mkdir(output)
-
-    clustering.HLTAOutputTopics_html_Ltm.main(
-        Array(conf.model(), conf.tempDir(), "no", "no", "7"))
-    val topicFile = output.resolve("TopicsTable.html").toString()
     
-    val order = RegenerateHTMLTopicTree.readIslands(FindTopLevelSiblingClusters.getIslandsFileName(conf.name()))
-    var topLevelTrees = TopicTree.readHtml(topicFile)
-    if(conf.layer.isDefined)
-      topLevelTrees = topLevelTrees.trimLevels(conf.layer())
-    topLevelTrees = topLevelTrees.sortRoots { t => order(t.value.name) }
-    BuildWebsite(".", conf.name(), conf.name(), topLevelTrees)
-    topLevelTrees.saveAsJson("bdt.nodes.json")
+    val (model, data) = Reader.readModelAndData(conf.model(), conf.data())
+    
+    val topicTree = if(conf.broad())
+      broad(model, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())
+    else
+      narrow(model, data, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())
+    
+    BuildWebsite(".", conf.name(), conf.name(), topicTree)
+    topicTree.saveAsJson("bdt.nodes.json")
   }
   
-  /**
-   * For external call
-   */
-  def apply(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, outputDir: String = "./temp/") = {
-    val output = Paths.get(outputDir)
+//  def main(args: Array[String]) {
+//    val conf = new Conf(args)
+//
+//    val output = Paths.get(conf.tempDir())
+//    FileHelpers.mkdir(output)
+//
+//    tm.hlta.ExtractNarrowTopics_LCM.main(
+//      Array(conf.model(), conf.data(), conf.tempDir(), "no", "no", "7"));
+//
+//    val topicFile = output.resolve("TopicsTable.html")
+//    RegenerateHTMLTopicTree.run(topicFile.toString(), conf.name(), conf.title(), conf.layer.toOption)
+//  }
+  
+  def broad(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, tempDir: String = "./temp/") = {
+    val output = Paths.get(tempDir)
     FileHelpers.mkdir(output)
     
     val bdtExtractor = new clustering.HLTAOutputTopics_html_Ltm()
-    //val param = Array("", outputDir, "no", "no", keywords.toString())
-    bdtExtractor.initialize(model, outputDir, false, false, keywords)
+    //val param = Array("", tempDir, "no", "no", keywords.toString())
+    bdtExtractor.initialize(model, tempDir, false, false, keywords)
     bdtExtractor.run()
 
     val topicFile = output.resolve("TopicsTable.html")
     val topicTree = TopicTree.readHtml(topicFile.toString())
+    //val order = RegenerateHTMLTopicTree.readIslands(FindTopLevelSiblingClusters.getIslandsFileName(conf.name()))
+    //topicTree = topicTree.sortRoots { t => order(t.value.name) }
     if(layer.isDefined){
       val _layer = layer.get.map{l => if(l<=0) l+model.getHeight-1 else l}
       topicTree.trimLevels(_layer)
     }else
       topicTree
   }
-}
-
-object ExtractNarrowTopics {
-  class Conf(args: Seq[String]) extends ExtractTopics.BaseConf(args) {
-    banner("Usage: tm.hlta.ExtractNarrowTopics [OPTION]... name model data")
-
-    val name = trailArg[String](descr = "Name of files to be generated")
-    val model = trailArg[String](descr = "Name of model file (e.g. model.bif)")
-    val data = trailArg[String](descr = "Data file (e.g. data.txt)")
-    
-    verify
-    checkDefaultOpts()
-  }
-
-  def main(args: Array[String]) {
-    val conf = new Conf(args)
-
-    val output = Paths.get(conf.tempDir())
-    FileHelpers.mkdir(output)
-
-    tm.hlta.ExtractNarrowTopics_LCM.main(
-      Array(conf.model(), conf.data(), conf.tempDir(), "no", "no", "7"));
-
-    val topicFile = output.resolve("TopicsTable.html")
-    RegenerateHTMLTopicTree.run(topicFile.toString(), conf.name(), conf.title(), conf.layer.toOption)
-  }
   
-  /**
-   * For external call
-   * No IO involved
-   */
-  def apply(model: LTM, data: DataSet, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, outputDir: String = "./temp/") = {
-    val output = Paths.get(outputDir)
+  def narrow(model: LTM, binaryData: Data, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, tempDir: String = "./temp/") = {
+    val output = Paths.get(tempDir)
     FileHelpers.mkdir(output)
     
     val lcmNdtExtractor = new tm.hlta.ExtractNarrowTopics_LCM()
-    val param = Array("", "", outputDir, "no", "no", keywords.toString())
-    lcmNdtExtractor.initialize(model, data, param)
+    val param = Array("", "", tempDir, "no", "no", keywords.toString())
+    lcmNdtExtractor.initialize(model, binaryData.toHlcmDataSet(), param)
     lcmNdtExtractor.run()
     
     val topicFile = output.resolve("TopicsTable.html")
     val topicTree = TopicTree.readHtml(topicFile.toString())
+    //val order = RegenerateHTMLTopicTree.readIslands(FindTopLevelSiblingClusters.getIslandsFileName(conf.name()))
+    //topicTree = topicTree.sortRoots { t => order(t.value.name) }
     if(layer.isDefined){
       val _layer = layer.get.map{l => if(l<=0) l+model.getHeight-1 else l}
       topicTree.trimLevels(_layer)

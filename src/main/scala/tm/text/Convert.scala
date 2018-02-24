@@ -45,6 +45,7 @@ object Convert {
     
     val outputHlcm = opt[Boolean](default = Some(false), descr = "Additionally output hlcm format")
     val outputArff = opt[Boolean](default = Some(false), descr = "Additionally output arff format")
+    val outputLda = opt[Boolean](default = Some(false), descr = "Additionally output lda format")
 
     verify
     checkDefaultOpts()
@@ -69,13 +70,27 @@ object Convert {
         stopWords = if(conf.stopWords.isDefined) conf.stopWords() else null,
         seedWords = if(conf.seedFile.isDefined) seed else None)
 
-    val (data, paths) = apply(conf.name(), conf.source(), extensions = conf.inputExt(), encoding = conf.inputEncoding())
+    val path = Paths.get(conf.source())
+    val data = if(java.nio.file.Files.isDirectory(path)){
+      val dir = path
+      
+      logger.info("Finding files under {}", dir.toString())
+      val paths = FileHelpers.findFiles(dir, conf.inputExt()).map(dir.resolve)
+      if (paths.isEmpty) {
+        logger.error("No suitable file found under {}", dir)
+        throw new IllegalArgumentException("No text files found files under " + dir)
+      }
+      
+      //Write file order
+      val writer = new PrintWriter(s"${conf.name()}.files.txt")
+      paths.foreach(writer.println)
+      writer.close
+      
+      apply(conf.name(), paths = paths, encoding = conf.inputEncoding())
+    }else{
+      apply(conf.name(), path = path, encoding = conf.inputEncoding())
+    }
     logger.info("done")
-    
-    //Write file order
-    val writer = new PrintWriter(s"${conf.name()}.files.txt")
-    paths.foreach(writer.println)
-    writer.close
     
     if(conf.outputArff()){
       logger.info("Saving in ARFF format (count data)")
@@ -84,6 +99,10 @@ object Convert {
     if(conf.outputHlcm()){
       logger.info("Saving in HLCM format (binary data)")
       data.binary().saveAsHlcm(s"${conf.name()}.hlcm")
+    }
+    if(conf.outputLda()){
+      logger.info("Saving in LDA format (count data)")
+      data.binary().saveAsLda(s"${conf.name()}.lda.txt", s"${conf.name()}.vocab.txt")
     }
     logger.info("Saving in sparse data format (binary data)")
     data.saveAsTuple(s"${conf.name()}.sparse.txt")
@@ -94,25 +113,23 @@ object Convert {
    * 
    * Returns (data: Data, paths: Seq[String])
    */
-  def apply(name: String, path: String, extensions: List[String] = List("txt", "pdf"), encoding: String = "UTF-8")
+  def apply(name: String, path: Path = null, paths: Vector[Path] = null, encoding: String = "UTF-8")
   (implicit settings: DataConverter.Settings) = {
     def preprocessor(text: String) = {
       val cleanedText = Preprocessor.preprocess(text, minChars = settings.minCharacters, asciiOnly = settings.asciiOnly)
       val tokens = Preprocessor.tokenizeBySpace(cleanedText)
       Document(Sentence(tokens))
     }
-    
-    val _path = Paths.get(path)
-    
-    val (documents, paths) = {
-      if(java.nio.file.Files.isDirectory(_path))
-        readDirectory(_path, preprocessor(_), extensions = extensions, encoding = encoding)
+
+    val documents = {
+      if(paths != null)
+        readFiles(paths, preprocessor(_), encoding = encoding)
+      else if(path != null)
+        readLines(path, preprocessor(_), encoding = encoding)
       else
-        readLines(_path, preprocessor(_), encoding = encoding)
+        throw new Exception("Either path or paths must be given")
     }
-    val data = DataConverter(name, documents)
-    
-    (data, paths)
+    DataConverter(name, documents)
   }
 
   val logger = LoggerFactory.getLogger(Convert.getClass)
@@ -136,19 +153,7 @@ object Convert {
       .map(t => t -> NGram(t)).toMap
   }
   
-  def readDirectory[T](source: Path, f: String => T, extensions: List[String], encoding: String): (GenSeq[T], GenSeq[String]) = {       
-    //Scan directory
-    logger.info("Finding files under {}", source)
-    val paths = FileHelpers.findFiles(source, extensions).map(source.resolve)
-    if (paths.isEmpty) {
-      logger.error("No text files found under {}", source)
-      throw new IllegalArgumentException("No text files found files under " + source)
-    }
-        
-    readFiles(paths, f, encoding)
-  }
-  
-  def readFiles[T](paths: Vector[Path], f: String => T, encoding: String): (GenSeq[T], GenSeq[String]) = {      
+  def readFiles[T](paths: Vector[Path], f: String => T, encoding: String): GenSeq[T] = {      
     //val cache = buildCache(paths)
     logger.info("Reading documents")
     paths.par.map{ path => // each path(file) is one document
@@ -156,12 +161,12 @@ object Convert {
       extension match {
         case "pdf" =>      
           val text = tm.corpus.pdf.ExtractText.extractSingleText(path)
-          (f(text), path.toString)
+          f(text)
         case _ =>  //including txt
           val source = Source.fromFile(path.toFile)(encoding)
           try {
             logger.debug("Reading {}", path.toFile)
-            (f(source.getLines.mkString(" ")), path.toString)
+            f(source.getLines.mkString(" "))
           } catch {
             case e: Exception =>
               logger.error("Unable to read file: " + path.toFile, e)
@@ -170,18 +175,18 @@ object Convert {
             source.close
           }
       } 
-    }.unzip
+    }
   }
   
-  def readLines[T](path: Path, f: String => T, encoding: String): (GenSeq[T], GenSeq[String]) = {      
+  def readLines[T](path: Path, f: String => T, encoding: String): GenSeq[T] = {      
     //val cache = buildCache(paths)  
     logger.info("Reading documents")
     val source = Source.fromFile(path.toFile())(encoding)
     try {
       logger.debug("Reading {}", path.toFile())
       source.getLines.zipWithIndex.map{ case (line, lineNumber) =>
-        (f(line), "Line"+lineNumber)
-      }.toVector.unzip
+        f(line)
+      }.toVector
     } catch {
       case e: Exception =>
         logger.error("Unable to read file: " + path.toFile, e)

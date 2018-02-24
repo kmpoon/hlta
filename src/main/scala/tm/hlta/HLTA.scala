@@ -14,11 +14,105 @@ import tm.util.Tree
 import org.slf4j.LoggerFactory
 import tm.util.Reader
 import tm.util.Arguments
+import org.latlab.learner.Parallelism
 
 /**
  *  Provides helper methods for HLTA.
  */
 object HLTA {
+  
+  class Conf(args: Seq[String]) extends Arguments(args) {
+    banner("""Usage: StepwiseEmBuilder [OPTION]... dataFile emMaxStep name
+             |E.g. ProgressiveEmBuilder data.arff 50 model1
+             |The output file will be model1.bif""")
+             
+    val dataFile = trailArg[String]()
+    val emMaxStep = trailArg[Int](descr = "Maximum number of EM steps (e.g. 50)")
+    val outputName = trailArg[String]()
+    
+    val ldaVocab = opt[String](default = None, descr = "LDA vocab file, only required if lda data is provided")
+    
+    val maxThreads = opt[Int](descr =
+      "Maximum number of threads to use for parallel computation.  " +
+      "The default number is set to the number of CPU cores.  " +
+      "If the specified number is larger than the number of CPU cores, the latter number will be used.")
+    
+    val emNumRestart = opt[Int](descr = "Number of restarts in EM (e.g. 5)", default = Some(5))
+    val emThreshold = opt[Double](descr = "Threshold of improvement to stop EM (e.g. 0.01)", default = Some(0.01))
+    val udThreshold = opt[Double](descr = "The threshold used in unidimensionality test for constructing islands (e.g. 3)", default = Some(3))
+    val maxIsland = opt[Int](descr = "Maximum number of variables in an island (e.g. 10)", default = Some(10))
+    val maxTop = opt[Int](descr = "Maximum number of variables in top level (e.g. 15)", default = Some(15))
+    
+    val globalBatchSize = opt[Int](descr = "Number of data cases used in each stepwise EM step", default = Some(1000))
+    val globalMaxEpochs = opt[Int](descr = "Number of times the whole training dataset has been gone through (e.g. 10)", default = Some(10))
+    val globalMaxEmSteps = opt[Int](descr = "Maximum number of stepwise EM steps (e.g. 128)", default = Some(128))
+    
+    val structBatchSize = opt[Int](descr = "Number of data cases used for building model structure", default = None)
+    val structUseAll = opt[Boolean](descr = "Use all data cases for building model structure", default = Some(false))
+
+    verify
+    checkDefaultOpts()
+  }
+  
+  /**
+   * Model building, building a hierarchical latent tree
+   *    maxThread: Parallemism, how many thread run together
+   * Local EM parameters:
+   * 		emMaxSteps: Maximum number of EM steps (e.g. 50).
+   * 		emNumRestarts: Number of restarts in EM (e.g. 5).
+   * 		emThreshold: Threshold of improvement to stop EM (e.g. 0.01).
+   * Model construction parameters:
+   * 		udThreshold: The threshold used in unidimensionality test for constructing islands (e.g. 3).
+   * 		maxIsland: Maximum number of variables in an island (e.g. 10).
+   * 		maxTop: Maximum number of variables in top level (e.g. 15).
+   * Global parameters:
+   * 		globalBatchSize: Number of data cases used in each stepwise EM step (e.g. 1000).
+   * 		globalMaxEpochs: Number of times the whole training dataset has been gone through (e.g. 10).
+   * 		globalMaxEmSteps: Maximum number of stepwise EM steps (e.g. 128).
+   * 		structBatchSize: Number of data cases used for building model structure.
+   * 
+   * Parameter follows the suggested numbers in cluster.StepwiseEMHLTA
+   */
+  def apply(data: SparseDataSet, modelName: String, ldaVocab: String = null, maxThread: Option[Int] = None,
+      emMaxStep: Int = 50, emNumRestart: Int = 3, emThreshold: Double = 0.01,
+      udThreshold: Int = 3, maxIsland: Int = 15, maxTop: Int = 30, 
+      globalBatchSize: Int = 500, globalMaxEpochs: Int = 10, globalMaxEmSteps: Int = 100, 
+      structBatchSize: Option[Int] = None, structBatchAll: Boolean = false): LTM = {
+    
+    val _sizeFirstBatch = if(structBatchAll) "all"
+      else if(structBatchSize.isEmpty){//auto determine structBatchSize
+        if(data.getNumOfDatacase > 10000) 5000.toString() else "all"
+      }else{          
+        structBatchSize.toString()
+      }
+    if(maxThread.isDefined)
+      Parallelism.instance().setLevel(maxThread.get)
+      
+    val builder = new clustering.StepwiseEMHLTA()
+    builder.initialize(data, emMaxStep, emNumRestart, emThreshold, udThreshold, modelName, maxIsland, maxTop, globalBatchSize, globalMaxEpochs,
+          globalMaxEmSteps, _sizeFirstBatch)
+    builder.IntegratedLearn()
+      
+    Reader.readModel(modelName+".bif")
+  }
+  
+  def main(args: Array[String]){
+    val conf = new Conf(args)
+    
+    val data = Reader.readData(conf.dataFile(), vocabFile = conf.ldaVocab.getOrElse(""))
+    
+    val _sizeFirstBatch = if(conf.structUseAll()) "all"
+      else if(conf.structBatchSize.isEmpty){//auto determine structBatchSize
+        if(data.size > 10000) 5000.toString() else "all"
+      }else{          
+        conf.structBatchSize().toString()
+      }
+      
+    val builder = new clustering.StepwiseEMHLTA()
+    builder.initialize(data.toTupleSparseDataSet(), conf.emMaxStep(), conf.emNumRestart(), conf.emThreshold(), conf.udThreshold(), conf.outputName(), 
+        conf.maxIsland(), conf.maxTop(), conf.globalBatchSize(), conf.globalMaxEpochs(), conf.globalMaxEmSteps(), _sizeFirstBatch)
+    builder.IntegratedLearn()
+  }
   
   implicit class LTMMethods(model: LTM){
     
@@ -270,147 +364,5 @@ object HLTA {
     // from order of function variables to order of given variables
     val indices = f.getVariables.map(variables.indexOf(_))
     f.getValue(indices.map(states.apply).toArray)
-  }
-  
-  /**
-   * Inference, assign topic distribution to each document
-   * 
-   * Mathematically, it is finding P(z|d), where z is a topic variable and d is the given document
-   * It outputs a list of document d for each z, with P(Z|d) > 0.5
-   * 
-   * @return Assignment
-   */
-  def assignTopics(model: LTM, data: Data, layer: Option[List[Int]] = None, threshold: Double = 0.5, narrow: Boolean = false) = {
-    val binaryData = data.binary()
-    val synchronizedData = binaryData.synchronize(model)
-    if(narrow) 
-      AssignNarrowTopics(model, synchronizedData, layer, threshold)
-    else 
-      AssignBroadTopics(model, synchronizedData, layer, threshold)
-  }
-  
-  /**
-   * Topic keywords extraction, find keywords to characterize each topic
-   * 
-   * Mathematically, it is finding a list of word w for each z, with maximum MI(w;z)
-   * It outputs a topic tree, where each node represents a topic; each topic is characterize with the best keywords
-   * 
-   * @return TopicTree
-   */
-  def extractTopics(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, 
-      narrow: Boolean = false, data: Data = null, tempDir: String = "./temp") = {  
-    if(narrow){      
-      ExtractNarrowTopics(model, data.binary().toHlcmDataSet, outputName, layer, keywords)
-    }else{
-      ExtractTopics(model, outputName, layer, keywords)
-    }
-  }
-  
-  /**
-   * Model building, build a latent tree model 
-   * Default using Stepwise EM, use PEM = true to use Progressive EM
-   * 
-   * Progressive EM
-   * EM parameters:
-   * 		emMaxStep: Maximum number of EM steps (e.g. 50).
-   * 		emNumRestarts: Number of restarts in EM (e.g. 5).
-   * 		emThreshold: Threshold of improvement to stop EM (e.g. 0.01).
-   * Model construction parameters:
-   * 		udThreshold: The threshold used in unidimensionality test for constructing islands (e.g. 3).
-   * 		maxIsland: Maximum number of variables in an island (e.g. 10).
-   * 		maxTop: Maximum number of variables in top level (e.g. 15).
-   * 
-   * Stepwise EM
-   * Local EM parameters:
-   * 		emMaxSteps: Maximum number of EM steps (e.g. 50).
-   * 		emNumRestarts: Number of restarts in EM (e.g. 5).
-   * 		emThreshold: Threshold of improvement to stop EM (e.g. 0.01).
-   * Model construction parameters:
-   * 		udThreshold: The threshold used in unidimensionality test for constructing islands (e.g. 3).
-   * 		maxIsland: Maximum number of variables in an island (e.g. 10).
-   * 		maxTop: Maximum number of variables in top level (e.g. 15).
-   * Global parameters:
-   * 		globalBatchSize: Number of data cases used in each stepwise EM step (e.g. 1000).
-   * 		globalMaxEpochs: Number of times the whole training dataset has been gone through (e.g. 10).
-   * 		globalMaxEmSteps: Maximum number of stepwise EM steps (e.g. 128).
-   * 		structBatchSize: Number of data cases used for building model structure.
-   * 
-   * Parameter follows the suggested numbers in clustering.PEM and clustering.StepwiseEMHLTA
-   * 
-   * @return LTM		latent tree model
-   */
-  def buildModel(data: Data, modelName: String, emMaxStep: Int = 50, emNumRestart: Int = 3, emThreshold: Double = 0.01, 
-      udThreshold: Int = 3, maxIsland: Int = 15, maxTop: Int = 30, PEM: Boolean = false,
-      globalBatchSize: Int = 500, globalMaxEpochs: Int = 10, globalMaxEmSteps: Int = 100, 
-      structBatchSize: Option[Int] = None, firstBatchUseAll: Boolean = false, tempDir: String = "./temp"): LTM = {
-    if(!PEM){
-      StepwiseEmBuilder(data.toTupleSparseDataSet, modelName, emMaxStep, emNumRestart, emThreshold,
-      udThreshold, maxIsland, maxTop, globalBatchSize, globalMaxEpochs, 
-      globalMaxEmSteps, structBatchSize, firstBatchUseAll)
-          
-    }else{      
-      ProgressiveEmBuilder(data.binary().toHlcmDataSet, modelName, emMaxStep, emNumRestart, emThreshold, 
-      udThreshold, maxIsland, maxTop)
-    }
-  }
-  
-  class Conf(args: Seq[String]) extends Arguments(args) {
-    banner("""Usage: tm.hlta.HLTA [OPTION]... data outputName
-    |a lazy HLTA call, takes in data file or text, and outputs topic tree and topic assignment(inference)
-    |if text is feeded in, it would first convert into data file then do HLTA
-    |
-    |make sure your data file extension is right
-    |text: .txt for plain text, ./dir for dir (can be .txt or .pdf inside)
-    |data: .arff for ARFF, .hlcm for HLCM, .sparse.txt for tuple format""")
-    
-    val data = trailArg[String](descr = "Data file, auto convert to data if text or pdf is feeded (e.g. data.txt)")
-    val outputName = trailArg[String](descr = "Output name")
-    
-    val ndt = opt[Boolean](default = Some(false), descr = "use Narrow Defined Topic for extraction and assignment")
-    val pem = opt[Boolean](default = Some(false), descr = "use Progressive EM for parameter estimation")
-    val format = opt[String](descr = "Specify data format if extension is not right, can be \"arff\", \"hlcm\", \"tuple\"")
-    val chinese = opt[Boolean](default = Some(false), 
-        descr = "use predefined setting for converting Chinese to data, only valid when conversion is needed")
-    val encoding = opt[String](default = Some("UTF-8"), descr = "Input text encoding, default UTF-8")
-
-    verify
-    checkDefaultOpts()
-  }
-
-  def main(args: Array[String]) {
-    val conf = new Conf(args)
-
-    //Simple default settings
-    //See tm.text.Convert for more options
-    val engSettings = tm.text.DataConverter.Settings(concatenations = 1, minCharacters = 3, maxWords = 1000,
-        wordSelector = tm.text.WordSelector.ByTfIdf(3, 0, .25), asciiOnly = true, 
-        stopWords = null)
-    val chiSettings = tm.text.DataConverter.Settings(concatenations = 1, minCharacters = 1, maxWords = 1000,
-        wordSelector = tm.text.WordSelector.ByTfIdf(1, 0, .25), asciiOnly = false, 
-        stopWords = null)
-    
-    val path = conf.data()
-    //Detect if data is converted
-    val (data, paths) = if(conf.format.isEmpty && !path.endsWith(".arff") && !path.endsWith(".hlcm") && !path.endsWith(".sparse.txt")){
-      implicit val settings = if(conf.chinese()) chiSettings else engSettings
-      //Converts a raw text / pdf to .sparse.txt file
-      //Allow external edits on paths before passing to BuildWebsite
-      val (_data, paths) = tm.text.Convert(conf.outputName(), conf.data(), encoding = conf.encoding())
-      _data.saveAsTuple(conf.outputName()+".sparse.txt")
-      (_data, paths)
-    }else{
-      (tm.util.Reader.readData(path, format = conf.format.toOption), null)
-    }
-    
-    val model = buildModel(data, conf.outputName(), PEM = conf.pem())
-    val topicTree = extractTopics(model, conf.outputName(), narrow = conf.ndt(), data = data)
-    topicTree.saveAsJson(conf.outputName()+".nodes.json")
-    val assignment = assignTopics(model, data)
-    assignment.saveAsJson(conf.outputName()+".topics.json")
-    //Generate one html file
-    topicTree.saveAsHtml(conf.outputName()+".simple.html")
-    //Generate a nice and pretty website, no server required
-    //Use paths as Document names
-    tm.hlta.BuildWebsite("./webiste/", conf.outputName(), conf.outputName(), topicTree = topicTree, assignment = assignment, docNames = paths)
   }
 }

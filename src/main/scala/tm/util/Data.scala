@@ -38,7 +38,7 @@ object Data{
     val tokenIndices = dictionary.map
     val variables = dictionary.info.map{wordInfo => _newVariable(wordInfo.token.identifier)}
     //variables.foreach { a => println(a.getName) }
-    val instances = tokenCountsSeq.zip(Stream from 1).map{ case(tokenCounts, index) => 
+    val instances = tokenCountsSeq.zipWithIndex.map{ case(tokenCounts, index) => 
       val values = _toBow(tokenIndices, tokenCounts)
       //Each instance has a unique name
       //Such that even data is cut, instance name remain the same as tokenCountsSeq's order
@@ -48,11 +48,8 @@ object Data{
   }
   
   private def binarize(value: Double): Double = if (value > 0) 1.0 else 0.0
-  private def binarize(variable: Variable): Variable = new Variable(variable.getName, new ArrayList(Seq("s0", "s1")))
-  
-//  object Instance{
-//    def apply(values: Array[Double], weight: Double, name: String = "") = new Instance(values, weight, name)
-//  }
+  //The idea of count data has been abandoned
+  //private def binarize(variable: Variable): Variable = new Variable(variable.getName, new ArrayList(Seq("s0", "s1")))
   
   case class Instance(val values: Array[Double], val weight: Double, val name: String = "") {    
     def copy(values: Array[Double] = values, weight: Double = weight, name: String = name) = new Instance(values, weight, name)
@@ -95,34 +92,6 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
   val logger = LoggerFactory.getLogger(Data.getClass)
   
   def copy(variables: IndexedSeq[Variable] = variables, instances: IndexedSeq[Data.Instance] = instances, isBinary: Boolean = isBinary) = new Data(variables, instances, isBinary)
-
-  //not necessary apply-s
-//  def apply(i: Int) : Data.Instance = instances(i)
-//  
-//  def apply(i: String) : Data.Instance = instances.find { instance => instance.name==Some(i) }.get
-//  
-//  def apply(i: Int, v: String): Double = {
-//    val pos = variables.zipWithIndex.find {case (variable, index) => variable.getName.equals(v) }
-//    if(pos.isEmpty)
-//      0.0
-//    else
-//      apply(i).apply(pos.get._2)
-//  }
-//  
-//  def apply(i: String, v: String): Double = {
-//    val pos = variables.zipWithIndex.find {case (variable, index) => variable.getName.equals(v) }
-//    if(pos.isEmpty)
-//      0.0
-//    else
-//      apply(i).apply(pos.get._2)
-//  }
-//  
-//  def apply(i: Int, j: Int): Double = {
-//    if(j>=variables.size)
-//      0.0
-//    else
-//      instances.apply(i).apply(j)
-//  }
   
   def tf(v: String): Double = tf(Seq[String](v))
   
@@ -146,12 +115,14 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
   
   def size() = instances.size
   
+  def dimension() = variables.size
+  
   def binary(): Data = {
     if(isBinary)
       this
     else
       copy(
-        variables = variables.map(Data.binarize),
+        variables = variables,//.map(Data.binarize),
         instances = instances.map(i =>
           i.copy(values = i.values.map(Data.binarize))),
         isBinary = true)
@@ -178,7 +149,7 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
 
   /**
    * Convert to DataSet (HLCM format)
-   * Note that HLCM format do not preserve ordering
+   * Note that HLCM format does not preserve ordering
    */
   def toHlcmDataSet(): DataSet = {
     val data = new DataSet(variables.toArray)
@@ -197,7 +168,7 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
 
   /**
    * Convert to SparseDataSet (the Tuple format)
-   * Note that tuple format itself is binary
+   * Note that this format is binary
    * 
    * Implementation refer to org.mymedialite.io.ItemData.Read
    */
@@ -206,7 +177,7 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
     val userMapping = new EntityMapping();
     val itemMapping = new EntityMapping();
 		instances.zipWithIndex.foreach{ case (instance, docSeq) =>
-      instance.values.zipWithIndex.filter { case (x, wordId) => x>=1.0 }.foreach{ case (x, wordId) => 
+      instance.values.zipWithIndex.filter { case (x, wordId) => x>=0.5 }.foreach{ case (x, wordId) => 
         val docId = if(instance.name.length()>0) instance.name else (docSeq+1).toString()
         val word = variables(wordId).getName
         val user_id = userMapping.toInternalID(docId)
@@ -216,19 +187,6 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
     }
 		new SparseDataSet(variables.toArray[Variable], userMapping, itemMapping, feedback)		
   }
-  
-//  /**
-//   * Convert to a structurally tuple form, but not wrapped with SparseDataSet (the Tuple format)
-//   */
-//  def toTuples: Seq[(String, String)] = {   
-//    instances.zipWithIndex.flatMap{ case (instance, docSeq) =>
-//      instance.values.zipWithIndex.filter { case (x, wordId) => x>=1.0 }.foreach { case (x, wordId) => 
-//        val docId = if(instance.name.length()>0) instance.name else (docSeq+1).toString()
-//        val word = variables(wordId)
-//        (docId, word)
-//      }
-//    }
-//  }
 
   def saveAsArff(filename: String, df: DecimalFormat = new DecimalFormat("#0.##")) = {
     ArffWriter.write(name, filename,
@@ -236,15 +194,34 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
       variables.map(_.getName), instances, df.format)
   }
   
+  /**
+   * Save as .hlcm
+   * 
+   * Note that,
+   * 1. this format is binary
+   * 2. this format does not preserve instance order
+   */
   def saveAsHlcm(filename: String) = {
     toHlcmDataSet().save(filename)
   }
   
   /**
-   * Save as SparseDataSet, see org.latlab.learner.SparseDataSet
+   * Save as .sparse.txt, see org.latlab.learner.SparseDataSet
+   * 
+   * Note that, this format is binary
    */
   def saveAsTuple(filename: String) = {
     TupleWriter.write(filename, variables.map(_.getName), instances)
+  }
+  
+  /**
+   * Save as .lda and .vocab
+   * 
+   * Note that, this format only takes integer
+   */
+  def saveAsLda(dataFileName: String, vocabFileName: String) = {
+    LdaWriter.writeData(dataFileName, instances)
+    LdaWriter.writeVocab(vocabFileName, variables.map(_.getName))
   }
   
   def project[A](vars: IndexedSeq[A]) = vars.head match {

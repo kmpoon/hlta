@@ -80,18 +80,24 @@ object BuildWebsite{
    * save all files to js so no ajax.get call is required
    * this allows to read website without setting up a server
    */
-  def apply(dir: String, outputName: String, title: String, topicTree: TopicTree = null, assignment: Assignment = null, docNames: GenSeq[String] = null){
+  def apply(dir: String, outputName: String, title: String, topicTree: TopicTree = null, catalog: DocumentCatalog = null, 
+      docNames: Seq[String] = null, docUrls: Seq[String] = null){
     if(topicTree!=null) topicTree.saveAsJs(outputName + ".nodes.js", jsVarName = "nodes")
-    if(assignment!=null) assignment.saveAsJs(outputName + ".topics.js", jsVarName = "topicMap")
-    if(docNames!=null) writeDocNames(docNames, s"${outputName}.titles.js")
+    if(catalog!=null) catalog.saveAsJs(outputName + ".topics.js", jsVarName = "topicMap")
+    if(docNames!=null) writeDocNames(docNames, s"${outputName}.titles.js", docUrls = docUrls)
     writeHtmlOutput(title, outputName, outputName + ".html")
     copyAssetFiles(Paths.get(dir))
   }
   
-  def writeDocNames(docNames: GenSeq[String], outputFile: String) = {
+  def writeDocNames(docNames: GenSeq[String], outputFile: String, docUrls: Seq[String] = null) = {
+    implicit class Escape(str: String){
+      def escape = StringEscapeUtils.escapeJavaScript(str)
+    }
+    
     val writer = new PrintWriter(outputFile)
     writer.println("var documents = [")
-    writer.println(docNames.map{docName=>"\""+StringEscapeUtils.escapeJavaScript(docName)+"\""}.mkString(",\n"))
+    if(docUrls==null)    writer.println(docNames.map{docName=>"\""+docName.escape+"\""}.mkString(",\n"))
+    else    writer.println(docNames.zip(docUrls).map{case(docName, docUrl)=>"[\""+docName.escape+"\",\""+docUrl.escape+"\"]"}.mkString(",\n"))
     writer.println("]")
     writer.close
   }

@@ -107,5 +107,5 @@ object TopicCompactness {
         normB += Math.pow(vectorB(i), 2)
     }   
     dotProduct / (Math.sqrt(normA * normB))
-}
+  }
 }
