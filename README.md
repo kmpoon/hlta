@@ -26,15 +26,23 @@ An IJCAI tutorial and demonstration can be found at:
 
 - Download the `HLTA.jar` and `HLTA-deps.jar` from the [Releases page](https://github.com/kmpoon/hlta/releases).
 
-- An all-in-one command brings you through data conversion, model building, topic extraction and topic assignment.
+- An all-in-one command for hierarchical topic detection. It brings you through data conversion, model building, topic extraction and topic assignment.
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA ./quickstart modelName
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HTD ./quickstart someName
    ``` 
 
   If you are in windows, remember to use semicolon instead
    ```
-   java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HLTA ./quickstart modelName
+   java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HTD ./quickstart someName
    ``` 
+   The output files include:
+  * `model.bif`: HLTA model file
+  * `someName.html`: HTML file for the topic tree
+  * `someName.nodes.js`: a topic tree
+  * `someName-topics.js`: a document catalog grouped by topics
+  * `someName-topics.arff`: a doc2vec assignment in arff format
+  * `lib`: Javascript and CSS files required by the main HTML file
+  * `fonts`: fonts used by some CSS files
    
 - You can also do
    ```
@@ -48,8 +56,10 @@ An IJCAI tutorial and demonstration can be found at:
    Lorem ipsum dolor sit amet, consectetur adipiscing elit
    Maecenas in ligula at odio convallis consectetur eu ut erat
    ```
+   
+ - You may also run through the following subroutines to do  data conversion, model building, topic extraction and topic assignment step by step.
 
-# Convert Text Files to Data
+# Subroutine 1: Convert Text Files to Data
  
 - Convert text files to bag-of-words representation with 1000 words and 1 concatenation:
    ```
@@ -67,50 +77,46 @@ An IJCAI tutorial and demonstration can be found at:
    ./source/Folder1/Folder2/Folder3/HiddenSecret.txt
    ```
 
-# Model Building
+# Subroutine 2: Model Building
 
-- Build model through StepwiseEM with maximum 50 em steps
+- Build model through with maximum 50 em steps
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.StepwiseEmBuilder data.sparse.txt 50 modelName
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA data.sparse.txt 50 modelName
    ```
 The output files include:
   * `model.bif`: HLTA model file
 
-- Or if you want Progressive EM, use `ProgressiveEmBuilder` instead:
-   ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ProgressiveEmBuilder data.sparse.txt 50 modelName
-   ```
-
-# Extract Topic Hierarchies
+# Subroutine 3: Extract Topic Trees
 
 - Exract topic from topic model
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopics topicTreeName model.bif
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopicTree someName model.bif data.sparse.txt
    ```
 
   The output files include:
-  * `topicTreeName.html`: HTML file for the topic tree
-  * `topicTreeName.nodes.js`: data for the topic nodes
+  * `someName.html`: a webiste
+  * `someName.nodes.js`: a topic tree stored in javascript
   * `lib`: Javascript and CSS files required by the main HTML file
   * `fonts`: fonts used by some CSS files
 
-- If you want to extract narrowly defined topics, you can use `ExtractNarrowTopics` instead:
+- You may use the "broadly defined topics" to speed up the process. Under this definition, more document will be categorized into a topic.
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractNarrowTopics topicTreeName model.bif data.sparse.txt
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopicTree --broad someName model.bif
    ```
 
-# Assign Topics to Documents
+# Subroutine 4: Doc2Vec Assignment
 
 - Find out which documents belongs to that topic (i.e. inference)
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.AssignBroadTopics topicTreeName model.bif data.sparse.txt outputName
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.Doc2VecAssignment model.bif data.sparse.txt outputName
    ```
   The output files include:
-  * `output.nodes.json`: topic assignments
+  * `output-topics.json`: a document catalog grouped by topic
+  * `output-topics.arff`: doc2vec assignments in arff format
 
-- If you want to use narrowly defined topics, you can use `AssignNarrowTopics` instead:
+- You may use the "broadly defined topics" to speed up the process. Under this definition, more document will be categorized into a topic.
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.AssignNarrowTopics topicTreeName model.bif data.sparse.txt outputName
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.Doc2VecAssignment --broad model.bif data.sparse.txt outputName
    ``` 
   
 # Evaluate Topic Model
@@ -137,59 +143,6 @@ The output files include:
    ```
    sbt clean assembly assemblyPackageDependency && ./rename-deps.sh
    ```
-   
-# Original HLTA
-
-The original HLTA algorithm published in the paper [*Latent Tree Models for Hierarchical Topic Detection.*]. 
-
-- To build the model with PEM:
-   ```
-   java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.hlcm 50  5  0.01 3 model 15 20
-   ```
-
-   Where: `sample.hlcm` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
-
-   The full parameter list is: `PEM training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top`.  The numerical parameters can be divided into two parts:
-
-
-   * EM parameters:
-     * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
-     * `num_EM_restarts`: Number of restarts in EM (e.g. 5).
-     * `EM_threshold`: Threshold of improvement to stop EM (e.g. 0.01).
-   * Model construction parameters:
-     * `UD_test_threshold`: The threshold used in unidimensionality test for constructing islands (e.g. 3).
-     * `max_island`: Maximum number of variables in an island (e.g. 10).
-     * `max_top`: Maximum number of variables in top level (e.g. 15).
-     
-- You can get HLCM format for PEM through
-   ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --output-hlcm datasetName ./source 1000
-   ```
-
-- To run the HLTA using **stepwise EM**, replace the main class `PEM` by `StepwiseEMHLTA`, and build the model using 
-
-   ```
-   java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StepwiseEMHLTA  sample.sparse.txt 50  5  0.01 3 model 10 15 1000 10 128 8000
-   ```
-
-   Where: `sample.sparse.txt` the name of the binary data file, `model` is the name of output model file (the full name will be `model.bif`). 
-
-   The full parameter list is: `StepwiseEMHLTA training_data max_EM_steps num_EM_restarts EM_threshold UD_test_threshold model_name max_island max_top global_batch_size global_max_epochs global_max_EM_steps struct_batch_size`.  The numerical parameters can be divided into three parts:
-
-   * Local EM parameters:
-     * `max_EM_steps`: Maximum number of EM steps (e.g. 50).
-     * `num_EM_restarts`: Number of restarts in EM (e.g. 5).
-     * `EM_threshold`: Threshold of improvement to stop EM (e.g. 0.01).
-   * Model construction parameters:
-     * `UD_test_threshold`: The threshold used in unidimensionality test for constructing islands (e.g. 3).
-     * `max_island`: Maximum number of variables in an island (e.g. 10).
-     * `max_top`: Maximum number of variables in top level (e.g. 15).
-   * Global parameters:
-     * `global_batch_size`: Number of data cases used in each stepwise EM step (e.g. 1000).
-     * `global_max_epochs`: Number of times the whole training dataset has been gone through (e.g. 10).
-     * `global_max_EM_steps`: Maximum number of stepwise EM steps (e.g. 128).
-     * `struct_batch_size`: Number of data cases used for building model structure.
-
 
 # Enquiry
 
