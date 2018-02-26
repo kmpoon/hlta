@@ -17,7 +17,7 @@ object ExtractTopicTree {
     banner("Usage: tm.hlta.ExtractTopicTree [OPTION]... name model")
     val name = trailArg[String](descr = "Name of files to be generated")
     val model = trailArg[String](descr = "Name of model file (e.g. model.bif)")
-    val data = trailArg[String](default = None, descr = "Data file, if using --broad, this is not required")
+    val data = trailArg[String](required = false, descr = "Data file, if using --broad, this is not required")
     
     val broad = opt[Boolean](default = Some(false), descr = "use broad defined topic, run faster but more document will be categorized into the topic")
     val title = opt[String](default = Some("Topic Tree"), descr = "Title in the topic tree")
@@ -25,6 +25,11 @@ object ExtractTopicTree {
     val keywords = opt[Int](default = Some(7), descr = "number of keywords for each topic")
     val tempDir = opt[String](default = Some("topic_output"),
       descr = "Temporary output directory for extracted topic files (default: topic_output)")
+      
+    verify
+    checkDefaultOpts()
+    if(data.isEmpty && !broad())
+      throw new Exception("Missing parameter data or missing option --broad")
   }
 
   def main(args: Array[String]) {
