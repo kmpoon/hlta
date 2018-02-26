@@ -9,6 +9,8 @@ import tm.hlta.Reader
 import org.apache.commons.compress.compressors.CompressorStreamFactory
 import java.io.FileInputStream
 import java.io.BufferedInputStream
+import scala.io.Source
+import scala.annotation.tailrec
 
 object ConvertDataToLDAFormat {
   class Conf(args: Seq[String]) extends Arguments(args) {
@@ -82,4 +84,60 @@ object ConvertDataToLDAFormat {
   }
 
   def isInteger(d: Double) = Math.floor(d) == d
+}
+
+object ConvertLDATopicsToList {
+  class Conf(args: Seq[String]) extends Arguments(args) {
+    banner(s"Usage: tm.util.ConvertLDATopicsToList [OPTION]... topic_file")
+    val topicFile = trailArg[String](descr = "Topic file resulted from LDA-c.")
+
+    verify
+    checkDefaultOpts()
+  }
+
+  val NameRegex = raw"(.*?)\._(\w{6})\.topics.txt".r
+
+  def main(args: Array[String]) {
+    val conf = new Conf(args)
+    val inputName = conf.topicFile()
+
+    val outName = if (inputName.endsWith(".topics.txt")) {
+      inputName.replaceAll("topics.txt$", "topic-list.txt")
+    } else {
+      inputName + ".topic-list.txt"
+    }
+
+    val topics = extract(inputName)
+
+    manage(new PrintWriter(outName)) { w =>
+      topics.foreach { t =>
+        w.println(t.mkString(" "))
+      }
+    }
+  }
+
+  def extract(file: String): Seq[Seq[String]] = {
+    manage(Source.fromFile(file)("utf-8")) { s =>
+      @tailrec
+      def loop(lines: Iterator[String], topics: List[List[String]], current: List[String]): List[List[String]] = {
+        if (lines.hasNext) {
+          val l = lines.next
+          if (l.startsWith("topic "))
+            loop(lines, topics, current) // skip
+          else if (l.isEmpty()) {
+            if (current.isEmpty)
+              loop(lines, topics, current) // skip
+            else
+              loop(lines, current.reverse +: topics, Nil)
+          } else {
+            val word = l.trim
+            loop(lines, topics, word +: current)
+          }
+        } else
+          topics.reverse
+      }
+
+      loop(s.getLines, Nil, Nil)
+    }
+  }
 }
