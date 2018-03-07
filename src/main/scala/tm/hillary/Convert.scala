@@ -38,7 +38,6 @@ object Convert {
     import Parameters.implicits.settings
 
     logger.info("Extracting bodies")
-    implicit val asciiOnly = settings.asciiOnly
     val bodies = Emails.readEmailsFromDefaultPath.map{email =>
       //Was changed during Jan 2018 update
       //Not yet tested

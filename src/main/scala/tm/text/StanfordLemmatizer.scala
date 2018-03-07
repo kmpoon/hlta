@@ -25,12 +25,6 @@ object StanfordLemmatizer {
     println(d.sentences.map(_.tokens.mkString(", ")).mkString("\n"))
   }
 
-//<<<<<<< HEAD
-//  def process(text: String): Document = {
-//    val document = new edu.stanford.nlp.simple.Document(text)
-//    val sentences = document.sentences.map(_.lemmas.map(NGram.apply)).map(Sentence.apply(_))
-//    Document(sentences)
-//=======
   def process(text: String, lemmatization: Boolean = true,
     sentenceSplitting: Boolean = true): Document = {
 
@@ -46,7 +40,6 @@ object StanfordLemmatizer {
 
     val sentences = ss.map(lemmatize).map(ts => Sentence(ts.map(NGram.apply)))
     Document(sentences.toSeq)
-//>>>>>>> f44974702e26234529c78677032e06e3b39a691e
   }
 
   def processAsSentence(s: String): Sentence = {

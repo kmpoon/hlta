@@ -37,7 +37,6 @@ object Data{
     
     val tokenIndices = dictionary.map
     val variables = dictionary.info.map{wordInfo => _newVariable(wordInfo.token.identifier)}
-    //variables.foreach { a => println(a.getName) }
     val instances = tokenCountsSeq.zipWithIndex.map{ case(tokenCounts, index) => 
       val values = _toBow(tokenIndices, tokenCounts)
       //Each instance has a unique name

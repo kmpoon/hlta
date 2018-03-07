@@ -1,7 +1,7 @@
 package tm.text
 
 object WordSelector {
-  def Basic(minCharacters: Int, minTf: Int, minDf: (Int) => Int): WordSelector = {
+  def basic(minCharacters: Int, minTf: Int, minDf: (Int) => Int): WordSelector = {
     new WordSelector {
       def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = (
         ws.filter(w =>
@@ -27,7 +27,7 @@ object WordSelector {
    * collection of words will have at most {@code maxWords} number of
    * words.
    */
-  def ByTfIdf(minCharacters: Int = 3, minDfFraction: Double = 0,
+  def byTfIdf(minCharacters: Int = 3, minDfFraction: Double = 0,
     maxDfFraction: Double = 0.25): WordSelector =
     new WordSelector {
       def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
@@ -46,22 +46,34 @@ object WordSelector {
           (filteredAndSortedWords, frequentWords)
         }
 
-        val (selected, minTfIdf) =
-          if (eligibleWords.size > maxWords) {
-            // using the tf-idf of the (maxWords+1)-th word as minimum
-            val minTfIdf = eligibleWords(maxWords).tfidf
-            val s = eligibleWords.takeWhile(_.tfidf > minTfIdf)
-            (s, minTfIdf)
-          } else {
-            val minTfIdf = eligibleWords.last.tfidf
-            (eligibleWords, minTfIdf)
-          }
+//        val (selected, minTfIdf) =
+//          if (eligibleWords.size > maxWords) {
+//            // using the tf-idf of the (maxWords+1)-th word as minimum
+//            val minTfIdf = eligibleWords(maxWords).tfidf
+//            val s = eligibleWords.takeWhile(_.tfidf > minTfIdf)
+//            (s, minTfIdf)
+//          } else {
+//            val minTfIdf = eligibleWords.last.tfidf
+//            (eligibleWords, minTfIdf)
+//          }
+          //Since eligible are already sorted by tfidf
+          val selected = eligibleWords.take(maxWords)
+          val minTfIdf = if(selected.isEmpty) 0 else selected.last.tfidf
 
-        (selected, frequentWords.filter(_.tfidf > minTfIdf).map(_.token).toSet)
+        (selected, frequentWords.filter(_.tfidf >= minTfIdf).map(_.token).toSet)
       }
 
       val description = s"Select tokens by TF-IDF. Min characters: ${minCharacters}, minDfFraction: ${minDfFraction}, maxDfFraction: ${maxDfFraction}."
     }
+  
+  def byBurstiness() = {
+    
+  }
+  
+  def mixed() = {
+    
+  }
+  
 }
 
 sealed trait WordSelector {

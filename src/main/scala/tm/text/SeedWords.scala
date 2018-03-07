@@ -10,8 +10,12 @@ class SeedTokens(val tokens: Seq[NGram]) {
     if (tokens.length > 0) tokens.map(_.words.size).max else 0
 
   def contains(ngram: NGram) = set.contains(ngram)
+  
+  def involves(ngram: NGram) = set.exists(_.involves(ngram))
+  
+  def sort() = tokens.sortBy { token => -token.words.size }
 }
 
 object SeedTokens {
-  def read(file: String): SeedTokens = new SeedTokens(NGram.readFile(file))
+  def read(file: String)(enc: String): SeedTokens = new SeedTokens(NGram.readFile(file)(enc))
 }

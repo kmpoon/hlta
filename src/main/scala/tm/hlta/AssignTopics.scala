@@ -186,7 +186,7 @@ private class NarrowTopicExtractor(model: LTM, data: Data, layer: Option[List[In
       
     logCompute(latent)
     
-    val indices = observed.map(data.variables.indexOf)
+    val indices = observed.map(data.variables.indexOf).filterNot(_ == -1)
     val probabilities = data.instances.map { i =>
       if (indices.map(i.values.apply).find(_ > 0.0).isDefined)
         1.0

@@ -84,6 +84,7 @@ object HTD {
     val chinese = opt[Boolean](default = Some(false), 
         descr = "use predefined setting for converting Chinese to data, only valid when conversion is needed")
     val vocabSize = opt[Int](default = Some(1000), descr = "Vocabulary size")
+    val concat = opt[Int](default = Some(2), descr = "Vocabulary concatenation")
     val topLevelTopics = opt[Int](default = Some(15), descr = "Number of topics on the root level of the topic tree")
         
     val encoding = opt[String](default = Some("UTF-8"), descr = "Input text encoding, default UTF-8")
@@ -102,12 +103,10 @@ object HTD {
 
     //Simple default settings
     //See tm.text.Convert for more options
-    val engSettings = tm.text.DataConverter.Settings(concatenations = 1, minCharacters = 3, maxWords = conf.vocabSize(),
-        wordSelector = tm.text.WordSelector.ByTfIdf(3, 0, .25), asciiOnly = true, 
-        stopWords = null)
+    val engSettings = tm.text.DataConverter.Settings(concatenations = conf.concat(), minCharacters = 3, maxWords = conf.vocabSize(),
+        wordSelector = tm.text.WordSelector.byTfIdf(3, 0, .25), stopWords = null)
     val chiSettings = tm.text.DataConverter.Settings(concatenations = 1, minCharacters = 1, maxWords = conf.vocabSize(),
-        wordSelector = tm.text.WordSelector.ByTfIdf(1, 0, .25), asciiOnly = false, 
-        stopWords = null)
+        wordSelector = tm.text.WordSelector.byTfIdf(1, 0, .25), stopWords = null)
     implicit val settings = if(conf.chinese()) chiSettings else engSettings
 
     //Check if path is a dir or a file
@@ -121,7 +120,7 @@ object HTD {
         throw new IllegalArgumentException("No txt/pdf files found files under " + dir)
       }
       //Convert raw text/pdf to .sparse.txt format
-      val data = tm.text.Convert(conf.name(), paths = files, encoding = conf.encoding())
+      val data = tm.text.Convert(conf.name(), paths = files, encoding = conf.encoding(), asciiOnly = !conf.chinese())
       (data, files)
     }else if(conf.format.isEmpty && !path.endsWith(".arff") && !path.endsWith(".hlcm") && !path.endsWith(".sparse.txt")){
       //Converts raw text / pdf to .sparse.txt file
@@ -134,13 +133,13 @@ object HTD {
       (data, null)
     }
     
-    val model = HLTA(data.toTupleSparseDataSet(), conf.name(), maxTop = conf.topLevelTopics())
+    val model = HLTA(data, conf.name(), maxTop = conf.topLevelTopics())
     val topicTree = extractTopicTree(model, conf.name(), broad = conf.broad(), data = data)
     topicTree.saveAsJson(conf.name()+".nodes.json")
     val catalog = buildDocumentCatalog(model, data, broad = conf.broad())
     catalog.saveAsJson(conf.name()+".topics.json")
     //Generate one html file
-    topicTree.saveAsHtml(conf.name()+".simple.html")
+    topicTree.saveAsHtml(conf.name()+".nodes.simple.html")
     
     val docNames = if(files!=null)
       files.map{file => file.getFileName.toString()}

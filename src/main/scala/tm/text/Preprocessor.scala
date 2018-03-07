@@ -16,37 +16,48 @@ import scala.util.matching.Regex
 import scala.util.matching.Regex.Match
 import tm.util.ParMapReduce
 
+/**
+ * Preprocessor meant to be an API for HLTA users
+ * See https://nlp.stanford.edu/software/tmt/tmt-0.4/ for reference
+ */
 object Preprocessor {
   type TokenCounts = Map[NGram, Int]
   
-  def preprocess(text: String, minChars: Int = 4, asciiOnly: Boolean = true) = asciiOnly match{
-    case true => preprocessAscii(text, minChars)
-    case false => preprocessNonAscii(text)
-  }
+  /**
+   * A simple English pre-built preprocessor
+   * 
+   * originally called preprocessor(minChars: Int)(s: Sentence)
+   */
+  def EnglishPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.Empty()): Seq[String] = 
+    tokenizeBySpace(s)
+    .map(_.toLowerCase)
+    .map(normalize)
+    .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
+    .map(replaceNonAlnum)
+    .map(replaceStartingDigit)
+    .filter(withProperLength(minChars))
+    .filterNot(stopwords.contains)
+    
+  /**
+   * A simple Chinese pre-built preprocessor
+   * 
+   * Need to toknize words by space in advance
+   * TODO: add Chinese tokenizer
+   */
+  def ChinesePreprocessor(s: String, stopwords: StopWords = StopWords.Empty()): Seq[String] = 
+    tokenizeBySpace(s)
+    .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
+    .map(replaceNonAlnum)
+    .map(replaceStartingDigit)
+    .filterNot(stopwords.contains)
   
-  private def preprocessNonAscii(text: String) = {
-
-    def convert(original: String) = {
-      val conversions =
-        ("'", "") +:
-          (s"\\b[0-9]+\\b" -> " ") +: //remove words start with numbers
-          ("^\\s+" -> "") +:
-          ("\\s+$" -> "") +:
-          Nil
-
-      conversions.foldLeft(original) {
-        (text, rule) => text.replaceAll(rule._1, rule._2)
-      }
-    }
-
-    convert(normalize(text.toLowerCase))
-  }
-
   /**
    * Performs normalization (removing accents), removes punctuation, words
    * shorter than 4 characters, and change letters to lower case.
+   * Shall be removed in the future
    */
-  private def preprocessAscii(text: String, minChars: Int) = {
+  @Deprecated
+  def preprocess(text: String, minChars: Int = 4) = {
 
     def convert(original: String) = {
       val conversions = {
@@ -72,55 +83,58 @@ object Preprocessor {
 
     convert(normalize(text.toLowerCase))
   }
+  
 
-  val replaceNonAlnum = ("\\P{Alnum}".r, (m: Match) => "_")
-  val replaceStartingDigit = ("^(\\p{Digit})".r, (m: Match) => s"_${m.group(1)}")
+  //Tokenization methods
+  
+  def tokenizeBySpace(text: String): Seq[String] = tokenizeByRegex(text, "\\s+")
+  
+  def tokenizeByRegex(text: String, regex: String): Seq[String] = 
+    //It needs to handle the case of an empty string, otherwise an array
+    //containing a single element of empty string will be returned.
+    if (text.isEmpty) Array.empty[String]
+    else text.split(regex)
+
+  
+  //Replacement  
+  
+  val NonAlnum = "\\P{Alnum}".r
+  val Digit = "^(\\p{Digit})".r
 
   def useRegexToReplace(pair: (Regex, (Match) => String)) = pair match {
     case (r, m) => (input: String) => r.replaceAllIn(input, m)
   }
   
-  /**
-   * Another way to preprocess.  This is probably the right way to do it.
+  def replaceNonAlnum(input: String): String = NonAlnum.replaceAllIn(input, (m: Match) => "")
+  
+  def replaceStartingDigit(input: String): String = Digit.replaceAllIn(input, (m: Match) => s"${m.group(1)}")
+  
+  def removeAccents(input: String): String = input.replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
+  
+  /** 
+   *  Perform compatibility decomposition, followed by canonical composition, 
+   *  to convert ligature (fi) and remove accents
    */
-  def preprocess(minChars: Int)(s: Sentence)(
-    implicit stopwords: StopWords): Seq[String] = s.tokens
-    .map(_.toString.toLowerCase)
-    .map(normalize)
-    .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
-    .map(useRegexToReplace(replaceNonAlnum))
-    .map(useRegexToReplace(replaceStartingDigit))
-    .filter(withProperLength(minChars))
-    .filterNot(stopwords.contains)
-
-  def withProperLength(min: Int)(word: String) =
+  def normalize(text: String): String = Normalizer.normalize(text, Normalizer.Form.NFKC)
+      
+  
+  //Condition
+  
+  def withProperLength(min: Int)(word: String) = 
     word.replaceAll("[^\\p{Alpha}\\n]+", "").length >= min
 
-  // Perform compatibility decomposition, followed by canonical composition, 
-  // to convert ligature (fi) and remove accents
-  def normalize(text: String) =
-    Normalizer.normalize(text, Normalizer.Form.NFKC)
-      .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
 
   //    def filter(counts: WordCounts): WordCounts = {
   //        counts.filter(_._2 >= 5)
   //    }
-
-  /**
-   * A 1-gram tokenizer, for higher grams, use DataConverter.countTokensWithNGrams after tokenizeBySpace
-   */
-  def tokenizeBySpace(text: String): Seq[String] =
-    // It needs to handle the case of an empty string, otherwise an array
-    // containing a single element of empty string will be returned.
-    if (text.isEmpty) Array.empty[String]
-    else text.split("\\s+")
-
+  
+  @Deprecated
   def tokenizeAndRemoveStopWords(text: String)(
     implicit stopWords: StopWords): Seq[String] =
     tokenizeBySpace(text).filterNot(_.isEmpty).filterNot(stopWords.contains)
 
   /**
-   * Returns a list of n-grams built from the sequence of words.
+   * Builds n-gram from a slide window of length n.
    */
   def buildNGrams(words: Seq[String], n: Int): Seq[NGram] =
     if (n <= 1) words.map(NGram(_))
@@ -135,7 +149,7 @@ object Preprocessor {
 
   def tokenizeAndCount(text: String, n: Int = 1)(implicit stopWords: StopWords) =
     DataConverter.countTokens(
-      find1ToNGrams(tokenizeAndRemoveStopWords(text), n).flatten)
+      find1ToNGrams(tokenizeBySpace(text).filterNot(_.isEmpty).filterNot(stopWords.contains), n).flatten)
 
   //    def add(p1: TokenCounts, p2: TokenCounts): TokenCounts = {
   //        type mutableMap = mutable.Map[NGram, Int]
@@ -152,6 +166,9 @@ object Preprocessor {
   //        p2.foldLeft(map)(add).toMap
   //    }
 
+      
+  //TODO: proceed to move buildDictionary and its related methods to Dictionary
+      
   def sumWordCounts(countsByDocuments: GenSeq[TokenCounts]) =
     countsByDocuments.reduce(_ |+| _)
 
@@ -247,6 +264,10 @@ object Preprocessor {
     sentence: Sentence, check: (NGram) => Boolean): Sentence = {
     new Sentence(replaceConstituentTokensByNGrams(sentence.tokens, check))
   }
+  
+  def replaceByNGrams(sentence: Sentence, check: (NGram) => Boolean, n: Int): Sentence = {
+    new Sentence(replaceByNGrams(sentence.tokens, check, n))
+  }
 
   /**
    * Replaces the constituent words in the token sequence by the n-grams.
@@ -297,5 +318,14 @@ object Preprocessor {
     }
 
     process(State(Nil, tokens, Queue.empty)).result.reverse
+  }
+  
+  def main(args: Array[String]){
+    //val s = "testing string and some more testing string"
+    import scala.io.Source
+    val s = Source.fromFile("./docSample/3D Human Pose Estimation = 2D Pose Estimation + Matching.txt").getLines().mkString(" ")
+    val ss = EnglishPreprocessor(s)
+    
+    println(ss.mkString(","))
   }
 }

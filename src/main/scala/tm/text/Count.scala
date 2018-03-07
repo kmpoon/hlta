@@ -19,7 +19,7 @@ object Count {
     val source = Paths.get(args(0))
     val paths = FileHelpers.findFiles(source, "txt").map(source.resolve)
     val stat = mapReduce(paths.par)(Convert.readFile { f =>
-      val content = f.flatten
+      val content = f.map(Preprocessor.tokenizeBySpace(_)).flatten
       Stats(1, content.size, content.toSet)
     })(_ + _)
 

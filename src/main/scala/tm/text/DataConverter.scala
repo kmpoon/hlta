@@ -58,9 +58,9 @@ object DataConverter {
     implicit settings: Settings): (GenSeq[TokenCounts], Dictionary) = {
     import settings._
 
-    def replaceByNGrams(ds: GenSeq[Document], check: NGram => Boolean) = {
+    def replaceByNGrams(ds: GenSeq[Document], check: NGram => Boolean, concat: Int = 2) = {
       ds.map(_.sentences.map(s =>
-        Preprocessor.replaceConstituentTokensByNGrams(s, check)))
+        Preprocessor.replaceByNGrams(s, check, concat)))
         .map(ss => new Document(ss))
     }
 
@@ -121,16 +121,6 @@ object DataConverter {
         documents
       else {
         logger.info("Replacing constituent tokens by n-grams after {} concatenations", n)
-//<<<<<<< HEAD
-//        documents.map(_.sentences.map(s =>
-//          Preprocessor.replaceConstituentTokensByNGrams(s, dictionary.map.contains(_))))
-//          .map(ss => Document(ss))
-//      }
-//
-//      if (n == settings.concatenations) (documentsWithLargerNGrams, dictionary)
-//      else loop(documentsWithLargerNGrams,
-//        Some(dictionary), frequentWords ++ currentFrequent, n + 1)
-//=======
         replaceByNGrams(documents, dictionary.map.contains)
       }
 
@@ -138,17 +128,25 @@ object DataConverter {
         (documentsWithLargerNGrams, dictionary)
       else loop(documentsWithLargerNGrams, Some(dictionary),
         frequentWords ++ currentFrequent, n + 1)
-//>>>>>>> f44974702e26234529c78677032e06e3b39a691e
     }
 
     logger.info(
       "Using the following word selector. {}",
       settings.wordSelector.description)
 
-    val ds = seeds.map { sf =>
-      logger.info("Replacing constituent tokens by seed tokens")
-      replaceByNGrams(documents, sf.contains)
-    }.getOrElse(documents)
+    val ds = {
+      if(seeds.isDefined){
+        logger.info("Replacing constituent tokens by seed tokens")
+        //Seed tokens sorted in descending order of length
+        val seedTokensByLength = seeds.get.tokens.groupBy{ token => token.words.length }.toList.sortBy(-_._1)
+        var documentsWithLargerNGrams = documents
+        seedTokensByLength.foreach{ case(tokenLength, tokens) =>
+          documentsWithLargerNGrams = replaceByNGrams(documentsWithLargerNGrams, tokens.contains, tokenLength)
+        }
+        documentsWithLargerNGrams
+      }else
+        documents
+    }
 
     logger.info("Extracting words")
     val (newDocuments, dictionary) = loop(ds, None, Set.empty, 0)
@@ -298,25 +296,19 @@ object DataConverter {
    * minDf is computed when the number of documents is given.
    */
   class Settings(val concatenations: Int, val minCharacters: Int, val maxWords: Int,
-    val wordSelector: WordSelector, val asciiOnly: Boolean, 
-    val stopWords: StopWords, val seedWords: Option[SeedTokens])
+    val wordSelector: WordSelector, val seedWords: Option[SeedTokens])
 
   object Settings{
     def apply(concatenations: Int = 0, minCharacters: Int = 3, maxWords: Int = 1000,
         minTf: Int = 6, minDf: (Int) => Int = (Int) => 6, 
-        wordSelector: WordSelector = null, asciiOnly: Boolean = true, 
+        wordSelector: WordSelector = null,
         stopWords: String = null, seedWords: Option[SeedTokens] = None): Settings = {
       val _wordSelector = wordSelector match{
-        case null => WordSelector.Basic(minCharacters, minTf, minDf)
+        case null => WordSelector.basic(minCharacters, minTf, minDf)
         case _ => wordSelector
       }
-      
-      val _stopWords = stopWords match{
-        case null => StopWords.implicits.default
-        case _ => logger.info("Reading stopword file"); StopWords.read(stopWords)
-      }
         
-      new Settings(concatenations, minCharacters, maxWords, _wordSelector, asciiOnly, _stopWords, seedWords)
+      new Settings(concatenations, minCharacters, maxWords, _wordSelector, seedWords)
     }
     
     //Unable to support following methods now

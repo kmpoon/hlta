@@ -73,7 +73,7 @@ object HLTA {
    * 
    * Parameter follows the suggested numbers in cluster.StepwiseEMHLTA
    */
-  def apply(data: SparseDataSet, modelName: String, ldaVocab: String = null, maxThread: Option[Int] = None,
+  def apply(data: Data, modelName: String, ldaVocab: String = null, maxThread: Option[Int] = None,
       emMaxStep: Int = 50, emNumRestart: Int = 3, emThreshold: Double = 0.01,
       udThreshold: Int = 3, maxIsland: Int = 15, maxTop: Int = 30, 
       globalBatchSize: Int = 500, globalMaxEpochs: Int = 10, globalMaxEmSteps: Int = 100, 
@@ -81,7 +81,7 @@ object HLTA {
     
     val _sizeFirstBatch = if(structBatchAll) "all"
       else if(structBatchSize.isEmpty){//auto determine structBatchSize
-        if(data.getNumOfDatacase > 10000) 5000.toString() else "all"
+        if(data.size > 10000) 5000.toString() else "all"
       }else{          
         structBatchSize.toString()
       }
@@ -89,7 +89,7 @@ object HLTA {
       Parallelism.instance().setLevel(maxThread.get)
       
     val builder = new clustering.StepwiseEMHLTA()
-    builder.initialize(data, emMaxStep, emNumRestart, emThreshold, udThreshold, modelName, maxIsland, maxTop, globalBatchSize, globalMaxEpochs,
+    builder.initialize(data.toTupleSparseDataSet(), emMaxStep, emNumRestart, emThreshold, udThreshold, modelName, maxIsland, maxTop, globalBatchSize, globalMaxEpochs,
           globalMaxEmSteps, _sizeFirstBatch)
     builder.IntegratedLearn()
       

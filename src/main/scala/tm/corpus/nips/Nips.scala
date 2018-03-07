@@ -173,7 +173,7 @@ object ExtractText {
       val sentences = StanfordLemmatizer
         .process(t, lemmatization, sentenceSplitting).sentences
 
-      sentences.map(Preprocessor.preprocess(minChars))
+      sentences.map(s => Preprocessor.EnglishPreprocessor(s.toString, minChars))
     }
   }
 

@@ -38,7 +38,7 @@ object Convert {
       descr = "Maximum fraction of documents that a token can appear to be selected. Default: 0.25")
     val seedFile = opt[String](descr = "File containing tokens to be included, regardless of other selection criteria.")
     val seedNumber = opt[Int](descr = "Number of seed tokens to be included. Need to be specified when seed file is given.")
-    val stopWords = opt[String](default = None, descr = "stopword file, default \"stopwords-lewis.csv\" inside the package")
+    val stopWords = opt[String](default = None, descr = "File of blacklist words, default \"stopwords-lewis.csv\" inside the package")
     
     val inputExt = opt[List[String]](default = Some(List("txt", "pdf")), descr = "Look for these extensions if a directory is given, default \"txt pdf\"")
     val inputEncoding = opt[String](default = Some("UTF-8"), descr = "Input .txt encoding, default UTF-8, see java.nio.charset.Charset for available encodings")
@@ -54,20 +54,17 @@ object Convert {
   def main(args: Array[String]) {
     val conf = new Conf(args)
     
-    val seed = conf.seedFile.toOption.map(s => SeedTokens.read(s))
+    val seed = conf.seedFile.toOption.map(s => SeedTokens.read(s)(conf.inputEncoding()))
     for (s <- seed) {
-      if (s.max > 2) throw new IllegalArgumentException(
-        s"The file ${conf.seedFile} contains n-grams with n = ${s.max}. Currently only n = 2 is supported.")
-
-      logger.info("Using seed tokens from file: {}", conf.seedFile)
+      logger.info("Using seed tokens from file: {}", conf.seedFile())
     }
+    
+    logger.info("Reading stopword file"); 
+    val stopWords = if(conf.stopWords.isDefined) StopWords.read(conf.stopWords()) else StopWords.EnglishStopwords()
 
     implicit val settings =
       DataConverter.Settings(concatenations = conf.concat(), minCharacters = conf.minChar(), maxWords = conf.maxWords(),
-        wordSelector = WordSelector.ByTfIdf(
-          conf.minChar(), conf.minDocFraction(),
-          conf.maxDocFraction()), asciiOnly = !conf.nonAscii(), 
-        stopWords = if(conf.stopWords.isDefined) conf.stopWords() else null,
+        wordSelector = WordSelector.byTfIdf(conf.minChar(), conf.minDocFraction(), conf.maxDocFraction()),
         seedWords = if(conf.seedFile.isDefined) seed else None)
 
     val path = Paths.get(conf.source())
@@ -86,9 +83,9 @@ object Convert {
       paths.foreach(writer.println)
       writer.close
       
-      apply(conf.name(), paths = paths, encoding = conf.inputEncoding())
+      apply(conf.name(), paths = paths, encoding = conf.inputEncoding(), stopwords = stopWords)
     }else{
-      apply(conf.name(), path = path, encoding = conf.inputEncoding())
+      apply(conf.name(), path = path, encoding = conf.inputEncoding(), stopwords = stopWords)
     }
     logger.info("done")
     
@@ -110,16 +107,17 @@ object Convert {
 
   /**
    * TODO: Removal of Convert.apply, user should beware of how preprocessor is written in their code, instead of encapsulating it
-   * TODO: Write Default preprocessor
    * For external call
    * 
    * Returns (data: Data, paths: Seq[String])
    */
-  def apply(name: String, path: Path = null, paths: Vector[Path] = null, encoding: String = "UTF-8")
+  def apply(name: String, path: Path = null, paths: Vector[Path] = null, 
+      encoding: String = "UTF-8", asciiOnly: Boolean = true, stopwords : StopWords = StopWords.EnglishStopwords())
   (implicit settings: DataConverter.Settings) = {
     def preprocessor(text: String) = {
-      val cleanedText = Preprocessor.preprocess(text, minChars = settings.minCharacters, asciiOnly = settings.asciiOnly)
-      val tokens = Preprocessor.tokenizeBySpace(cleanedText)
+      val tokens = 
+        if(asciiOnly) Preprocessor.EnglishPreprocessor(text, minChars = settings.minCharacters, stopwords = stopwords)
+        else Preprocessor.ChinesePreprocessor(text, stopwords = stopwords)
       Document(Sentence(tokens))
     }
 
@@ -148,10 +146,8 @@ object Convert {
   
   @Deprecated
   def buildCache(paths: Vector[Path]): Cache = {
-    import Preprocessor.tokenizeBySpace
-
     logger.info("Building cache")
-    mapReduce(paths.par)(readFile { _.flatten.toSet })(_ ++ _)
+    mapReduce(paths.par)(readFile { _.map(s => Preprocessor.tokenizeBySpace(s)).flatten.toSet })(_ ++ _)
       .map(t => t -> NGram(t)).toMap
   }
   
@@ -222,22 +218,21 @@ object Convert {
     logger.info("Reading documents")
     paths.par.map(readFile { l =>
       new Document(l.map { ts =>
-        val s = Sentence(ts.map(cache.apply))
-        Sentence(Preprocessor.preprocess(3)(s).map(NGram.apply))
+        val tokens = Preprocessor.EnglishPreprocessor(ts, minChars = 3)
+        Sentence(tokens)
       })
     })
   }
   
   @Deprecated
-  def readFile[T](f: Seq[Seq[String]] => T)(p: Path): T = {
-    import Preprocessor.tokenizeBySpace
+  def readFile[T](f: Seq[String] => T)(p: Path): T = {
 
     // each line is assumed to be a sentence containing tokens
     // separated by space
     val source = Source.fromFile(p.toFile)("UTF-8")
     try {
       logger.debug("Reading {}", p.toFile)
-      f(source.getLines.toList.map(tokenizeBySpace))
+      f(source.getLines.toList)
     } catch {
       case e: Exception =>
         logger.error("Unable to read file: " + p.toFile, e)

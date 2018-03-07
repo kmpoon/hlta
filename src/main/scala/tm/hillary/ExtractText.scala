@@ -50,7 +50,7 @@ object ExtractText {
     val sentences = subjectSentence +:
       StanfordLemmatizer.process(email.body).sentences
 
-    sentences.map(Preprocessor.preprocess(minChars))
+    sentences.map(s => Preprocessor.EnglishPreprocessor(s.toString, minChars))
   }
 
   def documentToString(tokens: Seq[Seq[String]]) =

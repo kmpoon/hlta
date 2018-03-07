@@ -3,11 +3,15 @@ package tm.text
 import java.nio.file.Path
 import scala.io.Source
 import tm.util.manage
+import java.util.Collections
+import java.io.FileInputStream
 
 case class NGram(val words: Seq[String]) {
   lazy val identifier = words.mkString(NGram.separator)
 
   override def toString() = identifier
+  
+  def involves(subNgram: NGram) = words.containsSlice(subNgram.words)
 }
 
 object NGram {
@@ -19,8 +23,8 @@ object NGram {
 
   val separator = "-"
 
-  def readFile(file: String): Seq[NGram] = {
-    manage(Source.fromFile(file)("UTF-8"))(s =>
+  def readFile(file: String)(enc: String): Seq[NGram] = {
+    manage(Source.fromFile(file)(enc))(s =>
       s.getLines().map(NGram.fromConcatenatedString).toIndexedSeq)
   }
 }
@@ -31,7 +35,9 @@ private object StringOrNGram {
   implicit object NGramWitness extends StringOrNGram[NGram]
 }
 
-case class Sentence(val tokens: Seq[NGram])
+case class Sentence(val tokens: Seq[NGram]){
+  override def toString() = tokens.mkString(" ")
+}
 
 object Sentence {
   /**
@@ -54,7 +60,9 @@ object Sentence {
 
 //Force calling Document(Sentence(words)) to expose the possibility that n-gram could form across an actual sentence
 //i.e. doing Document("It is sunny. Let us go out.") should possibly form "sunny-let"
-case class Document(val sentences: Seq[Sentence])
+case class Document(val sentences: Seq[Sentence]){
+  override def toString() = sentences.mkString(". ")
+}
 
 object Document {
   def apply(sentence: Sentence) = new Document(Seq(sentence))
