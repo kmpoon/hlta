@@ -99,61 +99,77 @@ object HTD {
   }
 
   def main(args: Array[String]) {
+    
     val conf = new Conf(args)
 
     //Simple default settings
-    //See tm.text.Convert for more options
-    val engSettings = tm.text.DataConverter.Settings(concatenations = conf.concat(), minCharacters = 3, maxWords = conf.vocabSize(),
+    //See tm.text.DataConvert for more options
+    val engSettings = tm.text.DataConverter.Settings(concatenations = conf.concat(), 
+        minCharacters = 3, maxWords = conf.vocabSize(),
         wordSelector = tm.text.WordSelector.byTfIdf(3, 0, .25), stopWords = null)
-    val chiSettings = tm.text.DataConverter.Settings(concatenations = 1, minCharacters = 1, maxWords = conf.vocabSize(),
+    val chiSettings = tm.text.DataConverter.Settings(concatenations = 1, 
+        minCharacters = 1, maxWords = conf.vocabSize(),
         wordSelector = tm.text.WordSelector.byTfIdf(1, 0, .25), stopWords = null)
     implicit val settings = if(conf.chinese()) chiSettings else engSettings
 
-    //Check if path is a dir or a file
     val path = java.nio.file.Paths.get(conf.data())
-    val (data, files) = if(java.nio.file.Files.isDirectory(path)){
-      val dir = path
-      //Look for txt or pdf
-      //One file is one document
-      val files = FileHelpers.findFiles(dir, List("txt","pdf")).map(dir.resolve)
-      if (files.isEmpty) {
-        throw new IllegalArgumentException("No txt/pdf files found files under " + dir)
+    val (data, files) = {
+      if(java.nio.file.Files.isDirectory(path)){
+        
+        //If path is a dir, look for txt or pdf
+        val dir = path
+        val files = FileHelpers.findFiles(dir, List("txt","pdf"))
+        if(files.isEmpty) throw new IllegalArgumentException("No txt/pdf files found files under " + dir)   
+        
+        //Convert raw text/pdf to .sparse.txt format
+        val data = tm.text.Convert(conf.name(), paths = files, 
+            encoding = conf.encoding(), asciiOnly = !conf.chinese())
+        (data, files)
+        
+      }else if(conf.format.isEmpty && !path.endsWith(".arff") 
+          && !path.endsWith(".hlcm") && !path.endsWith(".sparse.txt")){
+        
+        //If path is not a data file, converts raw text / pdf to .sparse.txt file
+        val data = tm.text.Convert(conf.name(), path = path, encoding = conf.encoding())
+        data.saveAsTuple(conf.name()+".sparse.txt")
+        (data, null)
+        
+      }else{
+        //If path is a data file
+        val data = tm.util.Reader.readData(path.toString, 
+            vocabFile = conf.ldaVocab.getOrElse(""), format = conf.format.toOption)
+        (data, null)
       }
-      //Convert raw text/pdf to .sparse.txt format
-      val data = tm.text.Convert(conf.name(), paths = files, encoding = conf.encoding(), asciiOnly = !conf.chinese())
-      (data, files)
-    }else if(conf.format.isEmpty && !path.endsWith(".arff") && !path.endsWith(".hlcm") && !path.endsWith(".sparse.txt")){
-      //Converts raw text / pdf to .sparse.txt file
-      //Here one line is one document
-      val data = tm.text.Convert(conf.name(), path = path, encoding = conf.encoding())
-      data.saveAsTuple(conf.name()+".sparse.txt")
-      (data, null)
-    }else{
-      val data = tm.util.Reader.readData(path.toString, vocabFile = conf.ldaVocab.getOrElse(""), format = conf.format.toOption)
-      (data, null)
     }
     
     val model = HLTA(data, conf.name(), maxTop = conf.topLevelTopics())
+    
     val topicTree = extractTopicTree(model, conf.name(), broad = conf.broad(), data = data)
     topicTree.saveAsJson(conf.name()+".nodes.json")
+    
     val catalog = buildDocumentCatalog(model, data, broad = conf.broad())
     catalog.saveAsJson(conf.name()+".topics.json")
+    
     //Generate one html file
     topicTree.saveAsHtml(conf.name()+".nodes.simple.html")
     
-    val docNames = if(files!=null)
-      files.map{file => file.getFileName.toString()}
-    else if(conf.docNames.isDefined)
-      scala.io.Source.fromFile(conf.docNames()).getLines.toList
-    else
-      (0 until data.size).map("Line"+_)
+    val docNames = {
+      if(files!=null)
+        files.map{file => file.getFileName.toString()}
+      else if(conf.docNames.isDefined)
+        scala.io.Source.fromFile(conf.docNames()).getLines.toList
+      else
+        (0 until data.size).map("Line"+_)
+    }
     
-    val docUrls = if(files!=null)
-      files.map(_.toString())
-    else if(conf.docUrls.isDefined)
-      scala.io.Source.fromFile(conf.docUrls()).getLines.toList
-    else
-      null
+    val docUrls = {
+      if(files!=null)
+        files.map(_.toString())
+      else if(conf.docUrls.isDefined)
+        scala.io.Source.fromFile(conf.docUrls()).getLines.toList
+      else
+        null
+    }
       
     //Generate a nice and pretty website, no server required
     tm.hlta.BuildWebsite("./webiste/", conf.name(), conf.name(), topicTree = topicTree, catalog = catalog, docNames = docNames, docUrls = docUrls)

@@ -20,8 +20,9 @@ object DataConverter {
   /**
    * For external call
    */
-  def apply(name: String, documents: GenSeq[Document])(implicit settings: Settings): Data = {
-    val (countsByDocuments, dictionary) = countTokensWithNGrams(name, documents, settings.maxWords, settings.seedWords)
+  def apply(name: String, documents: GenSeq[Document], documentInfos: GenSeq[DocumentInfo] = null)(implicit settings: Settings): Data = {
+    val (countsByDocuments, dictionary) = countTokensWithNGrams(name, documents, documentInfos, 
+        settings.maxWords, settings.seedWords)
     Data.fromDictionaryAndTokenCounts(dictionary, countsByDocuments.toList, name = name)
   }
 
@@ -30,7 +31,7 @@ object DataConverter {
     seeds: Option[SeedTokens] = None)(implicit settings: Settings) = {
 
     val (countsByDocuments, dictionary) =
-      countTokensWithNGrams(name, documents, maxWords, seeds)
+      countTokensWithNGrams(name, documents, null, maxWords, seeds)
 
     //    log("Converting to bow")
     //    val bow = convertToBow(countsByDocuments, dictionary.map)
@@ -54,7 +55,7 @@ object DataConverter {
    * specified in the {@ code settings}.
    */
   def countTokensWithNGrams(name: String, documents: GenSeq[Document],
-    maxWords: Int, seeds: Option[SeedTokens])(
+    documentInfos: GenSeq[DocumentInfo], maxWords: Int, seeds: Option[SeedTokens])(
     implicit settings: Settings): (GenSeq[TokenCounts], Dictionary) = {
     import settings._
 
@@ -90,7 +91,7 @@ object DataConverter {
       // select words
       val (dictionary, currentFrequent) = {
         logger.info("Building Dictionary")
-        val allWordInfo = computeWordInfo(documents, appendNextNGram)
+        val allWordInfo = computeWordInfo(documents, documentInfos, appendNextNGram)
 
         logger.info("Saving dictionary before selection")
         Dictionary.save(s"${name}.whole_dict-${n}.csv", allWordInfo)
@@ -127,7 +128,7 @@ object DataConverter {
       if (last)
         (documentsWithLargerNGrams, dictionary)
       else loop(documentsWithLargerNGrams, Some(dictionary),
-        frequentWords ++ currentFrequent, n + 1)
+        frequentWords ++ currentFrequent.map(_.token).toSet, n + 1)
     }
 
     logger.info(
@@ -173,23 +174,28 @@ object DataConverter {
     countTokens(d.sentences.flatMap(tokenizer))
   }
 
-  def computeWordInfo(documents: GenSeq[Document],
+  def computeWordInfo(documents: GenSeq[Document], documentInfos: GenSeq[DocumentInfo],
     tokenizer: (Sentence) => Seq[NGram] = _.tokens): IndexedSeq[WordInfo] = {
     import Preprocessor._
     import tm.util.ParMapReduce._
 
-    val (tf, df, n) = mapReduce(documents.par) { d =>
+    val (tf, df, trend, n) = mapReduce(documents.zipWithIndex.par) { case(d, i) =>
       val tf = countTermFrequencies(d, tokenizer)
 
       // document count (1 for each occurring token)
       val df = tf.mapValues(c => if (c > 0) 1 else 0)
+      
+      val trend = if(documentInfos!=null) {
+        val time = documentInfos(i).time
+        df.mapValues(c => if (c > 0) Map(time -> 1) else Map(time -> 0))
+      }else Map.empty[NGram, Map[Int, Int]]
 
-      (tf, df, 1)
+      (tf, df, trend, 1)
 
     } { (c1, c2) =>
-      (c1._1 |+| c2._1, c1._2 |+| c2._2, c1._3 + c2._3)
+      (c1._1 |+| c2._1, c1._2 |+| c2._2, c1._3 |+| c2._3, c1._4 + c2._4)
     }
-
+    
     //    // compute the counts of original tokens and new n-grams by
     //    // documents
     //    val countsByDocuments =
@@ -200,10 +206,10 @@ object DataConverter {
     //    val documentFrequencies = computeDocumentFrequencies(countsByDocuments)
     //    val N = countsByDocuments.size
     //
-    def buildWordInfo(token: NGram, tf: Int, df: Int) =
-      WordInfo(token, tf, df, computeTfIdf(tf, df, n))
+    def buildWordInfo(token: NGram, tf: Int, df: Int, trend: Map[Int, Int]) =
+      WordInfo(token, tf, df, computeTfIdf(tf, df, n), trend)
 
-    tf.keys.map { w => buildWordInfo(w, tf(w), df(w)) }.toIndexedSeq
+    tf.keys.map { w => buildWordInfo(w, tf(w), df(w), trend.getOrElse(w, Map.empty[Int, Int])) }.toIndexedSeq
   }
   
   /**

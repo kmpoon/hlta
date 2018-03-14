@@ -42,7 +42,7 @@ object FileHelpers {
 
     Files.walkFileTree(directory,
       EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, visitor)
-    files.toVector
+    files.map(directory.resolve(_)).toVector
   }
 
   def exists(s: String) = Files.exists(Paths.get(s))

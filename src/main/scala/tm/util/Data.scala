@@ -16,14 +16,13 @@ import tm.text.Dictionary
 import tm.text.NGram
 
 object Data{
-  
   type TokenCounts = Map[NGram, Int]
   def fromDictionaryAndTokenCounts(dictionary: Dictionary, tokenCountsSeq: Seq[TokenCounts], isBinary: Boolean = false, name: String = "data"): Data = { 
     
     def _newVariable(name: String) = {
       val b = new ArrayList[String]()
       b.add(0, "s0")
-      b.add(1, "s1")
+      b.add(1, "s1")         
       new Variable(name, b)
     }
     
@@ -88,6 +87,9 @@ object Data{
 
 class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.Instance], val isBinary: Boolean = false, val name : String = "data") {
 
+  //To avoid collision with reserved words in .bif file
+  variables.foreach(variable => if(BifProperties.ReservedWords.exists(_.equals(variable.getName))) variable.setName(variable.getName+"_"))
+  
   val logger = LoggerFactory.getLogger(Data.getClass)
   
   def copy(variables: IndexedSeq[Variable] = variables, instances: IndexedSeq[Data.Instance] = instances, isBinary: Boolean = isBinary) = new Data(variables, instances, isBinary)

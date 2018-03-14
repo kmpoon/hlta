@@ -8,7 +8,7 @@ object WordSelector {
           w.token.words.forall(_.length >= minCharacters)
             && w.tf >= minTf
             && w.df >= minDf(docCount)),
-        Set.empty)
+        IndexedSeq.empty)
       val description = s"Select tokens by basic constraints. Min characters: ${minCharacters}, minTf: ${minTf}, minDf: ${minDf}."
     }
   }
@@ -24,7 +24,7 @@ object WordSelector {
    * the words will be ordered according to TF-IDF.  Only those words
    * that have TF-IDF greater than the TF-IDF of the word at
    * the ({@code maxWords} + 1) position will be retained.  The resulting
-   * collection of words will have at most {@code maxWords} number of
+   * collection of words will have exact {@code maxWords} number of
    * words.
    */
   def byTfIdf(minCharacters: Int = 3, minDfFraction: Double = 0,
@@ -57,21 +57,48 @@ object WordSelector {
 //            (eligibleWords, minTfIdf)
 //          }
           //Since eligible are already sorted by tfidf
-          val selected = eligibleWords.take(maxWords)
+          //val selected = eligibleWords.take(maxWords)
+          val (selected, remaining) = eligibleWords.splitAt(maxWords)
           val minTfIdf = if(selected.isEmpty) 0 else selected.last.tfidf
 
-        (selected, frequentWords.filter(_.tfidf >= minTfIdf).map(_.token).toSet)
+        (selected, remaining ++ frequentWords.filter(_.tfidf >= minTfIdf))
       }
 
       val description = s"Select tokens by TF-IDF. Min characters: ${minCharacters}, minDfFraction: ${minDfFraction}, maxDfFraction: ${maxDfFraction}."
     }
   
-  def byBurstiness() = {
-    
+  def byBurstiness(startTime: Int, endTime: Int, increment: Int = 1, minDfFraction: Double = 0.01) = {
+    import tm.util.LinearRegression
+    new WordSelector {
+      def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
+        // filter words by constraints
+        val wsWithBustiness = ws.filter{w => w.df >= minDfFraction*docCount}.map{wordInfo =>
+          val values = (startTime until endTime by increment).map(wordInfo.trend.getOrElse(_, 0)).zipWithIndex.map{case(y, x)=>(x.toDouble, y.toDouble)}
+          (wordInfo, tm.util.LinearRegression(values)._1)
+        }
+        val sortedBurstyWords = wsWithBustiness.sortBy{case(wordInfo, slope) => -slope}.map(_._1)
+        val (burstyWords, freqWords) = sortedBurstyWords.splitAt(maxWords)
+
+        (burstyWords, freqWords)
+      }
+      
+       def description: String = s"Select tokens by trend, during ${startTime} and ${endTime} with minimum df fraction ${minDfFraction}"
+    }
   }
   
-  def mixed() = {
-    
+  def mixed(wordSelector1: WordSelector, wordSelector2: WordSelector, maxWords1: Int, maxWords2: Int) = {
+    new WordSelector {
+      def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
+        val (eligibleWords1, remainingWords) = wordSelector1.select(ws, docCount, maxWords1)
+        println(eligibleWords1.size)
+        
+        val (eligibleWords2, frequentWords) = wordSelector2.select(remainingWords, docCount, maxWords2)
+        println(eligibleWords2.size)
+        (eligibleWords1++eligibleWords2, frequentWords)
+      }
+      
+      def description: String = "Mixed Word Selector: "+wordSelector1.description+" ; "+wordSelector2.description
+    }
   }
   
 }
@@ -83,7 +110,7 @@ sealed trait WordSelector {
    * be selected but are filtered away due to high document frequency.
    */
   def select(ws: IndexedSeq[WordInfo], docCount: Int,
-    maxWords: Int): (IndexedSeq[WordInfo], Set[NGram])
+    maxWords: Int): (IndexedSeq[WordInfo], IndexedSeq[WordInfo])
 
   def description: String
 }

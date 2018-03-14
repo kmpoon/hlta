@@ -2,7 +2,6 @@ package tm.text
 
 import java.io.File
 import scala.io.Source
-import tm.text.StopWords.implicits
 import tm.util.FileHelpers
 import java.io.PrintWriter
 import java.nio.file.Paths
@@ -38,7 +37,7 @@ object Convert {
       descr = "Maximum fraction of documents that a token can appear to be selected. Default: 0.25")
     val seedFile = opt[String](descr = "File containing tokens to be included, regardless of other selection criteria.")
     val seedNumber = opt[Int](descr = "Number of seed tokens to be included. Need to be specified when seed file is given.")
-    val stopWords = opt[String](default = None, descr = "File of blacklist words, default \"stopwords-lewis.csv\" inside the package")
+    val stopWords = opt[String](default = Some(StopWords.EnglishStopwordsFile), descr = "File of blacklist words, default \"stopwords-lewis.csv\" inside the package")
     
     val inputExt = opt[List[String]](default = Some(List("txt", "pdf")), descr = "Look for these extensions if a directory is given, default \"txt pdf\"")
     val inputEncoding = opt[String](default = Some("UTF-8"), descr = "Input .txt encoding, default UTF-8, see java.nio.charset.Charset for available encodings")
@@ -60,7 +59,7 @@ object Convert {
     }
     
     logger.info("Reading stopword file"); 
-    val stopWords = if(conf.stopWords.isDefined) StopWords.read(conf.stopWords()) else StopWords.EnglishStopwords()
+    val stopWords = if(conf.stopWords.isDefined) StopWords.read(conf.stopWords()) else StopWords.Empty()
 
     implicit val settings =
       DataConverter.Settings(concatenations = conf.concat(), minCharacters = conf.minChar(), maxWords = conf.maxWords(),
@@ -68,24 +67,29 @@ object Convert {
         seedWords = if(conf.seedFile.isDefined) seed else None)
 
     val path = Paths.get(conf.source())
-    val data = if(java.nio.file.Files.isDirectory(path)){
-      val dir = path
-      
-      logger.info("Finding files under {}", dir.toString())
-      val paths = FileHelpers.findFiles(dir, conf.inputExt()).map(dir.resolve)
-      if (paths.isEmpty) {
-        logger.error("No suitable file found under {}", dir)
-        throw new IllegalArgumentException("No text files found files under " + dir)
+    val data = {
+      if(java.nio.file.Files.isDirectory(path)){
+        
+        val dir = path
+        logger.info("Finding files under {}", dir.toString())
+        val paths = FileHelpers.findFiles(dir, conf.inputExt())
+        if (paths.isEmpty) {
+          logger.error("No suitable file found under {}", dir)
+          throw new IllegalArgumentException("No text files found files under " + dir)
+        }
+        
+        //Write file order
+        val writer = new PrintWriter(s"${conf.name()}.files.txt")
+        paths.foreach(writer.println)
+        writer.close
+        
+        apply(conf.name(), paths = paths, encoding = conf.inputEncoding(), stopwords = stopWords)
+        
+      }else{
+        
+        apply(conf.name(), path = path, encoding = conf.inputEncoding(), stopwords = stopWords)
+        
       }
-      
-      //Write file order
-      val writer = new PrintWriter(s"${conf.name()}.files.txt")
-      paths.foreach(writer.println)
-      writer.close
-      
-      apply(conf.name(), paths = paths, encoding = conf.inputEncoding(), stopwords = stopWords)
-    }else{
-      apply(conf.name(), path = path, encoding = conf.inputEncoding(), stopwords = stopWords)
     }
     logger.info("done")
     
@@ -152,7 +156,6 @@ object Convert {
   }
   
   def readFiles[T](paths: Vector[Path], f: String => T, encoding: String): GenSeq[T] = {      
-    //val cache = buildCache(paths)
     logger.info("Reading documents")
     paths.par.map{ path => // each path(file) is one document
       val extension = path.toString().split('.').last

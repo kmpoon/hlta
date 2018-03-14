@@ -14,6 +14,10 @@ import org.slf4j.LoggerFactory
 import scala.Range
 import java.nio.file.{Paths, Files}
 
+object BifProperties {
+  val ReservedWords = List("variable", "network", "type")
+}
+
 object Reader {
   implicit final class ARFFToData(val d: Instances) {
     def getAttributes() =

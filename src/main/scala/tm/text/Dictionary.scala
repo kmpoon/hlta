@@ -4,14 +4,15 @@ import java.io.PrintWriter
 import scala.io.Source
 import tm.util.CompositeComparator
 import java.io.InputStream
-
 /**
  * Info about a word.
  *
  * tf: term frequency (i.e. number of occurrences in all document.
  * df: document frequency (i.e. number of documents with
  */
-case class WordInfo(token: NGram, tf: Int, df: Int, tfidf: Double)
+case class WordInfo(token: NGram, tf: Int, df: Int, tfidf: Double, trend: Map[Int, Int] = Map.empty())
+
+case class DocumentInfo(title: String, time: Int)
 
 object Dictionary {
   private val comparator = CompositeComparator[WordInfo](
@@ -58,9 +59,15 @@ object Dictionary {
   def save(filename: String, ws: Iterable[WordInfo]) = {
     val writer = new PrintWriter(filename)
 
-    writer.println("word,tf,df,tfidf")
-    ws.map(i => s"${i.token.identifier},${i.tf},${i.df},${i.tfidf}")
-      .foreach(writer.println)
+    if(ws.isEmpty || ws.head.trend.isEmpty){
+      writer.println("word,tf,df,tfidf")
+      ws.map(i => s"${i.token.identifier},${i.tf},${i.df},${i.tfidf}")
+        .foreach(writer.println)
+    }else{
+      writer.println("word,tf,df,tfidf,trend")
+      ws.map(i => s"${i.token.identifier},${i.tf},${i.df},${i.tfidf},${i.trend.toList.sortBy(_._1)}")
+        .foreach(writer.println)
+    }
 
     writer.close
   }

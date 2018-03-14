@@ -90,7 +90,7 @@ object Doc2VecAssignment {
       outputName + "-topics"
 
       val df = new DecimalFormat("#0." + "#" * decimalPlaces)
-      topicData.saveAsArff(outputName, df)
+      topicData.saveAsArff(outputName+".arff", df)
       topicData
     }
 

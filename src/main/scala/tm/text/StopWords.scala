@@ -21,7 +21,9 @@ object StopWords {//TODO: update reader encoding option
     implicit val default = EnglishStopwords()
   }
   
-  def EnglishStopwords() = StopWords.read(this.getClass.getResourceAsStream("/tm/text/stopwords-lewis.csv"))
+  val EnglishStopwordsFile = "/tm/text/stopwords-lewis.csv"
+  
+  def EnglishStopwords() = StopWords.read(this.getClass.getResourceAsStream(EnglishStopwordsFile))
   
   def Empty() = new StopWords(Set.empty[String])
 }
