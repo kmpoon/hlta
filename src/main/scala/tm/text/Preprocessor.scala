@@ -95,7 +95,7 @@ object Preprocessor {
     if (text.isEmpty) Array.empty[String]
     else text.split(regex)
 
-  
+    
   //Replacement  
   
   val NonAlnum = "\\P{Alnum}".r
@@ -109,20 +109,19 @@ object Preprocessor {
   
   def replaceStartingDigit(input: String): String = Digit.replaceAllIn(input, (m: Match) => s"${m.group(1)}")
   
-  def removeAccents(input: String): String = input.replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
-  
   /** 
    *  Perform compatibility decomposition, followed by canonical composition, 
    *  to convert ligature (fi) and remove accents
    */
-  def normalize(text: String): String = Normalizer.normalize(text, Normalizer.Form.NFKC)
+  def normalize(text: String) =
+    Normalizer.normalize(text, Normalizer.Form.NFKC)
+      .replaceAll("\\p{InCombiningDiacriticalMarks}+", "")
       
   
   //Condition
   
   def withProperLength(min: Int)(word: String) = 
     word.replaceAll("[^\\p{Alpha}\\n]+", "").length >= min
-
 
   //    def filter(counts: WordCounts): WordCounts = {
   //        counts.filter(_._2 >= 5)
@@ -166,8 +165,6 @@ object Preprocessor {
   //        p2.foldLeft(map)(add).toMap
   //    }
 
-      
-  //TODO: proceed to move buildDictionary and its related methods to Dictionary
       
   def sumWordCounts(countsByDocuments: GenSeq[TokenCounts]) =
     countsByDocuments.reduce(_ |+| _)
@@ -243,12 +240,12 @@ object Preprocessor {
   //        (words, map)
   //    }
 
-  /*
-     * Replace the constituent tokens by n-grams, up to a specified 
-     * {@code maxN}. 
-     * 
-     * For example, if "hong" and "kong" are two consecutive 
-     * tokens, and check "hong-kong" returns true, then "hong-kong" will be 
+  /**
+     * Replace the constituent tokens by n-grams, up to a specified
+     * {@code maxN}.
+     *
+     * For example, if "hong" and "kong" are two consecutive
+     * tokens, and check "hong-kong" returns true, then "hong-kong" will be
      * included in the resulting sequence but not two individual words "hong"
      * and "kong".
      *

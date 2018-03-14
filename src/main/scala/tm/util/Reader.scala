@@ -13,6 +13,9 @@ import java.util.ArrayList
 import org.slf4j.LoggerFactory
 import scala.Range
 import java.nio.file.{Paths, Files}
+import java.io.InputStream
+import org.apache.commons.compress.compressors.CompressorStreamFactory
+import java.io.BufferedInputStream
 
 object BifProperties {
   val ReservedWords = List("variable", "network", "type")
@@ -78,7 +81,23 @@ object Reader {
    */
   def readHLCM_native(dataFile: String) = new DataSet(dataFile)
 
-  def readARFF(dataFile: String) = new DataSource(dataFile).getDataSet
+  def readARFF(dataFile: String): Instances = {
+    val input = if (dataFile.endsWith(".arff"))
+      new FileInputStream(dataFile)
+    else
+      new CompressorStreamFactory()
+        .createCompressorInputStream(new BufferedInputStream(new FileInputStream(dataFile)))
+    readARFF(input)
+  }
+  def readARFF(dataFile: InputStream): Instances = new DataSource(dataFile).getDataSet
+  
+  def getAttributes(instances: Instances) =
+    Range(0, instances.numAttributes).map(instances.attribute)
+    
+  def getDataCases(instances: Instances) =
+    (0 until instances.numInstances).map(instances.instance)
+      .map(i => Data.Instance(
+        (0 until instances.numAttributes).map(i.value).toArray, i.weight))
   
   def readTuple(dataFile: String) = TupleReader.read(dataFile)
   
