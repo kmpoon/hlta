@@ -80,7 +80,7 @@ object WordSelector {
         val sortedBurstyWords = wsWithBustiness.sortBy{case(wordInfo, slope) => -slope}.map(_._1)
         val (burstyWords, remainingWords) = sortedBurstyWords.splitAt(maxWords)
 
-        (burstyWords, filteredWords ++ remainingWords)
+        (burstyWords, failedWords ++ remainingWords)
       }
       
        def description: String = s"Select tokens by trend, during ${startTime} and ${endTime} with minimum df fraction ${minDfFraction}"

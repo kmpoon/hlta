@@ -91,13 +91,13 @@ The output files include:
    ```
 
   The output files include:
-  * `someName.html`: a webiste
+  * `someName.html`: a website
   * `someName.nodes.js`: a topic tree stored in javascript
   * `someName.nodes.json`: a topic tree stored as json
   * `lib`: Javascript and CSS files required by the main HTML file
   * `fonts`: fonts used by some CSS files
 
-- You may use the "broadly defined topics" to speed up the process. Under this definition, more document will be categorized into a topic.
+- You may use the "broadly defined topics" to speed up the process. Under this definition, more document will be categorized into a topic. (ref [*paper*](https://arxiv.org/abs/1605.06650) section 8.2.1)
    ```
    java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopicTree --broad someName model.bif
    ```
@@ -113,7 +113,7 @@ The output files include:
   * `output-topics.js`: a document catalog stored as javascript variable
   * `output-topics.arff`: doc2vec assignments in arff format
 
-- You may use the "broadly defined topics" to speed up the process. Under this definition, more document will be categorized into a topic.
+- You may use the "broadly defined topics" to speed up the process. Under this definition, more document will be categorized into a topic. (ref [*paper*](https://arxiv.org/abs/1605.06650) section 8.2.1)
    ```
    java -cp HLTA.jar:HLTA-deps.jar tm.hlta.Doc2VecAssignment --broad model.bif data.sparse.txt outputName
    ``` 
