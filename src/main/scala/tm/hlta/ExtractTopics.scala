@@ -19,6 +19,8 @@ object ExtractTopicTree {
     val model = trailArg[String](descr = "Name of model file (e.g. model.bif)")
     val data = trailArg[String](required = false, descr = "Data file, if using --broad, this is not required")
     
+    val ldaVocab = opt[String](default = None, descr = "LDA vocab file, only required if lda data is provided")
+    
     val broad = opt[Boolean](default = Some(false), descr = "use broad defined topic, run faster but more document will be categorized into the topic")
     val title = opt[String](default = Some("Topic Tree"), descr = "Title in the topic tree")
     val layer = opt[List[Int]](descr = "Layer number, i.e. --layer 1 3")
@@ -35,29 +37,18 @@ object ExtractTopicTree {
   def main(args: Array[String]) {
     val conf = new Conf(args)
     
-    val (model, data) = Reader.readModelAndData(conf.model(), conf.data())
+    val (model, data) = Reader.readModelAndData(conf.model(), conf.data(), ldaVocabFile = conf.ldaVocab.getOrElse(""))
     
     val topicTree = if(conf.broad())
       broad(model, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())
-    else
-      narrow(model, data, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())
+    else{
+      val binaryData = data.binary()
+      narrow(model, binaryData, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())
+    }
     
     BuildWebsite(".", conf.name(), conf.name(), topicTree)
-    topicTree.saveAsJson("bdt.nodes.json")
+    topicTree.saveAsJson(conf.name()+".nodes.json")
   }
-  
-//  def main(args: Array[String]) {
-//    val conf = new Conf(args)
-//
-//    val output = Paths.get(conf.tempDir())
-//    FileHelpers.mkdir(output)
-//
-//    tm.hlta.ExtractNarrowTopics_LCM.main(
-//      Array(conf.model(), conf.data(), conf.tempDir(), "no", "no", "7"));
-//
-//    val topicFile = output.resolve("TopicsTable.html")
-//    RegenerateHTMLTopicTree.run(topicFile.toString(), conf.name(), conf.title(), conf.layer.toOption)
-//  }
   
   def broad(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, tempDir: String = "./temp/") = {
     val output = Paths.get(tempDir)

@@ -16,17 +16,16 @@ import tm.util.Reader
 import tm.util.Arguments
 import org.latlab.learner.Parallelism
 
-/**
- *  Provides helper methods for HLTA.
- */
 object HLTA {
   
   class Conf(args: Seq[String]) extends Arguments(args) {
-    banner("""Usage: StepwiseEmBuilder [OPTION]... dataFile emMaxStep name
-             |E.g. ProgressiveEmBuilder data.arff 50 model1
-             |The output file will be model1.bif""")
+    banner("""Usage: HLTA [OPTION]... dataFile emMaxStep name
+             |E.g. HLTA data.arff 50 model1
+             |The output file will be model1.bif
+             |
+             |Please refer to the paper "Latent Tree Models for Hierarchical Topic Detection" for algorithmic details""")
              
-    val dataFile = trailArg[String]()
+    val data = trailArg[String]()
     val emMaxStep = trailArg[Int](descr = "Maximum number of EM steps (e.g. 50)")
     val outputName = trailArg[String]()
     
@@ -37,18 +36,18 @@ object HLTA {
       "The default number is set to the number of CPU cores.  " +
       "If the specified number is larger than the number of CPU cores, the latter number will be used.")
     
-    val emNumRestart = opt[Int](descr = "Number of restarts in EM (e.g. 5)", default = Some(5))
-    val emThreshold = opt[Double](descr = "Threshold of improvement to stop EM (e.g. 0.01)", default = Some(0.01))
-    val udThreshold = opt[Double](descr = "The threshold used in unidimensionality test for constructing islands (e.g. 3)", default = Some(3))
-    val maxIsland = opt[Int](descr = "Maximum number of variables in an island (e.g. 10)", default = Some(10))
-    val maxTop = opt[Int](descr = "Maximum number of variables in top level (e.g. 15)", default = Some(15))
+    val emNumRestart = opt[Int](descr = "Number of restarts in EM (e.g. 5). <paper session 6.1>", default = Some(5))
+    val emThreshold = opt[Double](descr = "Threshold of improvement to stop EM (e.g. 0.01) <paper session 6.1>", default = Some(0.01))
+    val udThreshold = opt[Double](descr = "The threshold used in unidimensionality test for constructing islands (e.g. 3). <paper session 5.2>", default = Some(3))
+    val maxIsland = opt[Int](descr = "Maximum number of variables in an island (e.g. 10). <paper session 5.1>", default = Some(10))
+    val maxTop = opt[Int](descr = "Maximum number of variables in top level (e.g. 15). <paper session 5.1>", default = Some(15))
     
-    val globalBatchSize = opt[Int](descr = "Number of data cases used in each stepwise EM step", default = Some(1000))
-    val globalMaxEpochs = opt[Int](descr = "Number of times the whole training dataset has been gone through (e.g. 10)", default = Some(10))
-    val globalMaxEmSteps = opt[Int](descr = "Maximum number of stepwise EM steps (e.g. 128)", default = Some(128))
+    val globalBatchSize = opt[Int](descr = "Number of data cases used in each stepwise EM step. <paper session 7>", default = Some(1000))
+    val globalMaxEpochs = opt[Int](descr = "Number of times the whole training dataset has been gone through (e.g. 10). <paper session 7>", default = Some(10))
+    val globalMaxEmSteps = opt[Int](descr = "Maximum number of stepwise EM steps (e.g. 128). <paper session 7>", default = Some(128))
     
-    val structBatchSize = opt[Int](descr = "Number of data cases used for building model structure", default = None)
-    val structUseAll = opt[Boolean](descr = "Use all data cases for building model structure", default = Some(false))
+    val structBatchSize = opt[Int](descr = "Number of data cases used for building model structure. <paper session 7>", default = None)
+    val structUseAll = opt[Boolean](descr = "Use all data cases for building model structure. <paper session 7>", default = Some(false))
 
     verify
     checkDefaultOpts()
@@ -99,7 +98,7 @@ object HLTA {
   def main(args: Array[String]){
     val conf = new Conf(args)
     
-    val data = Reader.readData(conf.dataFile(), vocabFile = conf.ldaVocab.getOrElse(""))
+    val data = Reader.readData(conf.data(), ldaVocabFile = conf.ldaVocab.getOrElse(""))
     
     val _sizeFirstBatch = if(conf.structUseAll()) "all"
       else if(conf.structBatchSize.isEmpty){//auto determine structBatchSize

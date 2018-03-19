@@ -33,7 +33,7 @@ object WordSelector {
       def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
         val (eligibleWords, frequentWords) = {
           // filter words by constraints
-          val filteredWords = ws.filter(w =>
+          val (filteredWords, failedWords) = ws.partition(w =>
             w.token.words.forall(_.length >= minCharacters)
               && w.df >= minDfFraction * docCount)
 
@@ -43,7 +43,7 @@ object WordSelector {
           val filteredAndSortedWords =
             eligibleWords.sortBy(w => (-w.tfidf, w.token.identifier))
 
-          (filteredAndSortedWords, frequentWords)
+          (filteredAndSortedWords, frequentWords ++ failedWords)
         }
 
 //        val (selected, minTfIdf) =
@@ -61,39 +61,40 @@ object WordSelector {
           val (selected, remaining) = eligibleWords.splitAt(maxWords)
           val minTfIdf = if(selected.isEmpty) 0 else selected.last.tfidf
 
-        (selected, remaining ++ frequentWords.filter(_.tfidf >= minTfIdf))
+        (selected, remaining ++ frequentWords)//.filter(_.tfidf >= minTfIdf))
       }
 
       val description = s"Select tokens by TF-IDF. Min characters: ${minCharacters}, minDfFraction: ${minDfFraction}, maxDfFraction: ${maxDfFraction}."
     }
   
-  def byBurstiness(startTime: Int, endTime: Int, increment: Int = 1, minDfFraction: Double = 0.01) = {
+  def byBurstiness(startTime: Int, endTime: Int, increment: Int = 1, minDfFraction: Double = 0.01, maxDfFraction: Double = 0.2) = {
     import tm.util.LinearRegression
     new WordSelector {
       def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
         // filter words by constraints
-        val wsWithBustiness = ws.filter{w => w.df >= minDfFraction*docCount}.map{wordInfo =>
+        val (filteredWords, failedWords) = ws.partition{w => w.df >= minDfFraction*docCount && w.df < maxDfFraction*docCount}
+        val wsWithBustiness = filteredWords.map{wordInfo =>
           val values = (startTime until endTime by increment).map(wordInfo.trend.getOrElse(_, 0)).zipWithIndex.map{case(y, x)=>(x.toDouble, y.toDouble)}
           (wordInfo, tm.util.LinearRegression(values)._1)
         }
         val sortedBurstyWords = wsWithBustiness.sortBy{case(wordInfo, slope) => -slope}.map(_._1)
-        val (burstyWords, freqWords) = sortedBurstyWords.splitAt(maxWords)
+        val (burstyWords, remainingWords) = sortedBurstyWords.splitAt(maxWords)
 
-        (burstyWords, freqWords)
+        (burstyWords, filteredWords ++ remainingWords)
       }
       
        def description: String = s"Select tokens by trend, during ${startTime} and ${endTime} with minimum df fraction ${minDfFraction}"
     }
   }
   
-  def mixed(wordSelector1: WordSelector, wordSelector2: WordSelector, maxWords1: Int, maxWords2: Int) = {
+  def mixed(wordSelector1: WordSelector, wordSelector2: WordSelector, ratio: Double) = {
     new WordSelector {
       def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
-        val (eligibleWords1, remainingWords) = wordSelector1.select(ws, docCount, maxWords1)
-        println(eligibleWords1.size)
+        val (eligibleWords1, remainingWords) = wordSelector1.select(ws, docCount, (maxWords*ratio).toInt)
+        //println(eligibleWords1.size)
         
-        val (eligibleWords2, frequentWords) = wordSelector2.select(remainingWords, docCount, maxWords2)
-        println(eligibleWords2.size)
+        val (eligibleWords2, frequentWords) = wordSelector2.select(remainingWords, docCount, maxWords-eligibleWords1.size)
+        //println(eligibleWords2.size)
         (eligibleWords1++eligibleWords2, frequentWords)
       }
       

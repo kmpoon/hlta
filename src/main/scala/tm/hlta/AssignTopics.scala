@@ -29,14 +29,15 @@ object Doc2VecAssignment {
   class Conf(args: Seq[String]) extends Arguments(args) {
     banner("""Usage: Doc2VecAssignment [OPTION]... model data output_name
              |E.g. Doc2VecAssignment model.bif data.arff output
-             |The output file will be """+getFileName("output", "js")+""" and """+getFileName("output", "arff")+"""
-             |"The number of decimal places is used in the ARFF file only.""")
+             |The output file will be """+getFileName("output", "js")+""" and """+getFileName("output", "arff"))
              
     val model = trailArg[String]()
-    val data = trailArg[String](descr = "**Special** Only .arff or .sparse.txt are allowed")
+    val data = trailArg[String](descr = "**Special** .hlcm file is not allowed")
     val outputName = trailArg[String]()
     
-    val decimalPlaces = opt[Int](descr="Significant figure", default = Some(2))
+    val ldaVocab = opt[String](default = None, descr = "LDA vocab file, only required if lda data is provided")
+    
+    val decimalPlaces = opt[Int](descr="Significant figure, only used for intermediate data storage (.topics.arff)", default = Some(2))
     val layer = opt[List[Int]](descr = "Layer number, i.e. 2 3 4", default = None)
     val confidence = opt[Double](descr = "Only document with P(topic|document)>c will be listed in the list, default 0.5", default = Some(0.5))
     val broad = opt[Boolean](descr = "Use broad topic definition, speed up the process but more document will be categorized into the topic")
@@ -53,46 +54,57 @@ object Doc2VecAssignment {
     if(conf.data().endsWith(".hlcm"))
       throw new Exception("Invalid data format")
      
-     run(conf.model(), conf.data(), conf.outputName(), conf.decimalPlaces(), conf.layer.toOption, conf.confidence(), conf.broad())
+     run(conf.model(), conf.data(), conf.ldaVocab.getOrElse(""), conf.outputName(), conf.decimalPlaces(), conf.layer.toOption, conf.confidence(), conf.broad())
   }
 
-  def run(modelFile: String, dataFile: String, outputName: String, decimalPlaces: Int, layer: Option[List[Int]], threshold : Double, broad : Boolean): Unit = {
+  def run(modelFile: String, dataFile: String, ldaVocabFile: String, outputName: String, decimalPlaces: Int, layer: Option[List[Int]], threshold : Double, broad : Boolean): Unit = {
     val topicDataFile = getFileName(outputName, "arff")
-    val topicData = if (Files.exists(Paths.get(topicDataFile))) {
-      logger.info("Topic data file ({}) exists.  Skipped computing topic data.", topicDataFile)
-      val topicData = Reader.readData(topicDataFile)
-      if(layer.isDefined){
-        val variableNameLevels = Reader.readModel(modelFile).getVariableNameLevels
-        val topicToBeKept = topicData.variables.filter { variable => 
-          val level = variableNameLevels(variable.getName)
-          layer.get.contains(level)
+    val precomputedTopicData = if (Files.exists(Paths.get(topicDataFile))) {
+      logger.info("Topic data file ({}) exists.  Check if variable matches.", topicDataFile)
+      val (model, topicData) = Reader.readModelAndData(modelFile, topicDataFile)
+      model.synchronize(topicData.variables.toArray)
+      val topicNeeded = if(layer.isDefined){
+          val variableNameLevels = model.getVariableNameLevels
+          topicData.variables.filter { variable => 
+            val level = variableNameLevels(variable.getName)
+            layer.get.contains(level)
+          }
+        }else{
+          model.getInternalVars.toIndexedSeq
         }
-        topicData.project(topicToBeKept)
-      }else
+      if(topicData.variables.containsAll(topicNeeded)){
+        logger.info("Variable matches.  Use topic data file instead")
+        Some(topicData.project(topicNeeded))
+      }else{
+        logger.info("Variable missing.  Compute topic data.")
+        None
+      }
+    }else
+      None
+
+    val topicData = if(precomputedTopicData.isDefined){
+        precomputedTopicData.get
+      }else{
+        logger.info("reading model and data")
+        val (model, data) = Reader.readModelAndData(modelFile, dataFile, ldaVocabFile = ldaVocabFile)
+        val variableNames = data.variables.map(_.getName)
+    
+        logger.info("binarizing data")
+        val binaryData = data.binary()
+        //model.synchronize(binaryData.variables.toArray) //Since variable is always with cardinality of 2, no need this line anymore
+    
+        logger.info("Computing topic distribution")
+        val topicData = if(broad)
+          computeBroadTopicData(model, binaryData, layer)
+        else
+          computeNarrowTopicData(model, binaryData, layer)
+  
+        logger.info("Saving topic data")
+  
+        val df = new DecimalFormat("#0." + "#" * decimalPlaces)
+        topicData.saveAsArff(getFileName(outputName, "arff"), df)
         topicData
-    } else {
-      logger.info("reading model and data")
-      val (model, data) = Reader.readModelAndData(modelFile, dataFile)
-      val variableNames = data.variables.map(_.getName)
-  
-      //TODO: check if binary + sync still works
-      logger.info("binarizing data")
-      val binaryData = data.binary
-      model.synchronize(binaryData.variables.toArray)
-  
-      logger.info("Computing topic distribution")
-      val topicData = if(broad)
-        computeBroadTopicData(model, binaryData, layer)
-      else
-        computeNarrowTopicData(model, binaryData, layer)
-
-      logger.info("Saving topic data")
-      outputName + "-topics"
-
-      val df = new DecimalFormat("#0." + "#" * decimalPlaces)
-      topicData.saveAsArff(outputName+".arff", df)
-      topicData
-    }
+      }
 
     logger.info("Generating document catalog")
     val catalog = topicData.toCatalog(threshold = threshold)
@@ -104,7 +116,7 @@ object Doc2VecAssignment {
     logger.info("Done")
   }
     
-  def getFileName(output: String, ext: String) = s"${output}.topics.${ext}"
+  def getFileName(output: String, ext: String) = s"${output}-topics.${ext}"
   
   /**
    * Assign broadly defined topics to the documents.

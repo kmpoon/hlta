@@ -13,6 +13,7 @@ object TopicCoherence {
     banner(s"Usage: ${TopicCoherence.getClass.getName.replaceAll("\\$$", "")} [OPTIONS]... topicFile dataFile")
     val topicFile = trailArg[String](descr = "topic file, in json or html")
     val dataFile = trailArg[String]()
+    
     val m = opt[Int](descr = "numberOfWords", default = Some(4))
     val layer = opt[List[Int]](descr = "select specific level, i.e. 2 3 4", default = None)
     
@@ -57,6 +58,7 @@ object TopicCompactness {
     val topicFile = trailArg[String](descr = "topic file, in json or html")
     val dataFile = trailArg[String]()
     val word2vec = trailArg[String](descr = "pretrained word2vec binary model")
+    
     val m = opt[Int](descr = "numberOfWords", default = Some(4))
     val layer = opt[List[Int]](descr = "select specific level, i.e. 2 3 4", default = None)
     

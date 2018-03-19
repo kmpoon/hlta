@@ -20,9 +20,10 @@ object DataConverter {
   /**
    * For external call
    */
-  def apply(name: String, documents: GenSeq[Document], documentInfos: GenSeq[DocumentInfo] = null)(implicit settings: Settings): Data = {
-    val (countsByDocuments, dictionary) = countTokensWithNGrams(name, documents, documentInfos, 
-        settings.maxWords, settings.seedWords)
+  def apply(name: String, documents: GenSeq[Document],
+      maxWords: Int, seedWords: Option[SeedTokens], 
+      documentInfos: GenSeq[DocumentInfo] = null)(implicit settings: Settings): Data = {
+    val (countsByDocuments, dictionary) = countTokensWithNGrams(name, documents, documentInfos, maxWords, seedWords)
     Data.fromDictionaryAndTokenCounts(dictionary, countsByDocuments.toList, name = name)
   }
 
@@ -107,7 +108,7 @@ object DataConverter {
         logger.info("Selecting words in dictionary")
         val (selected, frequent) =
           settings.wordSelector.select(
-            remaining, documents.size, settings.maxWords - preSelected.size)
+            remaining, documents.size, maxWords - preSelected.size)
 
         val allSelected = preSelected ++ selected
         logger.info("Number of selected tokens is {}.", allSelected.size)
@@ -301,30 +302,28 @@ object DataConverter {
   /**
    * minDf is computed when the number of documents is given.
    */
-  class Settings(val concatenations: Int, val minCharacters: Int, val maxWords: Int,
-    val wordSelector: WordSelector, val seedWords: Option[SeedTokens])
+  class Settings(val concatenations: Int, val minCharacters: Int,
+    val wordSelector: WordSelector)
 
   object Settings{
-    def apply(concatenations: Int = 0, minCharacters: Int = 3, maxWords: Int = 1000,
+    def apply(concatenations: Int = 0, minCharacters: Int = 3,
         minTf: Int = 6, minDf: (Int) => Int = (Int) => 6, 
-        wordSelector: WordSelector = null,
-        stopWords: String = null, seedWords: Option[SeedTokens] = None): Settings = {
+        wordSelector: WordSelector = null): Settings = {
       val _wordSelector = wordSelector match{
         case null => WordSelector.basic(minCharacters, minTf, minDf)
         case _ => wordSelector
       }
         
-      new Settings(concatenations, minCharacters, maxWords, _wordSelector, seedWords)
+      new Settings(concatenations, minCharacters, _wordSelector)
     }
     
-    //Unable to support following methods now
 //    def apply(concatenations: Int = 0, minCharacters: Int = 3, minTf: Int = 6,
 //      minDf: (Int) => Int = (Int) => 6): Settings =
-//      new Settings(concatenations, minCharacters, -1,
-//        WordSelector.Basic(minCharacters, minTf, minDf), true, null, None)
+//      new Settings(concatenations, minCharacters,
+//        WordSelector.Basic(minCharacters, minTf, minDf))
 //
 //    def apply(concatenations: Int, minCharacters: Int,
 //      wordSelector: WordSelector): Settings =
-//      new Settings(concatenations, minCharacters, -1, wordSelector, true, null, None)
+//      new Settings(concatenations, minCharacters, wordSelector)
   }
 }

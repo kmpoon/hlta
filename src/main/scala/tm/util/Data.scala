@@ -123,7 +123,7 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
       this
     else
       copy(
-        variables = variables,//.map(Data.binarize),
+        variables = variables,//.map(Data.binarize), //Variable cardinality will always be 2
         instances = instances.map(i =>
           i.copy(values = i.values.map(Data.binarize))),
         isBinary = true)

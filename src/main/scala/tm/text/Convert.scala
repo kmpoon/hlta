@@ -36,8 +36,8 @@ object Convert {
       default = Some(0.25),
       descr = "Maximum fraction of documents that a token can appear to be selected. Default: 0.25")
     val seedFile = opt[String](descr = "File containing tokens to be included, regardless of other selection criteria.")
-    val seedNumber = opt[Int](descr = "Number of seed tokens to be included. Need to be specified when seed file is given.")
-    val stopWords = opt[String](default = Some(StopWords.EnglishStopwordsFile), descr = "File of blacklist words, default \"stopwords-lewis.csv\" inside the package")
+//    val seedNumber = opt[Int](descr = "Number of seed tokens to be included. Need to be specified when seed file is given.")
+    val stopWords = opt[String](default = None, descr = "File of blacklist words, default \"stopwords-lewis.csv\" inside the package")
     
     val inputExt = opt[List[String]](default = Some(List("txt", "pdf")), descr = "Look for these extensions if a directory is given, default \"txt pdf\"")
     val inputEncoding = opt[String](default = Some("UTF-8"), descr = "Input .txt encoding, default UTF-8, see java.nio.charset.Charset for available encodings")
@@ -59,13 +59,13 @@ object Convert {
     }
     
     logger.info("Reading stopword file"); 
-    val stopWords = if(conf.stopWords.isDefined) StopWords.read(conf.stopWords()) else StopWords.Empty()
+    val stopWords = if(conf.stopWords.isDefined) StopWords.read(conf.stopWords())(conf.inputEncoding()) else StopWords.EnglishStopwords()
 
     implicit val settings =
-      DataConverter.Settings(concatenations = conf.concat(), minCharacters = conf.minChar(), maxWords = conf.maxWords(),
-        wordSelector = WordSelector.byTfIdf(conf.minChar(), conf.minDocFraction(), conf.maxDocFraction()),
-        seedWords = if(conf.seedFile.isDefined) seed else None)
-
+      DataConverter.Settings(concatenations = conf.concat(), minCharacters = conf.minChar(), 
+        wordSelector = WordSelector.byTfIdf(conf.minChar(), conf.minDocFraction(), conf.maxDocFraction()))
+    val seedWords = if(conf.seedFile.isDefined) seed else None
+        
     val path = Paths.get(conf.source())
     val data = {
       if(java.nio.file.Files.isDirectory(path)){
@@ -74,20 +74,23 @@ object Convert {
         logger.info("Finding files under {}", dir.toString())
         val paths = FileHelpers.findFiles(dir, conf.inputExt())
         if (paths.isEmpty) {
-          logger.error("No suitable file found under {}", dir)
-          throw new IllegalArgumentException("No text files found files under " + dir)
+          //logger.error("No suitable file found under {}", dir)
+          throw new IllegalArgumentException("No files found under " + dir + " with extension {" +conf.inputExt().mkString(",")+ "}")
+        }else{
+          logger.info("Found "+paths.size+" files")
         }
+        
         
         //Write file order
         val writer = new PrintWriter(s"${conf.name()}.files.txt")
         paths.foreach(writer.println)
         writer.close
         
-        apply(conf.name(), paths = paths, encoding = conf.inputEncoding(), stopwords = stopWords)
+        apply(conf.name(), conf.maxWords(), paths = paths, encoding = conf.inputEncoding(), stopwords = stopWords, seedWords = seedWords)
         
       }else{
         
-        apply(conf.name(), path = path, encoding = conf.inputEncoding(), stopwords = stopWords)
+        apply(conf.name(), conf.maxWords(), path = path, encoding = conf.inputEncoding(), stopwords = stopWords, seedWords = seedWords)
         
       }
     }
@@ -115,8 +118,9 @@ object Convert {
    * 
    * Returns (data: Data, paths: Seq[String])
    */
-  def apply(name: String, path: Path = null, paths: Vector[Path] = null, 
-      encoding: String = "UTF-8", asciiOnly: Boolean = true, stopwords : StopWords = StopWords.EnglishStopwords())
+  def apply(name: String, maxWords: Int, path: Path = null, paths: Vector[Path] = null,
+      encoding: String = "UTF-8", asciiOnly: Boolean = true, 
+      stopwords: StopWords = StopWords.EnglishStopwords(), seedWords: Option[SeedTokens] = None)
   (implicit settings: DataConverter.Settings) = {
     def preprocessor(text: String) = {
       val tokens = 
@@ -133,7 +137,7 @@ object Convert {
       else
         throw new Exception("Either path or paths must be given")
     }
-    DataConverter(name, documents)
+    DataConverter(name, documents, maxWords = maxWords, seedWords = seedWords)
   }
 
   val logger = LoggerFactory.getLogger(Convert.getClass)

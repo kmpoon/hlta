@@ -5,13 +5,13 @@ import java.io.InputStream
 import java.io.FileInputStream
 
 object StopWords {//TODO: update reader encoding option
-  def read(filename: String): StopWords = {
-    read(new FileInputStream(filename))
+  def read(filename: String)(enc: String): StopWords = {
+    read(new FileInputStream(filename))(enc)
   }
 
-  def read(input: InputStream): StopWords = {
+  def read(input: InputStream)(enc: String): StopWords = {
     new StopWords(
-      Source.fromInputStream(input).getLines.filter(_.size > 0).toSet)
+      Source.fromInputStream(input)(enc).getLines.filter(_.size > 0).toSet)
   }
 
   //shall be removed in the future
@@ -21,9 +21,7 @@ object StopWords {//TODO: update reader encoding option
     implicit val default = EnglishStopwords()
   }
   
-  val EnglishStopwordsFile = "/tm/text/stopwords-lewis.csv"
-  
-  def EnglishStopwords() = StopWords.read(this.getClass.getResourceAsStream(EnglishStopwordsFile))
+  def EnglishStopwords() = StopWords.read(this.getClass.getResourceAsStream("/tm/text/stopwords-lewis.csv"))("UTF-8")
   
   def Empty() = new StopWords(Set.empty[String])
 }

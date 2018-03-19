@@ -107,13 +107,13 @@ object Reader {
    * Auto detect file format and cast it to scala Data
    * If lda format, please provide vocab file
    */
-  def readData(dataFile: String, vocabFile: String = null, format: Option[String] = None):Data = {
+  def readData(dataFile: String, ldaVocabFile: String = null, format: Option[String] = None):Data = {
     if(format.isDefined){
       format.get.toLowerCase match{
         case "arff" => readARFF(dataFile).toData()
         case "tuple" => readTuple(dataFile)
         case "hlcm" => readHLCM(dataFile)
-        case "lda" => readLda(dataFile, vocabFile)
+        case "lda" => readLda(dataFile, ldaVocabFile)
         case _ => throw new Exception("Unknown format")
       }
     }else{
@@ -122,7 +122,7 @@ object Reader {
       else if(dataFile.endsWith(".sparse.txt"))
         readTuple(dataFile)
       else if(dataFile.endsWith(".lda.txt"))
-        readLda(dataFile, vocabFile)
+        readLda(dataFile, ldaVocabFile)
       else
         readHLCM(dataFile)
     }
@@ -147,7 +147,13 @@ object Reader {
     val model = readLTM(modelFile)
     val data = readTuple(dataFile).synchronize(model)
     (model, data)
-  }  
+  }
+  
+  def readLTMAndLDA(modelFile: String, dataFile: String, vocabFile: String): (LTM, Data) = {
+    val model = readLTM(modelFile)
+    val data = readLda(dataFile, vocabFile).synchronize(model)
+    (model, data)
+  }
 
   /**
    * Reads a model and a data set from the given files.  The returned data
@@ -185,13 +191,25 @@ object Reader {
   /**
    * Auto detect file format and cast it to scala Data
    */
-  def readModelAndData(modelFile: String, dataFile: String): (LTM, Data) = {
-    if(dataFile.endsWith(".arff"))
-      readLTMAndARFF(modelFile, dataFile)
-    else if(dataFile.endsWith(".sparse.txt"))
-      readLTMAndTuple(modelFile, dataFile)
-    else
-      readLTMAndHLCM(modelFile, dataFile)
+  def readModelAndData(modelFile: String, dataFile: String, ldaVocabFile: String = null, format: Option[String] = None) = {
+    if(format.isDefined){
+      format.get.toLowerCase match{
+        case "arff" => readLTMAndARFF(modelFile, dataFile)
+        case "tuple" => readLTMAndTuple(modelFile, dataFile)
+        case "hlcm" => readLTMAndHLCM(modelFile, dataFile)
+        case "lda" => readLTMAndLDA(modelFile, dataFile, ldaVocabFile)
+        case _ => throw new Exception("Unknown format")
+      }
+    }else{
+      if(dataFile.endsWith(".arff"))
+        readLTMAndARFF(modelFile, dataFile)
+      else if(dataFile.endsWith(".sparse.txt"))
+        readLTMAndTuple(modelFile, dataFile)
+      else if(dataFile.endsWith(".lda.txt"))
+        readLTMAndLDA(modelFile, dataFile, ldaVocabFile)
+      else
+        readLTMAndHLCM(modelFile, dataFile)
+    }
   }
 
   //  def replaceVariablesInDataByModel[M <: BayesNet](data: Data, model: M) = {

@@ -35,7 +35,7 @@ object HlcmReader {
       s.zipWithIndex.foreach { case (state, index) => b.add(0, state) }
       new Variable(a, b)
     }
-    new Data(variables.toIndexedSeq, instances.toIndexedSeq, name = name.getOrElse("data"))
+    new Data(variables.toIndexedSeq, instances.toIndexedSeq, name = name.getOrElse("data"), isBinary = true)
   }
   
   private def getName(line: String) = {

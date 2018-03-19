@@ -17,7 +17,7 @@ object LdaWriter {
   
     instances.foreach { instance =>
       val values = instance.values.zipWithIndex.filter{case(value, index) => value>=0.5}
-      writer.print(values.size+" "+values.map{case(value, index) => index+":"+Math.round(value)}.mkString(" "))
+      writer.println(values.size+" "+values.map{case(value, index) => index+":"+Math.round(value)}.mkString(" "))
     }
   
     writer.close

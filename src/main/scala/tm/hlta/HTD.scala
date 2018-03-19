@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory
 import tm.util.Reader
 import tm.util.Arguments
 import tm.util.FileHelpers
+import tm.text.StopWords
 
 object HTD {
   /**
@@ -23,7 +24,6 @@ object HTD {
   def buildDocumentCatalog(model: LTM, data: Data, layer: Option[List[Int]] = None, threshold: Double = 0.5, broad: Boolean = false) = {
     import Doc2VecAssignment._
     val binaryData = data.binary()
-    //val synchronizedData = binaryData.synchronize(model)//?
     if(broad) 
       Doc2VecAssignment.computeBroadTopicData(model, binaryData, layer).toCatalog(threshold)
     else      
@@ -40,7 +40,6 @@ object HTD {
    */
   def computeTopicProbabilities(model: LTM, data: Data, layer: Option[List[Int]] = None, broad: Boolean = false) = {
     val binaryData = data.binary()
-    //val synchronizedData = binaryData.synchronize(model)//?
     if(broad) 
       Doc2VecAssignment.computeBroadTopicData(model, binaryData, layer)
     else      
@@ -76,23 +75,24 @@ object HTD {
     |data: .arff for ARFF, .hlcm for HLCM, .sparse.txt for tuple format, .lda.txt for LDA
     |      if LDA, please provide a vocab file using --lda-vocab""")
     
-    val data = trailArg[String](descr = "Data, text or folder, auto search for txt and pdf if folder is given, auto convert to data if txt/pdf is feeded")
+    val data = trailArg[String](descr = "Data, text or folder. Auto search for txt and pdf if folder is given.")
     val name = trailArg[String](descr = "Output name")
     
-    val broad = opt[Boolean](default = Some(false), descr = "use Broad Defined Topic for extraction and assignment, run faster but more document will fall into the topic")
+    val broad = opt[Boolean](default = Some(false), 
+        descr = "use Broad Defined Topic for extraction and assignment, run faster but more document will be categorized into a topic")
     
-    val chinese = opt[Boolean](default = Some(false), 
-        descr = "use predefined setting for converting Chinese to data, only valid when conversion is needed")
-    val vocabSize = opt[Int](default = Some(1000), descr = "Vocabulary size")
-    val concat = opt[Int](default = Some(2), descr = "Vocabulary concatenation")
+    val nonAscii = opt[Boolean](default = Some(false), 
+        descr = "Allows non-ascii character. This also set min word length to 1. (Data conversion option)")
+    val vocabSize = opt[Int](default = Some(1000), descr = "Corpus size (Data conversion option)")
+    val concat = opt[Int](default = Some(2), descr = "Word concatenation (Data conversion option)")
     val topLevelTopics = opt[Int](default = Some(15), descr = "Number of topics on the root level of the topic tree")
         
     val encoding = opt[String](default = Some("UTF-8"), descr = "Input text encoding, default UTF-8")
-    val format = opt[String](descr = "Specify input data format if needed, can be \"arff\", \"hlcm\", \"tuple\"")
-    val ldaVocab = opt[String](default = None, descr = "LDA vocab file, only required if lda data is provided")
+    val format = opt[String](descr = "Input format is determined by file ext., specify your own if needed. Can be \"arff\", \"hlcm\", \"tuple\", \"lda\"")
+    val ldaVocab = opt[String](default = None, descr = "LDA vocab file, only required if input is lda data")
     
-    val docNames = opt[String](default = None, descr = "Use the provided document name if file name is not available to label documents")
-    val docUrls = opt[String](default = None, descr = "Use the provided url if file url is not available")
+    val docNames = opt[String](default = None, descr = "Document names shown on the output webpage. Used when file name is not available.")
+    val docUrls = opt[String](default = None, descr = "Document url shown on the output webpage. Used when file url is not available")
 
     verify
     checkDefaultOpts()
@@ -104,13 +104,8 @@ object HTD {
 
     //Simple default settings
     //See tm.text.DataConvert for more options
-    val engSettings = tm.text.DataConverter.Settings(concatenations = conf.concat(), 
-        minCharacters = 3, maxWords = conf.vocabSize(),
-        wordSelector = tm.text.WordSelector.byTfIdf(3, 0, .25), stopWords = null)
-    val chiSettings = tm.text.DataConverter.Settings(concatenations = 1, 
-        minCharacters = 1, maxWords = conf.vocabSize(),
-        wordSelector = tm.text.WordSelector.byTfIdf(1, 0, .25), stopWords = null)
-    implicit val settings = if(conf.chinese()) chiSettings else engSettings
+    implicit val settings = tm.text.DataConverter.Settings(concatenations = if(conf.nonAscii()) 1 else conf.concat(), 
+        minCharacters = 3, wordSelector = tm.text.WordSelector.byTfIdf(3, 0, .25))
 
     val path = java.nio.file.Paths.get(conf.data())
     val (data, files) = {
@@ -122,22 +117,19 @@ object HTD {
         if(files.isEmpty) throw new IllegalArgumentException("No txt/pdf files found files under " + dir)   
         
         //Convert raw text/pdf to .sparse.txt format
-        val data = tm.text.Convert(conf.name(), paths = files, 
-            encoding = conf.encoding(), asciiOnly = !conf.chinese())
+        val data = tm.text.Convert(conf.name(), conf.vocabSize(), paths = files,
+            encoding = conf.encoding(), asciiOnly = !conf.nonAscii())
         (data, files)
         
-      }else if(conf.format.isEmpty && !path.endsWith(".arff") 
-          && !path.endsWith(".hlcm") && !path.endsWith(".sparse.txt")){
-        
-        //If path is not a data file, converts raw text / pdf to .sparse.txt file
-        val data = tm.text.Convert(conf.name(), path = path, encoding = conf.encoding())
-        data.saveAsTuple(conf.name()+".sparse.txt")
-        (data, null)
-        
-      }else{
+      }else if(conf.format.isDefined || List(".arff", ".hlcm", ".sparse.txt", ".lda.txt").exists(path.toString().endsWith(_))){
         //If path is a data file
         val data = tm.util.Reader.readData(path.toString, 
-            vocabFile = conf.ldaVocab.getOrElse(""), format = conf.format.toOption)
+            ldaVocabFile = conf.ldaVocab.getOrElse(""), format = conf.format.toOption)
+        (data, null)
+      }else{
+        //If path is not a data file, converts raw text / pdf to .sparse.txt file
+        val data = tm.text.Convert(conf.name(), conf.vocabSize(), path = path, encoding = conf.encoding())
+        data.saveAsTuple(conf.name()+".sparse.txt")
         (data, null)
       }
     }
@@ -151,7 +143,7 @@ object HTD {
     catalog.saveAsJson(conf.name()+".topics.json")
     
     //Generate one html file
-    topicTree.saveAsHtml(conf.name()+".nodes.simple.html")
+    topicTree.saveAsSimpleHtml(conf.name()+".nodes.simple.html")
     
     val docNames = {
       if(files!=null)

@@ -32,6 +32,6 @@ object LdaReader {
     }
     var name: Option[String] = None
 
-    new Data(variables, instances, isBinary = true)
+    new Data(variables, instances)
   }
 }

@@ -32,6 +32,8 @@ class TreeList[+A](val roots: Seq[Tree[A]]){
   
   def sortRoots[B](f: Tree[A] => B)(implicit ord: Ordering[B]) = new TreeList(roots.sortBy(f))
   
+  def height(): Int = roots.map(root => root.height()).max
+  
 }
 
 class Tree[+A](val value: A, val children: List[Tree[A]]) {
@@ -71,6 +73,8 @@ class Tree[+A](val value: A, val children: List[Tree[A]]) {
   def toSeq(): Seq[A] = toList.toSeq
 
   def toList(): List[A] = foldLeft(List.empty[A])(_.`+:`(_)).reverse
+  
+  def height(): Int = if(children.size>0) children.map { child => child.height() }.max + 1 else 1
 }
 
 object Tree {
