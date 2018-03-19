@@ -46,7 +46,7 @@ object ExtractTopicTree {
       narrow(model, binaryData, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())
     }
     
-    BuildWebsite(".", conf.name(), conf.name(), topicTree)
+    BuildWebsite(".", conf.name(), conf.title(), topicTree)
     topicTree.saveAsJson(conf.name()+".nodes.json")
   }
   

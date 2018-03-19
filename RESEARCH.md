@@ -18,7 +18,7 @@ An IJCAI tutorial and demonstration can be found at:
 [*Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)*](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
 
    
-# PEM HLTA
+# HLTA
  ```
  java -Xmx15G -cp HLTA.jar:HLTA-deps.jar PEM sample.hlcm 50  5  0.01 3 model 15 20
  ```
@@ -45,7 +45,7 @@ Remember to add the --output-hlcm option while converting to data file. PEM HLTA
  See [*Progressive EM for Latent Tree Models and Hierarchical Topic Detection.*](http://www.aaai.org/ocs/index.php/AAAI/AAAI16/paper/view/11818)
 Peixian Chen, Nevin L. Zhang, Leonard K. M. Poon and Zhourong Chen. AAAI 2016
 
-# Stepwise EM HLTA
+# HLTA with Stepwise EM
 
  ```
  java -Xmx15G -cp HLTA.jar:HLTA-deps.jar StepwiseEMHLTA  sample.sparse.txt 50  5  0.01 3 model 10 15 1000 10 128 8000
@@ -74,7 +74,8 @@ Peixian Chen, Nevin L. Zhang et al.
 
 # Assemble
 Make sure SBT is installed in your machine.
-1. Change directory to the base directory.
+0. Have sbt installed.
+1. Change directory to the project directory. (e.g. user/git/hlta)
 2. Run the following command to build the JAR files from source code:
 
    ```
@@ -83,6 +84,7 @@ Make sure SBT is installed in your machine.
 
 # Enquiry
 
+* Developer: Chun Fai Leung (cfleungac@connect.ust.hk) (The Hong Kong University of Science and Techonology)
 * General questions: Leonard Poon (kmpoon@eduhk.hk) (The Education University of Hong Kong)
 * PEM questions: Peixian Chen (pchenac@cse.ust.hk) (The Hong Kong University of Science and Technology)
 

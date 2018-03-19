@@ -82,10 +82,10 @@ object BuildWebsite{
    */
   def apply(dir: String, outputName: String, title: String, topicTree: TopicTree = null, catalog: DocumentCatalog = null, 
       docNames: Seq[String] = null, docUrls: Seq[String] = null){
-    if(topicTree!=null) topicTree.saveAsJs(outputName + ".nodes.js", jsVarName = "nodes")
-    if(catalog!=null) catalog.saveAsJs(outputName + ".topics.js", jsVarName = "topicMap")
-    if(docNames!=null) writeDocNames(docNames, s"${outputName}.titles.js", docUrls = docUrls)
-    writeHtmlOutput(title, outputName, outputName + ".html")
+    if(topicTree!=null) topicTree.saveAsJs(dir + "/" + outputName + ".nodes.js", jsVarName = "nodes")
+    if(catalog!=null) catalog.saveAsJs(dir + "/" + outputName + ".topics.js", jsVarName = "topicMap")
+    if(docNames!=null) writeDocNames(docNames, dir + "/" + s"${outputName}.titles.js", docUrls = docUrls)
+    writeHtmlOutput(title, outputName, dir + "/" + outputName + ".html")
     copyAssetFiles(Paths.get(dir))
   }
   

@@ -66,8 +66,9 @@ object HTD {
   }
   
   class Conf(args: Seq[String]) extends Arguments(args) {
-    banner("""Usage: tm.hlta.HLTA [OPTION]... data outputName
-    |a lazy HLTA call, takes in data file or text, and outputs topic tree and topic assignment(inference)
+    banner("""Usage: tm.hlta.HTD [OPTION]... data outputName
+    |A lazy all-in-one call that runs through all necessary steps for Hierarchical Topic Detection
+    |Takes in data file or text, and outputs topic tree and topic assignment(inference)
     |if text is feeded in, it would first convert into data file then do HLTA
     |
     |make sure your data file extension is right
@@ -80,6 +81,7 @@ object HTD {
     
     val broad = opt[Boolean](default = Some(false), 
         descr = "use Broad Defined Topic for extraction and assignment, run faster but more document will be categorized into a topic")
+    val epoch = opt[Int](default = Some(50), descr = "max number of iterations running through the dataset")
     
     val nonAscii = opt[Boolean](default = Some(false), 
         descr = "Allows non-ascii character. This also set min word length to 1. (Data conversion option)")
@@ -134,7 +136,7 @@ object HTD {
       }
     }
     
-    val model = HLTA(data, conf.name(), maxTop = conf.topLevelTopics())
+    val model = HLTA(data, conf.name(), maxTop = conf.topLevelTopics(), globalMaxEpochs = conf.epoch())
     
     val topicTree = extractTopicTree(model, conf.name(), broad = conf.broad(), data = data)
     topicTree.saveAsJson(conf.name()+".nodes.json")

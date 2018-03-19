@@ -146,6 +146,7 @@ The output files include:
 
 # Enquiry
 
+* Developer: Chun Fai Leung (cfleungac@connect.ust.hk) (The Hong Kong University of Science and Techonology)
 * General questions: Leonard Poon (kmpoon@eduhk.hk) (The Education University of Hong Kong)
 * PEM questions: Peixian Chen (pchenac@cse.ust.hk) (The Hong Kong University of Science and Technology)
 

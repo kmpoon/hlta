@@ -36,18 +36,18 @@ object HLTA {
       "The default number is set to the number of CPU cores.  " +
       "If the specified number is larger than the number of CPU cores, the latter number will be used.")
     
-    val emNumRestart = opt[Int](descr = "Number of restarts in EM (e.g. 5). <paper session 6.1>", default = Some(5))
-    val emThreshold = opt[Double](descr = "Threshold of improvement to stop EM (e.g. 0.01) <paper session 6.1>", default = Some(0.01))
-    val udThreshold = opt[Double](descr = "The threshold used in unidimensionality test for constructing islands (e.g. 3). <paper session 5.2>", default = Some(3))
-    val maxIsland = opt[Int](descr = "Maximum number of variables in an island (e.g. 10). <paper session 5.1>", default = Some(10))
-    val maxTop = opt[Int](descr = "Maximum number of variables in top level (e.g. 15). <paper session 5.1>", default = Some(15))
+    val emNumRestart = opt[Int](descr = "Number of restarts in EM (e.g. 5). <paper section 6.1>", default = Some(5))
+    val emThreshold = opt[Double](descr = "Threshold of improvement to stop EM (e.g. 0.01) <paper section 6.1>", default = Some(0.01))
+    val udThreshold = opt[Double](descr = "The threshold used in unidimensionality test for constructing islands (e.g. 3). <paper setion 5.2>", default = Some(3))
+    val maxIsland = opt[Int](descr = "Maximum number of variables in an island (e.g. 10). <paper section 5.1>", default = Some(10))
+    val maxTop = opt[Int](descr = "Maximum number of variables in top level (e.g. 15). <paper section 5.1>", default = Some(15))
     
-    val globalBatchSize = opt[Int](descr = "Number of data cases used in each stepwise EM step. <paper session 7>", default = Some(1000))
-    val globalMaxEpochs = opt[Int](descr = "Number of times the whole training dataset has been gone through (e.g. 10). <paper session 7>", default = Some(10))
-    val globalMaxEmSteps = opt[Int](descr = "Maximum number of stepwise EM steps (e.g. 128). <paper session 7>", default = Some(128))
+    val globalBatchSize = opt[Int](descr = "Number of data cases used in each stepwise EM step. <paper section 7>", default = Some(1000))
+    val globalMaxEpochs = opt[Int](descr = "Number of times the whole training dataset has been gone through (e.g. 10). <paper section 7>", default = Some(10))
+    val globalMaxEmSteps = opt[Int](descr = "Maximum number of stepwise EM steps (e.g. 128). <paper section 7>", default = Some(128))
     
-    val structBatchSize = opt[Int](descr = "Number of data cases used for building model structure. <paper session 7>", default = None)
-    val structUseAll = opt[Boolean](descr = "Use all data cases for building model structure. <paper session 7>", default = Some(false))
+    val structBatchSize = opt[Int](descr = "Number of data cases used for building model structure. <paper section 7>", default = None)
+    val structUseAll = opt[Boolean](descr = "Use all data cases for building model structure. <paper section 7>", default = Some(false))
 
     verify
     checkDefaultOpts()
