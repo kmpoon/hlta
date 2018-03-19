@@ -1,7 +1,3 @@
-# HLTA New Scala Branch
-
-This branch simplifies and merges HLTA procedures. Working in progress.
-
 # Hierarchical Latent Tree Analysis (HLTA)
 HLTA is a novel method for hierarchical topic detection. Specifically, it models document collections using a class of graphical models called *hierarchical latent tree models (HLTMs)*. The variables at the bottom level of an HLTM are observed binary variables that represent the presence/absence of words in a document. The variables at other levels are binary latent variables, with those at the lowest latent level representing word co-occurrence patterns and those at higher levels representing co-occurrence of patterns at the level below. Each latent variable gives a soft partition of the documents, and document clusters in the partitions are interpreted as topics. Unlike LDA-based topic models,  HLTMs do not refer to a document generation process and use word variables instead of token variables. They use a tree structure to model the relationships between topics and words, which is conducive to the discovery of meaningful topics and topic hierarchies.
 
@@ -21,6 +17,7 @@ Peixian Chen, Nevin L. Zhang et al.
 An IJCAI tutorial and demonstration can be found at:
 [*Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)*](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
 
+The original HLTA java call associated to the papers: [Old HLTA Page](https://github.com/kmpoon/hlta/blob/master/RESEARCH.md)
 
 # Quick Example
 
@@ -46,7 +43,7 @@ An IJCAI tutorial and demonstration can be found at:
    
 - You can also do
    ```
-   java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HLTA documents.txt modelName
+   java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HTD documents.txt modelName
    ``` 
    
   Your `documents.txt`:
@@ -96,6 +93,7 @@ The output files include:
   The output files include:
   * `someName.html`: a webiste
   * `someName.nodes.js`: a topic tree stored in javascript
+  * `someName.nodes.json`: a topic tree stored as json
   * `lib`: Javascript and CSS files required by the main HTML file
   * `fonts`: fonts used by some CSS files
 
@@ -112,6 +110,7 @@ The output files include:
    ```
   The output files include:
   * `output-topics.json`: a document catalog grouped by topic
+  * `output-topics.js`: a document catalog stored as javascript variable
   * `output-topics.arff`: doc2vec assignments in arff format
 
 - You may use the "broadly defined topics" to speed up the process. Under this definition, more document will be categorized into a topic.
@@ -137,7 +136,8 @@ The output files include:
    Install gensim (https://radimrehurek.com/gensim/) before using the python codes for computing compactness scores in AAAI17 paper (http://www.aaai.org/Conferences/AAAI/2017/PreliminaryPapers/12-Chen-Z-14201.pdf). One pre-trained Word2Vec model by Google is available at https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing. The description of the model can be found at https://code.google.com/archive/p/word2vec/ under the section "Pre-trained word and phrase vectors".
 
 # Assemble
-1. Change directory to the base directory.
+0. Have sbt installed.
+1. Change directory to the project directory. (e.g. user/git/hlta)
 2. Run the following command to build the JAR files from source code:
 
    ```
