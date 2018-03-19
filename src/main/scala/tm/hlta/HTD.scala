@@ -56,7 +56,7 @@ object HTD {
    * @return TopicTree
    */
   def extractTopicTree(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, 
-      broad: Boolean = false, data: Data = null, tempDir: String = "./temp") = {  
+      broad: Boolean = false, data: Data = null, tempDir: String = "./topic_output") = {  
     if(broad){      
       ExtractTopicTree.broad(model, outputName, layer, keywords, tempDir)
     }else{
@@ -164,6 +164,6 @@ object HTD {
     }
       
     //Generate a nice and pretty website, no server required
-    tm.hlta.BuildWebsite("./webiste/", conf.name(), conf.name(), topicTree = topicTree, catalog = catalog, docNames = docNames, docUrls = docUrls)
+    tm.hlta.BuildWebsite("./", conf.name(), conf.name(), topicTree = topicTree, catalog = catalog, docNames = docNames, docUrls = docUrls)
   }
 }

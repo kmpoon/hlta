@@ -50,7 +50,7 @@ object ExtractTopicTree {
     topicTree.saveAsJson(conf.name()+".nodes.json")
   }
   
-  def broad(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, tempDir: String = "./temp/") = {
+  def broad(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, tempDir: String = "./topic_output") = {
     val output = Paths.get(tempDir)
     FileHelpers.mkdir(output)
     
@@ -70,7 +70,7 @@ object ExtractTopicTree {
       topicTree
   }
   
-  def narrow(model: LTM, binaryData: Data, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, tempDir: String = "./temp/") = {
+  def narrow(model: LTM, binaryData: Data, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, tempDir: String = "./topic_output") = {
     val output = Paths.get(tempDir)
     FileHelpers.mkdir(output)
     
