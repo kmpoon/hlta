@@ -21,7 +21,7 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
 
 # Quick Example
 
-- Download the `HLTA.jar` and `HLTA-deps.jar` from the [Releases page](https://github.com/kmpoon/hlta/releases).
+- Download the `HLTA.jar` and `HLTA-deps.jar` from the [Release page](https://github.com/kmpoon/hlta/releases).
 
 - An all-in-one command for hierarchical topic detection. It brings you through data conversion, model building, topic extraction and topic assignment.
    ```
@@ -33,11 +33,11 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
    java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HTD ./quickstart someName
    ``` 
    The output files include:
+  * `someName.sparse.txt`: the converted data, generated if data conversion is necessary
   * `model.bif`: HLTA model file
-  * `someName.html`: HTML file for the topic tree
+  * `someName.html`: HTML visualization 
   * `someName.nodes.js`: a topic tree
   * `someName-topics.js`: a document catalog grouped by topics
-  * `someName-topics.arff`: a doc2vec assignment in arff format
   * `lib`: Javascript and CSS files required by the main HTML file
   * `fonts`: fonts used by some CSS files
    
@@ -63,9 +63,9 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
    java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert datasetName ./source 1000 1
    ```
   After conversion, you can find:
-  - `sample.sparse.txt`: binary data in sparse format for LTM
-  - `sample.dict-2.csv`: information of words after selection after 2 possible concatenations
-  - `sample.whole_dict-2.csv`: information of words before selection after 2 possible concatenations 
+  - `sample.sparse.txt`: data in tuple format, i.e. lines of (docId, word) pair
+  - `sample.dict-1.csv`: information of words after selection after 1 possible concatenations
+  - `sample.whole_dict-1.csv`: information of words before selection after 1 possible concatenations 
   
   You may put your files anywhere in ./source. It accepts txt and pdf.
    ```
