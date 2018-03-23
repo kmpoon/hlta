@@ -39,6 +39,7 @@ object Doc2VecAssignment {
     
     val decimalPlaces = opt[Int](descr="Significant figure, only used for intermediate data storage (.topics.arff)", default = Some(2))
     val layer = opt[List[Int]](descr = "Layer number, i.e. 2 3 4", default = None)
+    val keywords = opt[Int](descr = "Number of keywords to describe each topic, only used for broad option is off", default = Some(7))
     val confidence = opt[Double](descr = "Only document with P(topic|document)>c will be listed in the list, default 0.5", default = Some(0.5))
     val broad = opt[Boolean](descr = "Use broad topic definition, speed up the process but more document will be categorized into the topic")
 
@@ -54,10 +55,10 @@ object Doc2VecAssignment {
     if(conf.data().endsWith(".hlcm"))
       throw new Exception("Invalid data format")
      
-     run(conf.model(), conf.data(), conf.ldaVocab.getOrElse(""), conf.outputName(), conf.decimalPlaces(), conf.layer.toOption, conf.confidence(), conf.broad())
+     run(conf.model(), conf.data(), conf.ldaVocab.getOrElse(""), conf.outputName(), conf.decimalPlaces(), conf.layer.toOption, conf.confidence(), conf.keywords(), conf.broad())
   }
 
-  def run(modelFile: String, dataFile: String, ldaVocabFile: String, outputName: String, decimalPlaces: Int, layer: Option[List[Int]], threshold : Double, broad : Boolean): Unit = {
+  def run(modelFile: String, dataFile: String, ldaVocabFile: String, outputName: String, decimalPlaces: Int, layer: Option[List[Int]], threshold : Double, keywords: Int, broad : Boolean): Unit = {
     val topicDataFile = getFileName(outputName, "arff")
     val precomputedTopicData = if (Files.exists(Paths.get(topicDataFile))) {
       logger.info("Topic data file ({}) exists.  Check if variable matches.", topicDataFile)
@@ -97,7 +98,7 @@ object Doc2VecAssignment {
         val topicData = if(broad)
           computeBroadTopicData(model, binaryData, layer)
         else
-          computeNarrowTopicData(model, binaryData, layer)
+          computeNarrowTopicData(model, binaryData, layer, keywords)
   
         logger.info("Saving topic data")
   
@@ -143,7 +144,7 @@ object Doc2VecAssignment {
     new Data(variables.toIndexedSeq, topicProbabilities.toIndexedSeq)
   }
   
-  def computeNarrowTopicData(model: LTM, binaryData: Data, layer: Option[List[Int]]): Data = new NarrowTopicExtractor(model, binaryData, layer).apply()
+  def computeNarrowTopicData(model: LTM, binaryData: Data, layer: Option[List[Int]], keywords: Int): Data = new NarrowTopicExtractor(model, binaryData, layer, keywords).apply()
     
   implicit final class toCatalog(data: Data){
     /**
@@ -178,14 +179,14 @@ object Doc2VecAssignment {
  * assign those topics that have a higher probability of state 1
  * to each document.
  */
-private class NarrowTopicExtractor(model: LTM, data: Data, layer: Option[List[Int]]) extends ExtractNarrowTopics_LCM {
+private class NarrowTopicExtractor(model: LTM, data: Data, layer: Option[List[Int]], keywords: Int) extends ExtractNarrowTopics_LCM {
   // Holds topic probabilities (value) for each document for each latent variable (key)
   val topicProbabilities = scala.collection.mutable.Map.empty[String, IndexedSeq[Double]]
   val varLevels = model.getVariableNameLevels
   val _layer = if(layer.isDefined)  layer.get.map{l => if(l<=0) l+model.getHeight-1 else l} else null
 
   def apply(): Data = {
-    initialize(model, data.toHlcmDataSet, Array("", "", "tmp", "no", "no", "7"))
+    initialize(model, data.toHlcmDataSet, Array("", "", "tmp", "no", "no", keywords.toString))
     extractTopics()
     convertProbabilities()
   }

@@ -30,7 +30,7 @@ object ConvertDataToLDAFormat {
     //    val data = new DataSet(DataSetLoader.convert(inputFile))
     //    val vocab = data.variables.map(_.getName).toVector
 
-    val instances = Reader.readARFF(inputFile)
+    val instances = Reader.readARFF_native(inputFile)
     val vocab = Reader.getAttributes(instances).map(_.name)
     val map = vocab.zipWithIndex.toMap
 

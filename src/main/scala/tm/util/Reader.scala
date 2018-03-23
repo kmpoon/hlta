@@ -80,16 +80,18 @@ object Reader {
    * Native Java HLCM reader
    */
   def readHLCM_native(dataFile: String) = new DataSet(dataFile)
+  
+  def readARFF(dataFile: String) = readARFF_native(dataFile).toData()
 
-  def readARFF(dataFile: String): Instances = {
+  def readARFF_native(dataFile: String): Instances = {
     val input = if (dataFile.endsWith(".arff"))
       new FileInputStream(dataFile)
     else
       new CompressorStreamFactory()
         .createCompressorInputStream(new BufferedInputStream(new FileInputStream(dataFile)))
-    readARFF(input)
+    readARFF_native(input)
   }
-  def readARFF(dataFile: InputStream): Instances = new DataSource(dataFile).getDataSet
+  def readARFF_native(dataFile: InputStream): Instances = new DataSource(dataFile).getDataSet
   
   def getAttributes(instances: Instances) =
     Range(0, instances.numAttributes).map(instances.attribute)
@@ -110,7 +112,7 @@ object Reader {
   def readData(dataFile: String, ldaVocabFile: String = null, format: Option[String] = None):Data = {
     if(format.isDefined){
       format.get.toLowerCase match{
-        case "arff" => readARFF(dataFile).toData()
+        case "arff" => readARFF(dataFile)
         case "tuple" => readTuple(dataFile)
         case "hlcm" => readHLCM(dataFile)
         case "lda" => readLda(dataFile, ldaVocabFile)
@@ -118,7 +120,7 @@ object Reader {
       }
     }else{
       if(dataFile.endsWith(".arff"))
-        readARFF(dataFile).toData()
+        readARFF_native(dataFile).toData()
       else if(dataFile.endsWith(".sparse.txt"))
         readTuple(dataFile)
       else if(dataFile.endsWith(".lda.txt"))
@@ -164,7 +166,7 @@ object Reader {
     val model = readLTM(modelFile)
 
     logger.info("Reading ARFF data")
-    val arffData = readARFF(dataFile)
+    val arffData = readARFF_native(dataFile)
     logger.info("Getting attributes")
     val attributes = arffData.getAttributes()
     logger.info("Getting instances")

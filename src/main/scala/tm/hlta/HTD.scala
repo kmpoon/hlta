@@ -21,13 +21,13 @@ object HTD {
    * 
    * @return DocumentCatalog
    */
-  def buildDocumentCatalog(model: LTM, data: Data, layer: Option[List[Int]] = None, threshold: Double = 0.5, broad: Boolean = false) = {
+  def buildDocumentCatalog(model: LTM, data: Data, layer: Option[List[Int]] = None, threshold: Double = 0.5, keywords: Int = 7, broad: Boolean = false) = {
     import Doc2VecAssignment._
     val binaryData = data.binary()
     if(broad) 
       Doc2VecAssignment.computeBroadTopicData(model, binaryData, layer).toCatalog(threshold)
     else      
-      Doc2VecAssignment.computeNarrowTopicData(model, binaryData, layer).toCatalog(threshold)
+      Doc2VecAssignment.computeNarrowTopicData(model, binaryData, layer, keywords).toCatalog(threshold)
   }
   
   /**
@@ -38,12 +38,12 @@ object HTD {
    * 
    * @return Data
    */
-  def computeTopicProbabilities(model: LTM, data: Data, layer: Option[List[Int]] = None, broad: Boolean = false) = {
+  def computeTopicProbabilities(model: LTM, data: Data, layer: Option[List[Int]] = None, keywords: Int = 7, broad: Boolean = false) = {
     val binaryData = data.binary()
     if(broad) 
       Doc2VecAssignment.computeBroadTopicData(model, binaryData, layer)
     else      
-      Doc2VecAssignment.computeNarrowTopicData(model, binaryData, layer)
+      Doc2VecAssignment.computeNarrowTopicData(model, binaryData, layer, keywords)
   }
   
   
@@ -88,6 +88,7 @@ object HTD {
     val vocabSize = opt[Int](default = Some(1000), descr = "Corpus size (Data conversion option)")
     val concat = opt[Int](default = Some(2), descr = "Word concatenation (Data conversion option)")
     val topLevelTopics = opt[Int](default = Some(15), descr = "Number of topics on the root level of the topic tree")
+    val topicKeywords = opt[Int](default = Some(7), descr = "Max number of keywords per topic")
         
     val encoding = opt[String](default = Some("UTF-8"), descr = "Input text encoding, default UTF-8")
     val format = opt[String](descr = "Input format is determined by file ext., specify your own if needed. Can be \"arff\", \"hlcm\", \"tuple\", \"lda\"")
@@ -138,10 +139,10 @@ object HTD {
     
     val model = HLTA(data, conf.name(), maxTop = conf.topLevelTopics(), globalMaxEpochs = conf.epoch())
     
-    val topicTree = extractTopicTree(model, conf.name(), broad = conf.broad(), data = data)
+    val topicTree = extractTopicTree(model, conf.name(), broad = conf.broad(), data = data, keywords = conf.topicKeywords())
     topicTree.saveAsJson(conf.name()+".nodes.json")
     
-    val catalog = buildDocumentCatalog(model, data, broad = conf.broad())
+    val catalog = buildDocumentCatalog(model, data, broad = conf.broad(), keywords = conf.topicKeywords())
     catalog.saveAsJson(conf.name()+".topics.json")
     
     //Generate one html file
