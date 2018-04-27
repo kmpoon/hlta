@@ -72,6 +72,13 @@ Peixian Chen, Nevin L. Zhang, Leonard K. M. Poon and Zhourong Chen. AAAI 2016
 For detail algorithm, see section 7 of [*Latent Tree Models for Hierarchical Topic Detection.*](https://arxiv.org/abs/1605.06650)  
 Peixian Chen, Nevin L. Zhang et al. 
 
+# Testing
+- To test the model using test data, you can  use *PEM*  as :
+```
+  java -Xmx15G -cp HLTA.jar:HLTA-deps.jar  PEM  modelname test_data outpath
+```
+  There will be a file named " EvaluationResult.txt" storing the per-document loglikelihood of test data on this model.
+
 # Assemble
 Make sure SBT is installed in your machine.
 0. Have sbt installed.
