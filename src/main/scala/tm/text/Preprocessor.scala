@@ -39,16 +39,17 @@ object Preprocessor {
     .filterNot(stopwords.contains)
     
   /**
-   * A simple Chinese pre-built preprocessor
+   * A simple Korean pre-built preprocessor
    * 
-   * Need to toknize words by space in advance
-   * TODO: add Chinese tokenizer
+   * It is called Korean because we need to tokenize sentence with space in advance
+   * This works for non-ascii language like Chinese
    */
-  def ChinesePreprocessor(s: String, stopwords: StopWords = StopWords.Empty()): Seq[String] = 
+  def KoreanPreprocessor(s: String, stopwords: StopWords = StopWords.Empty()): Seq[String] = 
     tokenizeBySpace(s)
     .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
-    .map(replaceNonAlnum)
+    .map(replacePunctuation)
     .map(replaceStartingDigit)
+    .filter(withLength(1))
     .filterNot(stopwords.contains)
   
   /**
@@ -100,6 +101,7 @@ object Preprocessor {
   
   val NonAlnum = "\\P{Alnum}".r
   val Digit = "^(\\p{Digit})".r
+  val Punctuation = "\\p{Punct}".r
 
   def useRegexToReplace(pair: (Regex, (Match) => String)) = pair match {
     case (r, m) => (input: String) => r.replaceAllIn(input, m)
@@ -108,6 +110,8 @@ object Preprocessor {
   def replaceNonAlnum(input: String): String = NonAlnum.replaceAllIn(input, (m: Match) => "")
   
   def replaceStartingDigit(input: String): String = Digit.replaceAllIn(input, (m: Match) => s"${m.group(1)}")
+  
+  def replacePunctuation(input: String): String = Punctuation.replaceAllIn(input, (m: Match) => "")
   
   /** 
    *  Perform compatibility decomposition, followed by canonical composition, 
@@ -123,9 +127,8 @@ object Preprocessor {
   def withProperLength(min: Int)(word: String) = 
     word.replaceAll("[^\\p{Alpha}\\n]+", "").length >= min
 
-  //    def filter(counts: WordCounts): WordCounts = {
-  //        counts.filter(_._2 >= 5)
-  //    }
+  def withLength(min: Int)(word: String) = 
+    word.length >= min
   
   @Deprecated
   def tokenizeAndRemoveStopWords(text: String)(

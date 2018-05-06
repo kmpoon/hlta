@@ -153,7 +153,7 @@ object Convert {
     def preprocessor(text: String) = {
       val tokens = 
         if(asciiOnly) Preprocessor.EnglishPreprocessor(text, minChars = settings.minCharacters, stopwords = stopwords)
-        else Preprocessor.ChinesePreprocessor(text, stopwords = stopwords)
+        else Preprocessor.KoreanPreprocessor(text, stopwords = stopwords)
       Document(Sentence(tokens))
     }
 
