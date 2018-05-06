@@ -30,12 +30,14 @@ object ConvertDataToLDAFormat {
     //    val data = new DataSet(DataSetLoader.convert(inputFile))
     //    val vocab = data.variables.map(_.getName).toVector
 
+    import Reader._
+    
     val instances = Reader.readARFF_native(inputFile)
-    val vocab = Reader.getAttributes(instances).map(_.name)
+    val vocab = instances.getAttributes().map(_.name)
     val map = vocab.zipWithIndex.toMap
 
     exportVocabulary(name, vocab)
-    exportData(name, Reader.getDataCases(instances), conf.binaryValue())
+    exportData(name, instances.getDataCases(), conf.binaryValue())
   }
 
   val logger = LoggerFactory.getLogger(this.getClass)

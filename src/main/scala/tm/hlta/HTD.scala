@@ -56,13 +56,17 @@ object HTD {
    * @return TopicTree
    */
   def extractTopicTree(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, 
-      broad: Boolean = false, data: Data = null, tempDir: String = "./topic_output") = {  
-    if(broad){      
-      ExtractTopicTree.broad(model, outputName, layer, keywords, tempDir)
+      broad: Boolean = false, data: Data = null, tempDir: Option[String] = None) = {
+    val folderPath = java.nio.file.Paths.get("./")
+    val outputDir = if(tempDir.isDefined) tempDir.get else java.nio.file.Files.createTempDirectory(folderPath, null).toString()
+    val topicTree = if(broad){      
+      ExtractTopicTree.broad(model, outputName, layer, keywords, outputDir)
     }else{
       val binaryData = data.binary()
-      ExtractTopicTree.narrow(model, binaryData, outputName, layer, keywords, tempDir)
+      ExtractTopicTree.narrow(model, binaryData, outputName, layer, keywords, outputDir)
     }
+    if(tempDir.isEmpty) tm.util.FileHelpers.deleteFolder(outputDir)
+    topicTree
   }
   
   class Conf(args: Seq[String]) extends Arguments(args) {
@@ -83,8 +87,9 @@ object HTD {
         descr = "use Broad Defined Topic for extraction and assignment, run faster but more document will be categorized into a topic")
     val epoch = opt[Int](default = Some(50), descr = "max number of iterations running through the dataset")
     
+    //For non-spacing language like Chinese and Japanese, user have to tokenize sentence with space in advance.
     val nonAscii = opt[Boolean](default = Some(false), 
-        descr = "Allows non-ascii character. This also set min word length to 1. (Data conversion option)")
+        descr = "Allows non-ascii characte and set min word length to 1. (Data conversion option)")
     val vocabSize = opt[Int](default = Some(1000), descr = "Corpus size (Data conversion option)")
     val concat = opt[Int](default = Some(2), descr = "Word concatenation (Data conversion option)")
     val topLevelTopics = opt[Int](default = Some(15), descr = "Number of topics on the root level of the topic tree")
@@ -116,7 +121,7 @@ object HTD {
         
         //If path is a dir, look for txt or pdf
         val dir = path
-        val files = FileHelpers.findFiles(dir, List("txt","pdf"))
+        val files = FileHelpers.findFiles(dir, List())//List("txt","pdf"))
         if(files.isEmpty) throw new IllegalArgumentException("No txt/pdf files found files under " + dir)   
         
         //Convert raw text/pdf to .sparse.txt format

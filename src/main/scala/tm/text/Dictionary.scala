@@ -4,86 +4,97 @@ import java.io.PrintWriter
 import scala.io.Source
 import tm.util.CompositeComparator
 import java.io.InputStream
+import scala.math.Ordered
 /**
  * Info about a word.
  *
- * tf: term frequency (i.e. number of occurrences in all document.
+ * ntf: normalized term frequency (i.e. sum of occurrences/documentLength in all document.
  * df: document frequency (i.e. number of documents with
  */
-case class WordInfo(token: NGram, tf: Int, df: Int, tfidf: Double, trend: Map[Int, Int] = Map.empty())
+case class TfidfWordInfo(val token: NGram, tf: Int, df: Int, tfidf: Double) extends GeneralWordInfo with Ordered[TfidfWordInfo]{
+  
+  def compare(that: TfidfWordInfo) = TfidfWordInfo.comparator(this, that)
+  
+  def header() = "word,tf,df,tfidf"
+  
+  override def toString = s"${token.identifier},${tf},${df},${tfidf}"
+}
+
+object TfidfWordInfo{
+  val comparator = CompositeComparator[TfidfWordInfo](
+    (w1, w2) => -w1.tfidf.compareTo(w2.tfidf),
+    (w1, w2) => w1.token.identifier.compareTo(w2.token.identifier))
+  
+  def fromString(s: String) = s.split(",") match {
+    case Array(w, tf, df, tfidf) =>
+      TfidfWordInfo(
+        NGram.fromConcatenatedString(w),
+        tf.toInt, df.toInt, tfidf.toDouble)
+  }
+}
+
+trait GeneralWordInfo{
+  val token: NGram
+  def header(): String
+}
 
 case class DocumentInfo(title: String, time: Int)
 
 object Dictionary {
-  private val comparator = CompositeComparator[WordInfo](
-    (w1, w2) => -w1.tfidf.compareTo(w2.tfidf),
-    (w1, w2) => w1.token.identifier.compareTo(w2.token.identifier))
-
   /**
    * Builds a dictionary from a collection of WordInfo objects.
    */
-  def buildFrom(w: Iterable[WordInfo]) = {
-    val info = w.toVector.sortWith(comparator(_, _) < 0)
+  def buildFrom[T <: GeneralWordInfo with Ordered[T]](w: Iterable[T]): Dictionary[T] = {
+    val info = w.toVector.sorted
     val map = info.zipWithIndex.map(p => (p._1.token -> p._2)).toMap
     new Dictionary(info, map)
+  }
+
+  def save[T <: GeneralWordInfo](filename: String, ws: Iterable[T]) = {
+    if(!ws.isEmpty){
+      val writer = new PrintWriter(filename)
+  
+      writer.println(ws.head.header)
+      ws.map(i => i.toString())
+        .foreach(writer.println)
+  
+      writer.close
+    }
   }
 
   /**
    * Reads a dictionary from a given source.
    */
-  def read(source: Source) = {
-    buildFrom(
+  def read[T <: GeneralWordInfo with Ordered[T]](source: Source, f: String => T) = {
+    Dictionary.buildFrom(
       source.getLines
         .drop(1) // skip the header
-        .map(_.split(","))
-        .map(_ match {
-          case Array(w, tf, df, tfidf) =>
-            WordInfo(
-              NGram.fromConcatenatedString(w),
-              tf.toInt, df.toInt, tfidf.toDouble)
-        })
+        .map{line => f(line)}
         .toIterable)
   }
 
-  def read(input: InputStream): Dictionary = {
-    read(Source.fromInputStream(input))
+  def read[T <: GeneralWordInfo with Ordered[T]](input: InputStream, f: String => T): Dictionary[T] = {
+    read(Source.fromInputStream(input), f)
   }
 
   /**
    * Reads a dictionary from a file specified by the given file name.
    */
-  def read(filename: String): Dictionary = {
-    read(Source.fromFile(filename))
+  def read[T <: GeneralWordInfo with Ordered[T]](filename: String, f: String => T): Dictionary[T] = {
+    read(Source.fromFile(filename), f)
   }
-
-  def save(filename: String, ws: Iterable[WordInfo]) = {
-    val writer = new PrintWriter(filename)
-
-    if(ws.isEmpty || ws.head.trend.isEmpty){
-      writer.println("word,tf,df,tfidf")
-      ws.map(i => s"${i.token.identifier},${i.tf},${i.df},${i.tfidf}")
-        .foreach(writer.println)
-    }else{
-      writer.println("word,tf,df,tfidf,trend")
-      ws.map(i => s"${i.token.identifier},${i.tf},${i.df},${i.tfidf},${i.trend.toList.sortBy(_._1)}")
-        .foreach(writer.println)
-    }
-
-    writer.close
-  }
-
 }
 
-class Dictionary(val info: IndexedSeq[WordInfo], val map: Map[NGram, Int]) {
+class Dictionary[T <: GeneralWordInfo with Ordered[T]](val info: IndexedSeq[T], val map: Map[NGram, Int]) {
 
   def getInfo(token: NGram) = info(map(token))
 
-  def filter(pred: (WordInfo) => Boolean) =
+  def filter(pred: (T) => Boolean) =
     Dictionary.buildFrom(info.filter(pred))
 
   def words() = info.map(_.token.identifier)
 
-  def getMap[T](f: (WordInfo) => T) = map.mapValues(i => f(info(i)))
+  def getMap[U](f: (T) => U) = map.mapValues(i => f(info(i)))
 
   def save(filename: String) = Dictionary.save(filename, info)
 }

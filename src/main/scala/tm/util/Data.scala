@@ -13,11 +13,43 @@ import org.latlab.model.LTM
 import org.slf4j.LoggerFactory
 import scala.util.Random
 import tm.text.Dictionary
+import tm.text.GeneralWordInfo
 import tm.text.NGram
 
 object Data{
   type TokenCounts = Map[NGram, Int]
-  def fromDictionaryAndTokenCounts(dictionary: Dictionary, tokenCountsSeq: Seq[TokenCounts], isBinary: Boolean = false, name: String = "data"): Data = { 
+  
+  def fromTokenAndTokenCounts[T <: GeneralWordInfo with Ordered[T]](tokens: Seq[NGram], tokenCountsSeq: Seq[TokenCounts], 
+      isBinary: Boolean = false, name: String = "data"): Data = { 
+    
+    def _newVariable(name: String) = {
+      val b = new ArrayList[String]()
+      b.add(0, "s0")
+      b.add(1, "s1")         
+      new Variable(name, b)
+    }
+    
+    def _toBow(indices: Map[NGram, Int], counts: TokenCounts): Array[Double] = {
+      val values = Array.fill(indices.size)(0.0)
+      counts.foreach { wc =>
+        indices.get(wc._1).foreach { i => values(i) = wc._2 }
+      }
+      values
+    }
+    
+    val variables = tokens.map{token => _newVariable(token.identifier)}
+    val tokenIndices = tokens.zipWithIndex.toMap
+    val instances = tokenCountsSeq.zipWithIndex.map{ case(tokenCounts, index) => 
+      val values = _toBow(tokenIndices, tokenCounts)
+      //Each instance has a unique name
+      //Such that even data is cut, instance name remain the same as tokenCountsSeq's order
+      new Data.Instance(values, 1.0, name = index.toString())
+    }
+    new Data(variables.toIndexedSeq, instances.toIndexedSeq, isBinary, name)
+  }
+  
+  def fromDictionaryAndTokenCounts[T <: GeneralWordInfo with Ordered[T]](dictionary: Dictionary[T], tokenCountsSeq: Seq[TokenCounts], 
+      isBinary: Boolean = false, name: String = "data"): Data = { 
     
     def _newVariable(name: String) = {
       val b = new ArrayList[String]()
@@ -35,7 +67,7 @@ object Data{
     }
     
     val tokenIndices = dictionary.map
-    val variables = dictionary.info.map{wordInfo => _newVariable(wordInfo.token.identifier)}
+    val variables = dictionary.info.map{info => _newVariable(info.token.identifier)}
     val instances = tokenCountsSeq.zipWithIndex.map{ case(tokenCounts, index) => 
       val values = _toBow(tokenIndices, tokenCounts)
       //Each instance has a unique name

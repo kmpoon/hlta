@@ -1,6 +1,7 @@
 package tm.ngram
 
 import tm.text.Dictionary
+import tm.text.TfidfWordInfo
 
 import tm.util.ParMapReduce.mapReduce
 import scalaz.Scalaz._
@@ -41,7 +42,7 @@ object Analyze {
   }
 
   def count(dictionaryFile: String) = {
-    val dict = Dictionary.read(dictionaryFile)
+    val dict = Dictionary.read(dictionaryFile, TfidfWordInfo.fromString(_))
     val counts = countTokensWithEachWord(dict).sortBy(-_._2)
 
     counts.filter(_._2 > 5).foreach { c =>
@@ -53,7 +54,7 @@ object Analyze {
     }
   }
 
-  def countTokensWithEachWord(d: Dictionary) = {
+  def countTokensWithEachWord(d: Dictionary[TfidfWordInfo]) = {
     d.info.par.flatMap(_.token.words.map(t => Map(t -> 1))).reduce(_ |+| _).toSeq
   }
 

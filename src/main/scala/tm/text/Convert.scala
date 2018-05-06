@@ -86,11 +86,13 @@ object Convert {
         paths.foreach(writer.println)
         writer.close
         
-        apply(conf.name(), conf.maxWords(), paths = paths, encoding = conf.inputEncoding(), stopwords = stopWords, seedWords = seedWords)
+        apply(conf.name(), conf.maxWords(), paths = paths, encoding = conf.inputEncoding(), 
+            asciiOnly = !conf.nonAscii(), stopwords = stopWords, seedWords = seedWords)
         
       }else{
         
-        apply(conf.name(), conf.maxWords(), path = path, encoding = conf.inputEncoding(), stopwords = stopWords, seedWords = seedWords)
+        apply(conf.name(), conf.maxWords(), path = path, encoding = conf.inputEncoding(), 
+            asciiOnly = !conf.nonAscii(), stopwords = stopWords, seedWords = seedWords)
         
       }
     }
@@ -106,7 +108,7 @@ object Convert {
     }
     if(conf.outputLda()){
       logger.info("Saving in LDA format (count data)")
-      data.binary().saveAsLda(s"${conf.name()}.lda.txt", s"${conf.name()}.vocab.txt")
+      data.saveAsLda(s"${conf.name()}.lda.txt", s"${conf.name()}.vocab.txt")
     }
     logger.info("Saving in sparse data format (binary data)")
     data.saveAsTuple(s"${conf.name()}.sparse.txt")
@@ -125,7 +127,7 @@ object Convert {
     def preprocessor(text: String) = {
       val tokens = 
         if(asciiOnly) Preprocessor.EnglishPreprocessor(text, minChars = settings.minCharacters, stopwords = stopwords)
-        else Preprocessor.ChinesePreprocessor(text, stopwords = stopwords)
+        else Preprocessor.KoreanPreprocessor(text, stopwords = stopwords)
       Document(Sentence(tokens))
     }
 

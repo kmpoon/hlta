@@ -25,8 +25,7 @@ object ExtractTopicTree {
     val title = opt[String](default = Some("Topic Tree"), descr = "Title in the topic tree")
     val layer = opt[List[Int]](descr = "Layer number, i.e. --layer 1 3")
     val keywords = opt[Int](default = Some(7), descr = "number of keywords for each topic")
-    val tempDir = opt[String](default = Some("topic_output"),
-      descr = "Temporary output directory for extracted topic files (default: topic_output)")
+    val tempDir = opt[String](default = None, descr = "Output directory for itermediate topic files")
       
     verify
     checkDefaultOpts()
@@ -37,14 +36,22 @@ object ExtractTopicTree {
   def main(args: Array[String]) {
     val conf = new Conf(args)
     
-    val (model, data) = Reader.readModelAndData(conf.model(), conf.data(), ldaVocabFile = conf.ldaVocab.getOrElse(""))
+    val (model, data) = if(conf.broad())
+      (Reader.readModel(conf.model()), null)
+    else
+      Reader.readModelAndData(conf.model(), conf.data(), ldaVocabFile = conf.ldaVocab.getOrElse(""))
+    
+    val folderPath = Paths.get("./")
+    val outputDir = if(conf.tempDir.isDefined) conf.tempDir() else Files.createTempDirectory(folderPath, null).toString()
     
     val topicTree = if(conf.broad())
-      broad(model, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())
+      broad(model, conf.name(), conf.layer.toOption, conf.keywords(), outputDir)
     else{
       val binaryData = data.binary()
-      narrow(model, binaryData, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())
+      narrow(model, binaryData, conf.name(), conf.layer.toOption, conf.keywords(), outputDir)
     }
+    
+    if(conf.tempDir.isEmpty) tm.util.FileHelpers.deleteFolder(outputDir)
     
     BuildWebsite(".", conf.name(), conf.title(), topicTree)
     topicTree.saveAsJson(conf.name()+".nodes.json")

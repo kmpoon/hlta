@@ -27,9 +27,11 @@ object Reader {
       Range(0, d.numAttributes).map(d.attribute)
 
     def getDataCases() =
-      (0 until d.numInstances).map(d.instance)
-        .map(i => Data.Instance(
-          (0 until d.numAttributes).map(i.value).toArray, i.weight))
+      (0 until d.numInstances).map{n => 
+        val i = d.instance(n)
+        Data.Instance(
+          (0 until d.numAttributes).map(i.value).toArray, i.weight, name = n.toString())
+      }
         
     def toData() = {
       def convert(a: Attribute) = {
@@ -92,14 +94,6 @@ object Reader {
     readARFF_native(input)
   }
   def readARFF_native(dataFile: InputStream): Instances = new DataSource(dataFile).getDataSet
-  
-  def getAttributes(instances: Instances) =
-    Range(0, instances.numAttributes).map(instances.attribute)
-    
-  def getDataCases(instances: Instances) =
-    (0 until instances.numInstances).map(instances.instance)
-      .map(i => Data.Instance(
-        (0 until instances.numAttributes).map(i.value).toArray, i.weight))
   
   def readTuple(dataFile: String) = TupleReader.read(dataFile)
   

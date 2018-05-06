@@ -33,7 +33,7 @@ object FileHelpers {
     val suffixes = extensions.map("." + _)
     val visitor = new SimpleFileVisitor[Path] {
       override def visitFile(file: Path, attr: BasicFileAttributes) = {
-        if (suffixes.exists(file.toString.endsWith(_)))
+        if (suffixes.isEmpty || suffixes.exists(file.toString.endsWith(_)))
           files += directory.relativize(file)
 
         CONTINUE
@@ -53,4 +53,21 @@ object FileHelpers {
     if (!Files.exists(p))
       Files.createDirectories(p)
   }
+  
+  def deleteFolder(folderName: String, recurssive: Boolean = false) {
+    val folder = new File(folderName)
+    val files = folder.listFiles()
+    if(files!=null) { //some JVMs return null for empty dirs
+        files.map{f =>
+            if(f.isDirectory()) {
+              if(recurssive) deleteFolder(f.toString)
+              else throw new Exception("There exists subdirectory in "+ folderName)
+            } else {
+                f.delete()
+            }
+        }
+    }
+    folder.delete()
+  }
+
 }

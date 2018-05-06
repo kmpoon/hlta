@@ -24,7 +24,10 @@ object DataConverter {
       maxWords: Int, seedWords: Option[SeedTokens], 
       documentInfos: GenSeq[DocumentInfo] = null)(implicit settings: Settings): Data = {
     val (countsByDocuments, dictionary) = countTokensWithNGrams(name, documents, documentInfos, maxWords, seedWords)
-    Data.fromDictionaryAndTokenCounts(dictionary, countsByDocuments.toList, name = name)
+    val countsByDocumentsWithMinCount = countsByDocuments.map{tokenCounts =>
+      tokenCounts.filter{case (token, count) => count>=2}
+    }
+    Data.fromDictionaryAndTokenCounts(dictionary, countsByDocumentsWithMinCount.toList, name = name)
   }
 
   @Deprecated
@@ -57,7 +60,7 @@ object DataConverter {
    */
   def countTokensWithNGrams(name: String, documents: GenSeq[Document],
     documentInfos: GenSeq[DocumentInfo], maxWords: Int, seeds: Option[SeedTokens])(
-    implicit settings: Settings): (GenSeq[TokenCounts], Dictionary) = {
+    implicit settings: Settings): (GenSeq[TokenCounts], Dictionary[TfidfWordInfo]) = {
     import settings._
 
     def replaceByNGrams(ds: GenSeq[Document], check: NGram => Boolean, concat: Int = 2) = {
@@ -67,8 +70,8 @@ object DataConverter {
     }
 
     @tailrec
-    def loop(documents: GenSeq[Document], previous: Option[Dictionary],
-      frequentWords: Set[NGram], n: Int): (GenSeq[Document], Dictionary) = {
+    def loop(documents: GenSeq[Document], previous: Option[Dictionary[TfidfWordInfo]],
+      frequentWords: Set[NGram], n: Int): (GenSeq[Document], Dictionary[TfidfWordInfo]) = {
       val noAppend = n == 0 || n > concatenations
       val last = (n == concatenations && noAppend) || (n > concatenations)
 
@@ -92,7 +95,7 @@ object DataConverter {
       // select words
       val (dictionary, currentFrequent) = {
         logger.info("Building Dictionary")
-        val allWordInfo = computeWordInfo(documents, documentInfos, appendNextNGram)
+        val allWordInfo = computeWordInfo(documents, documentInfos, appendNextNGram).sorted
 
         logger.info("Saving dictionary before selection")
         Dictionary.save(s"${name}.whole_dict-${n}.csv", allWordInfo)
@@ -176,7 +179,7 @@ object DataConverter {
   }
 
   def computeWordInfo(documents: GenSeq[Document], documentInfos: GenSeq[DocumentInfo],
-    tokenizer: (Sentence) => Seq[NGram] = _.tokens): IndexedSeq[WordInfo] = {
+    tokenizer: (Sentence) => Seq[NGram] = _.tokens): IndexedSeq[TfidfWordInfo] = {
     import Preprocessor._
     import tm.util.ParMapReduce._
 
@@ -207,8 +210,8 @@ object DataConverter {
     //    val documentFrequencies = computeDocumentFrequencies(countsByDocuments)
     //    val N = countsByDocuments.size
     //
-    def buildWordInfo(token: NGram, tf: Int, df: Int, trend: Map[Int, Int]) =
-      WordInfo(token, tf, df, computeTfIdf(tf, df, n), trend)
+    def buildWordInfo(token: NGram, tf: Int, df: Int, count: Map[Int, Int]) =
+      TfidfWordInfo(token, tf, df, computeTfIdf(tf, df, n))
 
     tf.keys.map { w => buildWordInfo(w, tf(w), df(w), trend.getOrElse(w, Map.empty[Int, Int])) }.toIndexedSeq
   }
