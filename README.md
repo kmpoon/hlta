@@ -73,6 +73,10 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
    ./source/OneDocument.txt
    ./source/Folder1/Folder2/Folder3/HiddenSecret.txt
    ```
+- Split into training set and testing set if needed: (v2.1)
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --testsetRatio 0.2 datasetName ./source 1000 1
+   ```
 
 # Subroutine 2: Model Building
 
@@ -135,8 +139,12 @@ The output files include:
 
    Install gensim (https://radimrehurek.com/gensim/) before using the python codes for computing compactness scores in AAAI17 paper (http://www.aaai.org/Conferences/AAAI/2017/PreliminaryPapers/12-Chen-Z-14201.pdf). One pre-trained Word2Vec model by Google is available at https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing. The description of the model can be found at https://code.google.com/archive/p/word2vec/ under the section "Pre-trained word and phrase vectors".
    
- - Evaluate by loglikelihood.
- See the Testing section of the [Old HLTA Page](https://github.com/kmpoon/hlta/blob/master/RESEARCH.md)
+ - Evaluate by loglikelihood. You will need to create a testing set in advance. (v2.1)
+    ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.PerDocumentLogliklihood model.bif data.test.sparse.txt
+   ```
+
+   You may also see the Testing section of the [Old HLTA Page](https://github.com/kmpoon/hlta/blob/master/RESEARCH.md) (v2.0)
 
 # Assemble
 0. Have sbt installed.
