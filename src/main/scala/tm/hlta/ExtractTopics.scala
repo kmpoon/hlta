@@ -37,7 +37,11 @@ object ExtractTopicTree {
   def main(args: Array[String]) {
     val conf = new Conf(args)
     
-    val (model, data) = Reader.readModelAndData(conf.model(), conf.data(), ldaVocabFile = conf.ldaVocab.getOrElse(""))
+    val (model, data) = if(conf.broad())
+      Reader.readModelAndData(conf.model(), conf.data(), ldaVocabFile = conf.ldaVocab.getOrElse(""))
+    else{
+      (Reader.readModel(conf.model()), null)
+    }
     
     val topicTree = if(conf.broad())
       broad(model, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())

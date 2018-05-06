@@ -45,6 +45,8 @@ object Convert {
     val outputHlcm = opt[Boolean](default = Some(false), descr = "Additionally output hlcm format")
     val outputArff = opt[Boolean](default = Some(false), descr = "Additionally output arff format")
     val outputLda = opt[Boolean](default = Some(false), descr = "Additionally output lda format")
+    
+    val testsetRatio = opt[Double](default = Some(0.0), descr = "Split into training and testing set by a user given ratio. Default is 0.0")
 
     verify
     checkDefaultOpts()
@@ -80,7 +82,6 @@ object Convert {
           logger.info("Found "+paths.size+" files")
         }
         
-        
         //Write file order
         val writer = new PrintWriter(s"${conf.name()}.files.txt")
         paths.foreach(writer.println)
@@ -96,20 +97,47 @@ object Convert {
     }
     logger.info("done")
     
-    if(conf.outputArff()){
-      logger.info("Saving in ARFF format (count data)")
-      data.saveAsArff(s"${conf.name()}.arff")
+    if(conf.testsetRatio() > 0.0 && conf.testsetRatio() < 1.0){
+      val (testingData, trainingData) = data.randomSplit(conf.testsetRatio())
+      if(testingData.size()==0)
+        logger.error("Testing data of size 0. Check your testset ratio.")
+      if(trainingData.size()==0)
+        logger.error("Training data of size 0. Check your testset ratio.")
+      if(conf.outputArff()){
+        logger.info("Saving in ARFF format (count data)")
+        trainingData.saveAsArff(s"${conf.name()}.train.arff")
+        testingData.saveAsArff(s"${conf.name()}.test.arff")
+      }
+      if(conf.outputHlcm()){
+        logger.info("Saving in HLCM format (binary data)")
+        trainingData.binary().saveAsHlcm(s"${conf.name()}.train.hlcm")
+        testingData.binary().saveAsHlcm(s"${conf.name()}.test.hlcm")
+      }
+      if(conf.outputLda()){
+        logger.info("Saving in LDA format (count data)")
+        trainingData.saveAsLda(s"${conf.name()}.train.lda.txt", s"${conf.name()}.train.vocab.txt")
+        testingData.saveAsLda(s"${conf.name()}.test.lda.txt", s"${conf.name()}.test.vocab.txt")
+      }
+      logger.info("Saving in sparse data format (binary data)")
+      trainingData.saveAsTuple(s"${conf.name()}.train.sparse.txt")
+      testingData.saveAsTuple(s"${conf.name()}.test.sparse.txt")
+    }else{
+      if(conf.outputArff()){
+        logger.info("Saving in ARFF format (count data)")
+        data.saveAsArff(s"${conf.name()}.arff")
+      }
+      if(conf.outputHlcm()){
+        logger.info("Saving in HLCM format (binary data)")
+        data.binary().saveAsHlcm(s"${conf.name()}.hlcm")
+      }
+      if(conf.outputLda()){
+        logger.info("Saving in LDA format (count data)")
+        data.saveAsLda(s"${conf.name()}.lda.txt", s"${conf.name()}.vocab.txt")
+      }
+      logger.info("Saving in sparse data format (binary data)")
+      data.saveAsTuple(s"${conf.name()}.sparse.txt")
     }
-    if(conf.outputHlcm()){
-      logger.info("Saving in HLCM format (binary data)")
-      data.binary().saveAsHlcm(s"${conf.name()}.hlcm")
-    }
-    if(conf.outputLda()){
-      logger.info("Saving in LDA format (count data)")
-      data.binary().saveAsLda(s"${conf.name()}.lda.txt", s"${conf.name()}.vocab.txt")
-    }
-    logger.info("Saving in sparse data format (binary data)")
-    data.saveAsTuple(s"${conf.name()}.sparse.txt")
+    
   }
 
   /**

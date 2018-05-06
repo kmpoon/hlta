@@ -254,7 +254,20 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
     case s: String => subsetS(docList.asInstanceOf[Seq[String]])
   }
   
-  def randomSubset(ratio: Double) = Random.shuffle(instances).take((instances.size*ratio).toInt)
+  def split(ratio: Double) = {
+    val (set1, set2) = instances.splitAt((this.instances.size*ratio).toInt)
+    (new Data(variables, set1, isBinary, name), new Data(variables, set2, isBinary, name))
+  }
+  
+  def randomSubset(ratio: Double) = {
+    val instances = Random.shuffle(this.instances).take((this.instances.size*ratio).toInt)
+    new Data(variables, instances, isBinary, name)
+  }
+  
+  def randomSplit(ratio: Double) = {
+    val (set1, set2) = Random.shuffle(this.instances).splitAt((this.instances.size*ratio).toInt)
+    (new Data(variables, set1, isBinary, name), new Data(variables, set2, isBinary, name))
+  }
   
   def select[A, B](varList: IndexedSeq[A], docList: Seq[B]) = subset(docList).project(varList)
 }
