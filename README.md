@@ -80,7 +80,7 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
 
 # Subroutine 2: Model Building
 
-- Build model through with maximum 50 em steps
+- Build model through with maximum 50 em steps (uses StepwiseEM)
    ```
    java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA data.sparse.txt 50 modelName
    ```
