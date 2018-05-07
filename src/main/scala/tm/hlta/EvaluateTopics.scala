@@ -56,7 +56,7 @@ object TopicCoherence {
 object TopicCompactness {
   
   class Conf(args: Array[String]) extends Arguments(args){
-    banner(s"Usage: ${TopicCoherence.getClass.getName.replaceAll("\\$$", "")} [OPTIONS]... topicFile dataFile word2vec")
+    banner(s"Usage: ${TopicCompactness.getClass.getName.replaceAll("\\$$", "")} [OPTIONS]... topicFile dataFile word2vec")
     val topicFile = trailArg[String](descr = "topic file, in json or html")
     val dataFile = trailArg[String]()
     val word2vec = trailArg[String](descr = "pretrained word2vec binary model")
@@ -118,7 +118,7 @@ object TopicCompactness {
 
 object PerDocumentLoglikelihood{
   class Conf(args: Array[String]) extends Arguments(args){
-    banner(s"Usage: ${TopicCoherence.getClass.getName.replaceAll("\\$$", "")} [OPTIONS]...bifFile testsetFile")
+    banner(s"Usage: ${PerDocumentLoglikelihood.getClass.getName.replaceAll("\\$$", "")} [OPTIONS]...bifFile testsetFile")
     val bifFile = trailArg[String](descr = "HLTM model, in .bif form")
     val testsetFile = trailArg[String](descr = "Testing set")
     
