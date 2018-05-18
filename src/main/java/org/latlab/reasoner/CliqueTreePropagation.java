@@ -167,6 +167,12 @@ public final class CliqueTreePropagation implements Cloneable {
 				functions.put(var, functions.get(var).project(var, value));
 
 			}
+			if (bNode == null) {
+				System.out.println("bNode == null, var.getName(): " + var.getName() + " value: " + value);
+			}
+			if (bNode.getChildren() == null) {
+				System.out.println("bNode.getChildren() == null, var.getName(): " + var.getName() + " value: " + value);
+			}
 			for (DirectedNode child : bNode.getChildren()) {
 				BeliefNode bChild = (BeliefNode) child;
 				Variable varChild = bChild.getVariable();
@@ -241,7 +247,6 @@ public final class CliqueTreePropagation implements Cloneable {
 		if (_evidence.containsKey(var)) {
 			// likelihood must be positive
 			assert computeLikelihood() > 0.0;
-
 			belief = Function.createIndicatorFunction(var, _evidence.get(var));
 		} else {
 			// initialization
@@ -249,14 +254,29 @@ public final class CliqueTreePropagation implements Cloneable {
 
 			// computes potential at answer extraction clique
 			CliqueNode answerClique = _cliqueTree.getFamilyClique(var);
-
+			
 			// times up functions attached to answer extraction clique
+			
+			if (node.isRoot()) {
+				if (answerClique == null) {
+					System.out.println("is Root name: " + var.getName() + " function size: null answerClique == null");
+				}
+			}
 			for (Function function : answerClique.getFunctions()) {
+				if (function == null) {
+					System.out.println("function == null");
+				}
 				belief = belief.times(function);
 			}
 
 			// times up messages to answer extraction clique
 			for (AbstractNode neighbor : answerClique.getNeighbors()) {
+				if (neighbor == null) {
+					System.out.println("neighbor == null");
+				}
+				if (((CliqueNode) neighbor).getMessageTo(answerClique) == null) {
+					System.out.println("getMessageTo == null");
+				}
 				belief =
 						belief.times(((CliqueNode) neighbor).getMessageTo(answerClique));
 			}
@@ -413,6 +433,7 @@ public final class CliqueTreePropagation implements Cloneable {
 								vars));
 			} else {
 				// reuses original message
+			
 				hdnBel = hdnBel.times(clique.getMessageTo(pivot));
 			}
 		}
@@ -481,9 +502,16 @@ public final class CliqueTreePropagation implements Cloneable {
 		CliqueNode familyClique = _cliqueTree.getFamilyClique(var);
 
 		// times up functions attached to family covering clique
+		if (familyClique == null) {
+			System.out.println("familyClique == null in computeFamilyBelief");
+		}
 		for (Function function : familyClique.getFunctions()) {
+			if (function == null) {
+				System.out.println("function == null in computeFamilyBelief");
+			}
 			hdnBel = hdnBel.times(function);
 		}
+
 		// (In the HLCM propogation case)After this, the hdnBel is superior to
 		// any funtion multiplied.
 
@@ -492,8 +520,16 @@ public final class CliqueTreePropagation implements Cloneable {
 			hdnBel.multiply(familyClique._msgsProd);
 			Set<CliqueNode> already = familyClique._qualifiedNeiMsgs;
 			for (AbstractNode neighbor : familyClique.getNeighbors()) {
-				if (!already.contains(neighbor))
-					hdnBel.multiply(((CliqueNode) neighbor).getMessageTo(familyClique));
+				if (!already.contains(neighbor)) {
+					if (neighbor == null) {
+						System.out.println("neighbor == null in computeFamilyBelief");
+					}
+					Function function1 = ((CliqueNode) neighbor).getMessageTo(familyClique);
+					if (function1 == null) {
+						System.out.println("function1 == null in computeFamilyBelief");
+					}
+					hdnBel.multiply(function1);
+				}
 			}
 		} else {
 			for (AbstractNode neighbor : familyClique.getNeighbors()) {
@@ -647,7 +683,7 @@ public final class CliqueTreePropagation implements Cloneable {
 		if (Thread.interrupted()) {
 			throw new RuntimeException("Thread interrupted");
 		}
-
+		
 		// absorbs evidences
 		absorbEvidence();
 
@@ -665,7 +701,7 @@ public final class CliqueTreePropagation implements Cloneable {
 
 		return computeLikelihood();
 	}
-
+	
 	/**
 	 * Sends a message from the source to the destination.
 	 * 

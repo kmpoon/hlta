@@ -40,18 +40,23 @@ object ExtractTopicTree {
     val (model, data) = if(conf.broad())
       Reader.readModelAndData(conf.model(), conf.data(), ldaVocabFile = conf.ldaVocab.getOrElse(""))
     else{
-      (Reader.readModel(conf.model()), null)
+      Reader.readModelAndData(conf.model(), conf.data())
     }
     
-    val topicTree = if(conf.broad())
+    val topicTree = if(conf.broad()) {
+      println(s"will broad")
       broad(model, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())
-    else{
+    }
+    else {
+      println(s"will narrow")
       val binaryData = data.binary()
       narrow(model, binaryData, conf.name(), conf.layer.toOption, conf.keywords(), conf.tempDir())
     }
+    println(s"narrow or broad done. will BuildWebsite")
     
     BuildWebsite(".", conf.name(), conf.title(), topicTree)
     topicTree.saveAsJson(conf.name()+".nodes.json")
+    println(s"saveAsJson done. filename " + conf.name() + ".nodes.json") 
   }
   
   def broad(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, tempDir: String = "./topic_output") = {
@@ -82,15 +87,19 @@ object ExtractTopicTree {
     val param = Array("", "", tempDir, "no", "no", keywords.toString())
     lcmNdtExtractor.initialize(model, binaryData.toHlcmDataSet(), param)
     lcmNdtExtractor.run()
-    
+    println(s"narrow lcmNdtExtractor run done")
     val topicFile = output.resolve("TopicsTable.html")
     val topicTree = TopicTree.readHtml(topicFile.toString())
     //val order = RegenerateHTMLTopicTree.readIslands(FindTopLevelSiblingClusters.getIslandsFileName(conf.name()))
     //topicTree = topicTree.sortRoots { t => order(t.value.name) }
+    println(s"readHtml done")
     if(layer.isDefined){
       val _layer = layer.get.map{l => if(l<=0) l+model.getHeight-1 else l}
+      println(s"isDefined: will trimLevels")
       topicTree.trimLevels(_layer)
-    }else
+    }else{
+      println(s"not Defined: will topicTree")
       topicTree
+    }
   }
 }

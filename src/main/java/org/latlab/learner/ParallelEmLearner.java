@@ -197,7 +197,7 @@ public class ParallelEmLearner {
 	 */
 	public BayesNet em(BayesNet bayesNet, DataSet dataSet) {
 
-		// System.out.println("Begain full EM: ");
+		// System.out.println("Begin full EM: ");
 		//
 		// long start = System.currentTimeMillis();
 		// resets the number of EM steps

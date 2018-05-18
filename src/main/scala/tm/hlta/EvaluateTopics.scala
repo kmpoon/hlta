@@ -39,6 +39,7 @@ object TopicCoherence {
     val coherences = topics.filter(_.words.size >= m).par.map { x =>  
       topicCoherence(x, data, m)
     }
+    //println("coherences.sum: " + coherences.sum + " coherences.size: " + coherences.size)
     coherences.sum/coherences.size
   }
   
@@ -48,7 +49,9 @@ object TopicCoherence {
       val word = x.toList.map(_.w)
       val coexists = data.df(Seq(word(0), word(1)))
       val exists = data.df(word(0))
-      Math.log((coexists+1)/exists)
+      val smooth_value = 0.00001
+      //println("coexists: " + coexists + " exists: " + exists + " Math.log((coexists+1)/exists): " + Math.log((coexists+1)/exists))
+      Math.log((coexists+1+smooth_value)/(exists+smooth_value))
     }.sum
   }
 }

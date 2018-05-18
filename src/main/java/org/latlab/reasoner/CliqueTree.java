@@ -105,6 +105,7 @@ public class CliqueTree extends UndirectedGraph {
 			if (_variableCliques.get(head) != null)
 				addEdge(Clique, _variableCliques.get(head));
 			_familyCliques.put(head, Clique);
+			//System.out.println("normal _familyCliques head: " + head.getName() + " head.getName()) function size: " + Clique.getFunctions().size());
 		}
 
 		Variable root = model.getRoot().getVariable();
@@ -124,7 +125,6 @@ public class CliqueTree extends UndirectedGraph {
 	 *            BN to be associated with this CT.
 	 */
 	public CliqueTree(BayesNet bayesNet) {
-
 		// I know this can be implicit. However, I am inclined to add it.
 		super();
 
@@ -159,7 +159,6 @@ public class CliqueTree extends UndirectedGraph {
 					familyClique = cliqueNode;
 				}
 			}
-
 			_familyCliques.put(var, familyClique);
 		}
 
@@ -521,7 +520,7 @@ public class CliqueTree extends UndirectedGraph {
 	 */
 	public CliqueNode getFamilyClique(Variable var) {
 		return _familyCliques.get(var);
-	}
+	}    
 
 	/**
 	 * Returns the pivot of this CT.
