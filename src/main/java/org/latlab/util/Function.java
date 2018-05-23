@@ -1263,6 +1263,7 @@ public class Function implements Cloneable {
 		// representation for the subdomain. meanwhile, we go through the
 		// one-dimensional array representation of the original domain by
 		// simulating the carrying in process.
+		
 		int magnitude = _magnitudes[variableIndex];
 		int magnitude2 = magnitude * cardinality;
 		int carry = 0;
@@ -1788,6 +1789,7 @@ public class Function implements Cloneable {
 	 *            multiplier function.
 	 * @return the product between this function and the specified function.
 	 */
+	
 	public void multiply(Function function) {
 		int fDim = getDimension();
 		int gDim = function.getDimension();

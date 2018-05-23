@@ -150,6 +150,7 @@ object BuildWebsite{
         val name = if (index < 0) source else source.substring(index + 1)
         copyTo(source, dir, name)
       }
+      println(s"Copy from resource, totally done")
     }
 
     Seq(
@@ -241,10 +242,12 @@ object JstreeWriter{
       json
     }
     
+    println(s"will write json file, open writeJson: " + outputFile)
     val writer = new PrintWriter(outputFile)
     writer.print("[")
     writer.println(roots.map(_treeToJson(_, 0)).mkString(", "))
     writer.println("]")
+    println(s"writeJson done")
     writer.close
   }
 

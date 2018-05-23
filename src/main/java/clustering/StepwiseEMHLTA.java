@@ -34,6 +34,7 @@ import org.latlab.model.BayesNet;
 import org.latlab.model.BeliefNode;
 import org.latlab.model.LTM;
 import org.latlab.reasoner.CliqueTreePropagation;
+import org.latlab.reasoner.CliqueNode;
 import org.latlab.util.DataSet;
 import org.latlab.util.DataSet.DataCase;
 import org.latlab.util.DataSetLoader;
@@ -119,6 +120,8 @@ public class StepwiseEMHLTA {
 	private int _maxEpochs;
 	private int _sizeBatch;
 	private String _sizeFirstBatch;
+	private boolean _islandNotBridging;
+	private int _sample_size_for_structure_learn = 10000;
 	/**
 	 * Maximum number of island size
 	 */
@@ -165,13 +168,13 @@ public class StepwiseEMHLTA {
 	 */
 
 	public static void main(String[] args) throws Exception {
-		if (args.length != 12 &&args.length != 1 &&args.length != 3 &&args.length!= 0) {
-			System.err.println("Usage: java PEMHLTA trainingdata (EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold outputmodel MaxIsland MaxTop GlobalsizeBatch GlobalMaxEpochs GlobalEMmaxsteps FirstBatch");
+		if (args.length != 14 &&args.length != 1 &&args.length != 2 &&args.length != 3 &&args.length!= 0) {
+			System.err.println("Usage: java PEMHLTA trainingdata outputmodel (IslandNotBridging (EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold outputmodel MaxIsland MaxTop GlobalsizeBatch GlobalMaxEpochs GlobalEMmaxsteps FirstBatch SampleSizeForstructureLearn)) ");
 			System.exit(1);
 		}
 		// TODO Auto-generated method stub
 
-		if(args.length ==12||args.length ==1||args.length ==0){
+		if(args.length == 14 ||args.length ==2||args.length ==1||args.length ==0){
 			StepwiseEMHLTA Fast_learner = new StepwiseEMHLTA();
 			Fast_learner.initialize(args);
 			
@@ -204,12 +207,17 @@ public class StepwiseEMHLTA {
 
         if(args.length==0){
         	 _OrigSparseData = new SparseDataSet("./data/SampleData_5000.arff");
-        	 
-        }else{
+ 			_modelname ="HLTAModel";
+        } else if(args.length==1){
+    		_OrigSparseData = new SparseDataSet(args[0]);
+		_modelname ="HLTAModel";
+        }
+        else if(args.length==2){
 		_OrigSparseData = new SparseDataSet(args[0]);
+		_modelname = args[1];
         }
 
-		if(args.length==12){
+		if(args.length==14){
 		_EmMaxSteps = Integer.parseInt(args[1]);
 
 		_EmNumRestarts = Integer.parseInt(args[2]);
@@ -226,24 +234,27 @@ public class StepwiseEMHLTA {
 		_maxEpochs = Integer.parseInt(args[9]);
 		_globalEMmaxSteps = Integer.parseInt(args[10]);
 		_sizeFirstBatch = args[11];
+		_islandNotBridging = (Integer.parseInt(args[12]) == 0) ? false : true;
+		_sample_size_for_structure_learn = (Integer.parseInt(args[13]));
 		if(_sizeFirstBatch.contains("all")){
             _OrigDenseData = _OrigSparseData.getWholeDenseData();
 		}else{
             _OrigDenseData = _OrigSparseData.GiveDenseBatch(Integer.parseInt(_sizeFirstBatch));
 		}
 		}else{
-			_EmMaxSteps =50;
-			_EmNumRestarts=3;
-			_emThreshold=0.01;
-			_UDthreshold=3;
-			_modelname ="HLTAModel";
-			_maxIsland = 15;
-			_maxTop =30;
-			_sizeBatch =500;
-			_maxEpochs = 10;
-			_globalEMmaxSteps =100;
-			_sizeFirstBatch = "all";
+			_EmMaxSteps =50;//10 > not in stepwise EM
+			_EmNumRestarts=3;//5 <
+			_emThreshold=0.01;// paper: not mentioned
+			_UDthreshold=3; // paper: 3
+			_maxIsland = 15;//10 > paper: 15
+			_maxTop =30;//15 > paper: NYT:30 other:20
+			_sizeBatch = 500;//1000 < paper:1000
+			_maxEpochs = 10;//paper:not mentioned, and not usually work
+			_globalEMmaxSteps = 100;//128 < paper:100
+			_sizeFirstBatch = "all";//8000 >
+			_sample_size_for_structure_learn = 10000;
             _OrigDenseData = _OrigSparseData.getWholeDenseData();
+            _islandNotBridging = true;
 		}
 	}
 
@@ -310,7 +321,7 @@ public class StepwiseEMHLTA {
 		 
 		 double perLL = evaluate(_model);
 		 BufferedWriter BWriter = new  BufferedWriter(new FileWriter(args[2]+File.separator+"EvaluationResult.txt"));
-         BWriter.write("Per-document log-likelihood =  "+perLL);
+         BWriter.write("In StepwiseEMHLTA Per-document log-likelihood =  "+perLL);
          BWriter.close();
 	}
 	
@@ -346,20 +357,43 @@ public class StepwiseEMHLTA {
 			System.out.println("Start model construction...");
 			int level = 2;
 			while (true) {
+						
+			DataSet training_data;
+			if (_workingData.getNumberOfEntries() > _sample_size_for_structure_learn) {
+				int nOfTraining = _sample_size_for_structure_learn;
+				training_data = _workingData.sampleWithReplacement(nOfTraining);
+				System.out.println("DataSet size is: " + _workingData.getNumberOfEntries() + " larger than 10000. Reduce it to " + _sample_size_for_structure_learn + " when structure learning.");
+			} else {
+				training_data = _workingData;
+			}
+			_workingData = training_data;
 			
-			LTM Alayer = FastLTA_flat(_workingData, level);
+			FastLTA_flat(_workingData, level);
+		
+			LTM Alayer = BuildLatentTree(_workingData);
+			
+			int latVarSize = Alayer.getInternalVars("tree").size();
+
 			CurrentModel = BuildHierarchy(CurrentModel, Alayer);
 	
-			int a = Alayer.getInternalVars("tree").size();
-			if (a <= _maxTop)
+			if (latVarSize <= _maxTop) {
+				System.out.println("latent variable size(" + latVarSize + ") <= _maxTop size(" + _maxTop + "), build structure level-by-level terminate!");
+				System.out.println("Final, HLTA has " + (level - 1) + " levels.");
 				break;
-			System.out.println("Start hard assignment...");
-			_workingData = HardAssignment(CurrentModel, Alayer);
+			}
+
+			if (_islandNotBridging) {
+				_workingData = HardAssignmentForIslands(CurrentModel, Alayer, _hierarchies, _workingData);
+			} else {
+				_workingData = HardAssignment(CurrentModel, Alayer, _workingData);
+			}
+			System.out.println("Build level: " + (level - 1)  + " of HLTA done!!!, begin to build next level");
 
 			level++;
 		}
 		
 		System.out.println("Model construction is completed. EM parameter estimation begins...");
+
 		ParallelStepwiseEmLearner emLearner = new ParallelStepwiseEmLearner();
 		emLearner.setMaxNumberOfSteps(_globalEMmaxSteps);
 		emLearner.setNumberOfRestarts(1);
@@ -370,25 +404,50 @@ public class StepwiseEMHLTA {
 		
 		long startGEM = System.currentTimeMillis();
 		CurrentModel = (LTM)emLearner.em(CurrentModel, _OrigSparseData);
-	
 		
-		System.out.println("--- Global EM Time: "
+		System.out.println("--- Global EM Time subroutine4: "
 				+ (System.currentTimeMillis() - startGEM) + " ms ---");
 		
-		// rename latent variables, reorder the states.
 		System.out.println("--- Total Time: "
 				+ (System.currentTimeMillis() - start) + " ms ---");
+		
+		long startSaveModel = System.currentTimeMillis();
+		// rename latent variables, reorder the states.
 		CurrentModel = postProcessingModel(CurrentModel);
 
 		// output final model.
 		CurrentModel.saveAsBif(_modelname + ".bif");
-
-
+		System.out.println("--- PostProcessing and Save Model Time: "
+				+ (System.currentTimeMillis() - startSaveModel) + " ms ---");
+		
 		return CurrentModel;
 	}
 
+    private void print_mis(ArrayList<double[]> mis, ArrayList<Variable> Variables) {
+    		int len = Variables.size();
+    		for (int i = 0; i < len; i ++) {
+    			for (int j = 0; j < len; j ++) {
+    				System.out.println("MI1: i: " + i + " ni: " + Variables.get(i).getName() +  " j: " + j + " nj: " + Variables.get(j).getName() + " mi: " + mis.get(i)[j]);
+    			}
+    		}
+    }
 
-
+	public void print_variables(Set<Variable> Vars, String comment) {
+		System.out.print(comment + " Variables size: " + Vars.size() + " Variables:");
+		for (Variable v : Vars) {
+			System.out.print(" " + v.getName());
+		}
+		System.out.println("");
+	}
+	
+	public void print_strings(Set<String> strs, String comment) {
+		System.out.print(comment + " String size: " + strs.size() + " Strings:");
+		for (String v : strs) {
+			System.out.print(" " + v);
+		}
+		System.out.println("");
+	}
+	
 	/**
 	 * Build One layer
 	 * 
@@ -399,11 +458,14 @@ public class StepwiseEMHLTA {
 	 * @throws FileNotFoundException 
 	 */
 
-	public LTM FastLTA_flat(DataSet _data, int Level) throws FileNotFoundException, UnsupportedEncodingException {
+	public void FastLTA_flat(DataSet _data, int Level) throws FileNotFoundException, UnsupportedEncodingException {
 
 		int i = 1;
 		initialize(_data);
+		//System.out.println("VariablesSet size: " + _VariablesSet.size());
+		System.out.println("===========start to FastLTA_flat=============");
 		System.out.println("===========Building Level "+ (Level-1)+ "=============");
+		long t1 = System.currentTimeMillis();
 		// Call lcmLearner iteratively and learn the LCMs.
 		while (!isDone()) {
 			System.out.println("======================= Learn Island : " + i
@@ -414,7 +476,7 @@ public class StepwiseEMHLTA {
 					// compute MI and find the pair with the largest MI value
 					long startMI = System.currentTimeMillis();
 					_mis = computeMis(_data);
-					System.out.println("======================= _mis has been calculated  =================================");
+					System.out.println("======================= mis has been calculated  =================================");
 					System.out.println("--- ComputingMI Time: "
 							+ (System.currentTimeMillis() - startMI)
 							+ " ms ---");
@@ -422,7 +484,7 @@ public class StepwiseEMHLTA {
 				}
 				ArrayList<Variable> bestP = new ArrayList<Variable>();
 				findBestPair(bestP, _VariablesSet);
-			//	System.out.println("Best Pair " + bestP.get(0).getName() +" and " + bestP.get(1).getName());
+			//  System.out.println("Best Pair " + bestP.get(0).getName() +" and " + bestP.get(1).getName());
 				ArrayList<Variable> Varstemp =
 						new ArrayList<Variable>(_VariablesSet);
 				DataSet data_proj = _data.project(Varstemp);
@@ -440,9 +502,10 @@ public class StepwiseEMHLTA {
 				long startMI = System.currentTimeMillis();
 				_mis = computeMis( _data);
 				findBestPair(bestPair, _VariablesSet);
-				System.out.println("======================= _mis has been calculated  =================================");
+				System.out.println("======================= mis has been calculated  =================================");
 				System.out.println("--- ComputingMI Time: "
 						+ (System.currentTimeMillis() - startMI) + " ms ---");
+				//print_mis(_mis, _Variables);
 
 			} else {
 				findBestPair(bestPair, _VariablesSet);
@@ -548,6 +611,7 @@ public class StepwiseEMHLTA {
 						updateVariablesSet(subModel1);
 						updateHierarchies(subModel2, ClosestVariablePair);
 						updateVariablesSet(subModel2);
+						
 						break;
 					} else {
 						for (int id = 0; id < 2; id++) {
@@ -560,6 +624,7 @@ public class StepwiseEMHLTA {
 						}
 						updateHierarchies(m1, bestPair);
 						updateVariablesSet(m1);
+
 						break;
 					}
 				} else if (_VariablesSet.size() - cluster.size() == 0
@@ -567,17 +632,22 @@ public class StepwiseEMHLTA {
 					subModel = m1;
 					updateHierarchies(subModel, bestPair);
 					updateVariablesSet(subModel);
+
 					break;
 				}
 			}
 			i++;
 		}
 
-		// link the islands.
+		System.out.println("--- Total Time subroutine1 Find Island: " + (System.currentTimeMillis() - t1) + " ms ---");
+		/*System.out.print("hierarchies size: " + _hierarchies.size() + " _hierarchies:");
+		for (Variable latVar : _hierarchies.keySet()) {
+			System.out.print(" " + latVar.getName());
+		}
+		System.out.println("");*/
+		System.out.println("======================= finish FastLTA_flat  =================================");
 
-		LTM latentTree = BuildLatentTree(_data);
-
-		return latentTree;
+		return;
 	}
 
 	/**
@@ -761,20 +831,26 @@ public class StepwiseEMHLTA {
 			_VariablesSet.remove(((BeliefNode) child).getVariable());
 		}
 	}
-
+	
 	private LTM BuildLatentTree(DataSet _data) throws FileNotFoundException, UnsupportedEncodingException {
 
-	//	long LatentPostTime = System.currentTimeMillis();
+		System.out.println("======================= start to BuildLatentTree  =================================");
+		long t0 = System.currentTimeMillis();
+		long t1 = System.currentTimeMillis();
+		System.out.println("getNumberOfEntries of data: " + _data.getNumberOfEntries());
 		if(_latentPosts.isEmpty())
 		{
+			System.gc();
 			for(Variable var : _hierarchies.keySet())
 			{
+				//System.out.println("updateStats. var: " + var.getName());
 				LTM subModel = _hierarchies.get(var);
 				updateStats(subModel,_data);
 			}
 		}
-	//	System.out.println("Compute Latent Posts Time: " + (System.currentTimeMillis() - LatentPostTime) + " ms ---");
-
+		System.gc();
+		
+		//	System.out.println("Compute Latent Posts Time: " + (System.currentTimeMillis() - LatentPostTime) + " ms ---");
 		LTM latentTree = new LTM();
 
 		// Construct tree: first, add all manifest nodes and latent nodes.
@@ -782,6 +858,7 @@ public class StepwiseEMHLTA {
 		for (Variable var : _hierarchies.keySet()) {
 			LTM tempTree = _hierarchies.get(var);
 
+			//System.out.println("Construct tree. var: " + var.getName());
 			for (AbstractNode node : tempTree.getNodes()) {
 				latentTree.addNode(((BeliefNode) node).getVariable());
 			}
@@ -806,15 +883,36 @@ public class StepwiseEMHLTA {
 				}
 			}
 		}
-
-		UndirectedGraph mst = learnMaximumSpanningTree(_hierarchies, _data);
-
+		System.out.println("--- Time blt1: BuildLatentTree Construct tree done: " + (System.currentTimeMillis() - t1) + " ms ---");
 		
+		//System.out.println("InternalVars size: " + latentTree.getInternalVars("tree").size());
+		boolean need_island_bridging = true;
+		if (_islandNotBridging) {
+			if (latentTree.getInternalVars("tree").size() <= _maxTop) {
+				need_island_bridging = true;
+			} else {
+				need_island_bridging = false;
+			}
+			
+			if (!need_island_bridging) {
+				System.out.println("--- Total Time subroutine2 BuildLatentTree: " + (System.currentTimeMillis() - t0) + " ms ---");
+				System.out.println("======================= BuildLatentTree done =================================");
+				return latentTree;
+			}
+		}
+
+		long t2 = System.currentTimeMillis();
+		System.gc();
+		UndirectedGraph mst = learnMaximumSpanningTree(_hierarchies, _data);
+		System.gc();
+		System.out.println("--- Time blt2: BuildLatentTree learnMaximumSpanningTree done: " + (System.currentTimeMillis() - t2) + " ms ---");
+
+		long t3 = System.currentTimeMillis();
 		// Choose a root with more than 3 observed variables
 		Queue<AbstractNode> frontier = new LinkedList<AbstractNode>();
 		frontier.offer(mst.getNodes().peek());
 
-		// add the edges among latent nodes.
+		// add the edges among latent nodes. 
 		while (!frontier.isEmpty()) {
 			AbstractNode node = frontier.poll();
 			DirectedNode dNode =
@@ -829,12 +927,22 @@ public class StepwiseEMHLTA {
 				}
 			}
 		}
+		System.out.println("--- Time blt3: BuildLatentTree structure done: " + (System.currentTimeMillis() - t3) + " ms ---");
 		
+		Set<Variable> LatVars = latentTree.getVariables();
+		//print_variables(LatVars, "latentTree.getVariables in mid BuildLatentTree");
+		//print_strings(latentTree.getNodeListByName(), "latentTree.getVariables in mid BuildLatentTree by names");
+		
+		ArrayList<Variable> LatVarsOrdered = new ArrayList<Variable>();
+		for(Variable v: LatVars) {
+			if(((BeliefNode)latentTree.getNode(v)).getParent() == null){
+				LatVarsOrdered.add(v);
+			}
+		}
 
-		
-		ArrayList<Variable> LatVarsOrdered = latentTree.getLatVarsfromTop();
+		long t4 = System.currentTimeMillis();
 		for(Variable v: LatVarsOrdered){
-			if(!latentTree.getNode(v).isRoot()){
+			if(!latentTree.getNode(v).isRoot()){ // here is the point!!!
 				//construct a LTM with 4 observed variables 2 latent variables
 				//copy parameters
 				HashSet<String> donotUpdate = new HashSet<String>();
@@ -851,6 +959,10 @@ public class StepwiseEMHLTA {
 					lTM_4n.getNode(vtemp).getCpt().setCells(var2s, latentTree.getNode(vtemp).getCpt().getCells());
 					donotUpdate.add(vtemp.getName());
 				}
+				
+				/*if (v.getName() == null) {
+					System.out.println("v.getName() == null");
+				}*/
 				
 				for (Variable vtemp : _bestpairs.get(v.getName())){
 					lTM_4n.addEdge(lTM_4n.addNode(vtemp), h2);
@@ -879,22 +991,13 @@ public class StepwiseEMHLTA {
 				ArrayList<Variable> vars = new ArrayList<Variable>(latentTree.getNode(v).getCpt().getVariables());
 				latentTree.getNode(v).getCpt().setCells(vars, LTM4var.getNode(h2.getVariable()).getCpt().getCells());
 			}
+			//System.out.println("--- Time blt41: BuildLatentTree: EM for " + count_v++ + "-th variable " + (System.currentTimeMillis() - startEM) + " ms ---");
 		}
-
-	
-		/*
-		 * EM for each layer if needed
-		 */
+		System.out.println("--- Time blt4: BuildLatentTree EM done: " + (System.currentTimeMillis() - t4) + " ms ---");
 		
-	/*	ParallelEmLearner emLearner = new ParallelEmLearner();
-		emLearner.setLocalMaximaEscapeMethod("ChickeringHeckerman");
-		emLearner.setMaxNumberOfSteps(20);
-		emLearner.setNumberOfRestarts(1);
-		emLearner.setReuseFlag(true);
-		emLearner.setThreshold(_emThreshold);
-
-		latentTree = (LTM) emLearner.em(latentTree, _data.synchronize(latentTree));     
-	*/
+		System.out.println("--- Total Time subroutine2 BuildLatentTree: " + (System.currentTimeMillis() - t0) + " ms ---");
+		System.out.println("======================= BuildLatentTree done =================================");
+	
 		return latentTree;
 	}
 	
@@ -1257,14 +1360,17 @@ public class StepwiseEMHLTA {
 	 * @param _data
 	 */
 private LTM BuildHierarchy(LTM OldModel, LTM tree) {
-		
+		long start = System.currentTimeMillis();
+		System.out.println("======================= start to BuildHierarchy  =================================");
 		LTM CurrentModel = new LTM();
 		if (OldModel == null) {
+			System.out.println("======================= return BuildHierarchy with OldModel == null =================================");
 			return tree;
 		}
 		
 		CurrentModel = OldModel;
-
+		//print_strings(OldModel.getNodeListByName(), "OldModel Variables by names in BuildHierarchy");
+		//print_strings(tree.getNodeListByName(), "tree Variables by names in BuildHierarchy");
 		
 		Set<Edge> edgeSet = new HashSet<Edge>();
 
@@ -1277,24 +1383,33 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 			}
 		}
 
-
 		for (Edge e : edgeSet) {
 			CurrentModel.removeEdge(e);
 		}
 		
-		for (Variable v : tree.getInternalVars()) {
+		//print_strings(CurrentModel.getNodeListByName(), "CurrentModel Variables by names in BuildHierarchy before");
+		//print_variables(tree.getInternalVarsFromMultiRootTree(), "tree.getInternalVarsFromMultiRootTree() by names in BuildHierarchy before");
+
+		for (Variable v : tree.getInternalVarsFromMultiRootTree()) {
 			CurrentModel.addNode(v);
 		}
+		
+		//print_strings(CurrentModel.getNodeListByName(), "CurrentModel Variables by names in BuildHierarchy");
+
 		for (Edge e : tree.getEdges()) {
 			String head = e.getHead().getName();
 			String tail = e.getTail().getName();
 
+			//System.out.println("getEdges in BuildHierarchy head: " + head + " tail: " + tail);
+			if (CurrentModel.getNodeByName(head) == null) {
+				System.out.println("head null");
+			}
+			if (CurrentModel.getNodeByName(tail) == null) {
+				System.out.println("tail null");
+			}
 			CurrentModel.addEdge(CurrentModel.getNodeByName(head),
 					CurrentModel.getNodeByName(tail));
 		}
-
-	
-
 		
 		for(AbstractNode nd: tree.getNodes()){
 			BeliefNode bnd  = (BeliefNode)nd;
@@ -1313,11 +1428,10 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 			}
 		}
 
+		System.out.println("--- Total Time subsubroutine2.1 BuildHierarchy: " + (System.currentTimeMillis() - start) + " ms ---");
+		System.out.println("======================= return BuildHierarchy  =================================");
 		return CurrentModel;
 	}	
-	
-	
-
 	
 	 private double evaluate(BayesNet _modelEst2){ 
 	 double Loglikelihood=
@@ -1351,6 +1465,7 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 		_mis = new ArrayList<double[]>();
 
 		// add all manifest variable to variable set _VariableSet.
+		//System.out.println("data variable size: " + data.getVariables().length);
 		for (Variable var : data.getVariables()) {
 			_VariablesSet.add(var);
 			_Variables.add(var);
@@ -1435,6 +1550,7 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 					}
 				}
 			}
+
 			List<Map.Entry<Variable, Double>> list =
 					SortChildren(latent, setNode, ctp);
 			ArrayList<Variable> collectionVar = new ArrayList<Variable>();
@@ -1448,6 +1564,7 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 					collectionVar.add(manifest);
 				}
 			}
+
 			for (int i = 0; i < card; i++) {
 				states[0] = i;
 
@@ -1488,7 +1605,6 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 					  } 
 				  } 
 			  }
-			 
 			/*if (severity[0] - severity[1] > 0.01) {
 
 				order[0] = 1;
@@ -1577,6 +1693,7 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 		for (DirectedNode node : nodeSet) {
 			Variable child = ((BeliefNode) node).getVariable();
 			double mi = computeMI(var, child, ctp);
+			
 			children_mi.put(child, mi);
 		}
 
@@ -1591,7 +1708,11 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 		xyNodes.add(x);
 		xyNodes.add(y);
 
-		return Utils.computeMutualInformation(ctp.computeBelief(xyNodes));
+		Function func = ctp.computeBelief(xyNodes);
+		if (func == null) {
+			System.out.println("func == null");
+		}
+		return Utils.computeMutualInformation(func);
 	}
 
 
@@ -1666,7 +1787,7 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 			Map<Variable, LTM> hierarchies, DataSet _data) {
 		// initialize the data structure for pairwise MI
 		List<StringPair> pairs = new ArrayList<StringPair>();
-
+		
 		// the collection of latent variables.
 		List<Variable> vars = new ArrayList<Variable>(hierarchies.keySet());
 
@@ -1677,16 +1798,18 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 		int nVars = vars.size();
 
 		// enumerate all pairs of latent variables
+			
 		for (int i = 0; i < nVars; i++) {
 			Variable vi = vars.get(i);
 			varPair.set(0, vi);
-
+			
 			for (int j = i + 1; j < nVars; j++) {
 				Variable vj = vars.get(j);
 				varPair.set(1, vj);
-
+				
 				// compute empirical MI
-				Function pairDist = computeEmpDist(varPair,_data);
+				Function pairDist = computeEmpDist(varPair, _data);
+
 				double mi = Utils.computeMutualInformation(pairDist);
 
 				// keep both I(vi; vj) and I(vj; vi)
@@ -1747,13 +1870,18 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 		return mst;
 	}
 	
-	private DataSet HardAssignment(LTM CurrentModel, LTM latentTree) {
-		ArrayList<DataCase> data = _OrigDenseData.getData();
+	private DataSet HardAssignment(LTM CurrentModel, LTM latentTree, DataSet working_data) {
+		long t0 = System.currentTimeMillis();
+		System.out.println("Start hard assignment...");
+		ArrayList<DataCase> data = working_data.getData();
 
 		Variable[] varName = new Variable[latentTree.getInternalVars().size()];
+	
 		int[][] newData = new int[data.size()][varName.length];
 
 		CliqueTreePropagation ctp = new CliqueTreePropagation(CurrentModel);
+		CliqueNode cn = ctp.getCliqueTree().getFamilyClique(CurrentModel.getRoot().getVariable());
+		System.out.println("root getFunctions().size(): " + cn.getFunctions().size());
 
 		int index = 0;
 		for (Variable latent : latentTree.getInternalVars()) {
@@ -1762,7 +1890,7 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 			varName[index] = new Variable(clone.getName(), clone.getStates());
 			index++;
 		}
-
+		
 		// update for every data case
 		for (int j = 0; j < data.size(); j++) {
 			DataCase dataCase = data.get(j);
@@ -1770,7 +1898,8 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 			int[] states = dataCase.getStates();
 
 			// set evidence and propagate
-			ctp.setEvidence(_OrigDenseData.getVariables(), states);
+			ctp.setEvidence(working_data.getVariables(), states);
+
 			ctp.propagate();
 
 			for (int i = 0; i < varName.length; i++) {
@@ -1799,21 +1928,93 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 			da.addDataCase(newData[j], data.get(j).getWeight());
 		}
 
-		ArrayList<Variable> set = new ArrayList<Variable>();
-		for (Variable latent : varName) {
-			BeliefNode node = latentTree.getNodeByName(latent.getName());
+		System.out.println("--- Total Time subroutine3 hard assignment: " + (System.currentTimeMillis() - t0) + " ms ---");
+		System.out.println("======================  hard assignment done =========================");
 
-			int leafChild = 0;
-			for (DirectedNode child : node.getChildren()) {
-				if (child.isLeaf())
-					leafChild += 1;
+		return da;
+	}
+	
+	private DataSet HardAssignmentForIslands(LTM CurrentModel, LTM latentTree, Map<Variable, LTM> hierarchies, DataSet working_data) {
+		long t0 = System.currentTimeMillis();
+		System.out.println("Start HardAssignmentForIslands...");
+		ArrayList<DataCase> data = working_data.getData();
 
-				if (leafChild > 1) {
-					set.add(latent);
-					break;
-				}
+		Set<Variable> LatVarsTmp = latentTree.getVariables();
+		Set<Variable> LatInternalVars;
+
+		LatInternalVars = new HashSet<Variable>();
+		for(Variable v: LatVarsTmp) {
+			if(((BeliefNode)latentTree.getNode(v)).getParent() == null){
+				LatInternalVars.add(v);
 			}
 		}
+		
+		//System.out.println("latentTree getInternalVars size: " + LatInternalVars.size());
+		Variable[] varName = new Variable[LatInternalVars.size()];
+		int[][] newData = new int[data.size()][varName.length];
+
+		int index = 0;
+		for (Variable latent : LatInternalVars) {
+			Variable clone =
+					CurrentModel.getNodeByName(latent.getName()).getVariable();
+			varName[index] = new Variable(clone.getName(), clone.getStates());
+			index++;
+		}
+
+		// update for every data case
+		for (int i = 0; i < varName.length; i++) {
+			Variable latent =
+					((BeliefNode) CurrentModel.getNode(varName[i].getName())).getVariable();
+			CliqueTreePropagation ctp = new CliqueTreePropagation(hierarchies.get(latent));
+
+			ArrayList<Variable> island_obs_variables = new ArrayList<Variable>(hierarchies.get(latent).getManifestVars());
+			/*System.out.print("latent: " + latent.getName() + " other variable:");
+			for (Variable v : island_obs_variables) {
+				System.out.print(" " + v.getName());
+			}
+			System.out.println("");*/
+			
+			for (int j = 0; j < data.size(); j++) {
+				DataCase dataCase = data.get(j);				
+				
+				int[] states = dataCase.getStates();
+				int[] states_proj = new int[island_obs_variables.size()];
+				for (int k = 0; k < island_obs_variables.size(); k++) {
+					String name = island_obs_variables.get(k).getName();
+					int id = _varId.get(name);
+					states_proj[k] = states[id];
+				}
+				
+				// set evidence and propagate
+				Variable[] iv = island_obs_variables.toArray(new Variable[island_obs_variables.size()]);
+				ctp.setEvidence(iv, states_proj);
+
+				ctp.propagate();
+				
+				// compute P(Y|d)
+				Function post = ctp.computeBelief(latent);
+
+				double cell = 0;
+				int assign = 0;
+
+				for (int k = 0; k < post.getDomainSize(); k++) {
+					if (post.getCells()[k] > cell) {
+						cell = post.getCells()[k];
+						assign = k;
+					}
+				}
+
+				newData[j][i] = assign;
+			}
+		}
+
+		DataSet da = new DataSet(varName);
+		for (int j = 0; j < data.size(); j++) {
+			da.addDataCase(newData[j], data.get(j).getWeight());
+		}
+
+		System.out.println("--- Total Time subroutine3 hard assignment: " + (System.currentTimeMillis() - t0) + " ms ---");
+		System.out.println("======================  hard assignment done =========================");
 
 		return da;
 	}

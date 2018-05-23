@@ -53,10 +53,12 @@ public class CliqueTreePropagationGroup {
 	}
 
 	private static CliqueTreePropagation construct(BayesNet model) {
-		if (model instanceof LTM)
+		if (model instanceof LTM) {
 			return new CliqueTreePropagation((LTM) model);
-		else
+		}
+		else {
 			return new CliqueTreePropagation(model);
+		}
 	}
 
 	/**

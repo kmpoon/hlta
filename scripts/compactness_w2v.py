@@ -1,7 +1,7 @@
 __author__ = 'chen zhourong'
-from gensim.models import Word2Vec
+#from gensim.models import Word2Vec
 
-def compactness_score(model_path, topic_file_path):
+def compactness_score(model_path, topic_file_path, with_gensim = True):
 	"""
 	model_path:	Word2Vec model file
 	topic_file_path:Each line in the file is a topic, represented as 
@@ -13,7 +13,8 @@ def compactness_score(model_path, topic_file_path):
 	# Loading can be very slow if the model is large. 
 	# User should consider loading the model just once for all the topic files.
 	print("Loading Word2Vec model: " + model_path)
-	model = Word2Vec.load_word2vec_format(model_path, binary=True)
+	import gensim
+	model = gensim.models.KeyedVectors.load_word2vec_format(model_path, binary=True)
 	print("Loading Done.")
 
 	print("Processing topic file: " + topic_file_path)

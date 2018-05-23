@@ -9,6 +9,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * This class provides a skeletal implementation for graphs, to minimize the
@@ -293,5 +294,9 @@ public abstract class AbstractGraph implements Cloneable {
 	   AbstractNode n = _names.get(name);
 	   _nodes.remove(n);
 	   _nodes.addFirst(n);
+	}
+	
+	public Set<String> getNodeListByName() {
+		return _names.keySet();
 	}
 }

@@ -75,7 +75,7 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
    ```
 - Split into training set and testing set if needed: (v2.1)
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --testsetRatio 0.2 datasetName ./source 1000 1
+   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --testset-ratio 0.2 datasetName ./source 1000 1
    ```
 
 # Subroutine 2: Model Building

@@ -1,0 +1,13 @@
+<projectDescription>
+  <name>HLTA</name>
+  <buildSpec>
+    <buildCommand>
+      <name>org.eclipse.jdt.core.javabuilder</name>
+    </buildCommand>
+  </buildSpec>
+  <natures>
+    <nature>org.eclipse.jdt.core.javanature</nature>
+    <nature>org.scala-ide.sdt.core.scalanature</nature>
+  </natures>
+  <linkedResources> </linkedResources>
+</projectDescription>
