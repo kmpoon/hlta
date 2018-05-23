@@ -204,11 +204,11 @@ class ConvertSpec extends BaseSpec {
           dictionary.words should contain theSameElementsAs Vector("aid", "syria", "libya")
 
           And("The first and third email should contain exactly three zero counts")
-          bow.instances(0).values should contain theSameElementsAs Vector(0.0, 0.0, 0.0)
-          bow.instances(2).values should contain theSameElementsAs Vector(0.0, 0.0, 0.0)
+          bow.instances(0).denseValues(3) should contain theSameElementsAs Vector(0.0, 0.0, 0.0)
+          bow.instances(2).denseValues(3) should contain theSameElementsAs Vector(0.0, 0.0, 0.0)
 
           And("The second email should contain correct counts")
-          bow.instances(1).values should contain theSameElementsAs Vector(3.0, 3.0, 2.0)
+          bow.instances(1).denseValues(3) should contain theSameElementsAs Vector(3.0, 3.0, 2.0)
 
           And("The bow should have correct number of instances")
           bow.size should equal(10)

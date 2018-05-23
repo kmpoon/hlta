@@ -209,12 +209,12 @@ object FindNarrowlyDefinedTopics {
         minIndices.foreach(values(_) = 1)
         val newColumns = minIndices.foldLeft(columns)((cs, i) => cs.updated(i, cs(i).tail))
 
-        loop(i + 1, instances :+ Data.Instance(values, weights(i)), newColumns)
+        loop(i + 1, instances :+ Data.DenseInstance(values, weights(i)), newColumns)
       } else {
         // generate instances with all zero elements and skip to the next
         // instance with non-zero element
         val allZero = for (j <- (i until next))
-          yield Data.Instance(zeros, weights(j))
+          yield Data.DenseInstance(zeros, weights(j))
         loop(next, instances ++ allZero, columns)
       }
     }
@@ -269,7 +269,7 @@ object FindNarrowlyDefinedTopics {
     val ctp = new CliqueTreePropagation(model)
 
     // grouping instances with same value to reduce computation
-    val list = data.instances.zipWithIndex.groupBy(_._1.values.map(_.toInt)).toList
+    val list = data.instances.zipWithIndex.groupBy(_._1.denseValues(data.variables.size).map(_.toInt)).toList
       .map { p =>
         ctp.setEvidence(data.variables.toArray, p._1)
         ctp.propagate

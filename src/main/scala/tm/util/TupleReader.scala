@@ -1,7 +1,7 @@
 package tm.util
 
 import scala.io.Source
-import tm.util.Data.Instance
+import tm.util.Data.SparseInstance
 import org.latlab.util.Variable
 import java.util.ArrayList
 import scala.collection.mutable.MutableList
@@ -29,9 +29,9 @@ object TupleReader {
     }
     
     val instances = docList.toIndexedSeq.map{case (docId, doc) =>
-      val indexes = doc.map { word => variables.indexOf(word) }
-      val values = (0 until variables.size).map{ i => if(indexes.contains(i)) 1.0 else 0.0}.toArray
-      new Instance(values, 1.0, name = docId)
+      val sparseValues = doc.groupBy{v => v}.map{ case (token, tokenList) => (variables.indexOf(token), tokenList.size.toDouble) }.toMap
+      //val values = (0 until variables.size).map{ i => if(indexes.contains(i)) 1.0 else 0.0}.toArray
+      new SparseInstance(sparseValues = sparseValues, 1.0, name = docId)
     }
     
     def convert(a: String) = {

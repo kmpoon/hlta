@@ -1,7 +1,7 @@
 package tm.util
 
 import scala.io.Source
-import tm.util.Data.Instance
+import tm.util.Data.SparseInstance
 import org.latlab.util.Variable
 import java.util.ArrayList
 
@@ -22,13 +22,16 @@ object LdaReader {
     }
     
     val instances = Source.fromFile(dataFileName).getLines.zipWithIndex.toIndexedSeq.map{case(line, index) =>
-      val values = Array.fill[Double](variables.size)(0)
-      line.split(" ").drop(1).foreach { pair => 
-        val pos = pair.split(":")(0).toInt
-        val value = pair.split(":")(1).toDouble
-        values(pos) = value
-      }
-      new Instance(values, 1.0, name = index.toString())
+//      val values = Array.fill[Double](variables.size)(0)
+//      line.split(" ").drop(1).foreach { pair => 
+//        val pos = pair.split(":")(0).toInt
+//        val value = pair.split(":")(1).toDouble
+//        values(pos) = value
+//      }
+      val values = line.split(" ").drop(1).map{ pair =>
+        (pair.split(":")(0).toInt, pair.split(":")(1).toDouble)
+      }.toMap
+      new SparseInstance(values, 1.0, name = index.toString())
     }
     var name: Option[String] = None
 

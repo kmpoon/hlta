@@ -139,7 +139,7 @@ object Doc2VecAssignment {
 
     // find the probabilities of state 1 for each variable
     val topicProbabilities =
-      HLTA.computeProbabilities(model, binaryData, variables).map(p => Data.Instance(p._1.toArray.map(_(1)), p._2, p._3))
+      HLTA.computeProbabilities(model, binaryData, variables).map(p => Data.DenseInstance(p._1.toArray.map(_(1)), p._2, p._3))
 
     new Data(variables.toIndexedSeq, topicProbabilities.toIndexedSeq)
   }
@@ -201,7 +201,7 @@ private class NarrowTopicExtractor(model: LTM, data: Data, layer: Option[List[In
     
     val indices = observed.map(data.variables.indexOf).filterNot(_ == -1)
     val probabilities = data.instances.map { i =>
-      if (indices.map(i.values.apply).find(_ > 0.0).isDefined)
+      if (indices.map(i.values).find(_ > 0.0).isDefined)
         1.0
       else
         0.0
@@ -231,7 +231,7 @@ private class NarrowTopicExtractor(model: LTM, data: Data, layer: Option[List[In
     }).toArray.unzip
 
     def getObservedStates(instance: Data.Instance) =
-      indices.map(instance.values.apply).map(v => if (v > 0) 1 else 0)
+      indices.map(instance.values).map(v => if (v > 0) 1 else 0)
 
     val latentVariable = model.getNodeByName(latent).getVariable
 
@@ -254,7 +254,7 @@ private class NarrowTopicExtractor(model: LTM, data: Data, layer: Option[List[In
     val variables = names.map(model.getNodeByName).map(_.getVariable)
 
     val instances = data.instances.indices.map { i =>
-      Data.Instance(columns.map(_.apply(i)), data.instances(i).weight, name = data.instances(i).name)
+      Data.DenseInstance(columns.map(_.apply(i)), data.instances(i).weight, name = data.instances(i).name)
     }
 
     new Data(variables, instances)

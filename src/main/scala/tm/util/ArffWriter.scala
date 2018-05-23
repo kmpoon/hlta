@@ -26,7 +26,7 @@ object ArffWriter {
     writer.println("@data")
 
     instances.foreach { instance =>
-      writer.print(instance.values.map(format).mkString(","))
+      writer.print(instance.denseValues(variables.size).map(format).mkString(","))
 
       if (instance.weight == 1) {
         writer.println

@@ -1,7 +1,7 @@
 package tm.util
 
 import scala.io.Source
-import tm.util.Data.Instance
+import tm.util.Data.DenseInstance
 import org.latlab.util.Variable
 import java.util.ArrayList
 import scala.collection.mutable.MutableList
@@ -13,7 +13,7 @@ object HlcmReader {
   
   def read(filename: String) = {
     val variables = MutableList[Variable]()    
-    val instances = MutableList[Instance]()
+    val instances = MutableList[DenseInstance]()
     var name: Option[String] = None
 
     for (line <- Source.fromFile(filename).getLines) {
@@ -25,7 +25,7 @@ object HlcmReader {
           variables += convert(variableName, statesName)
         }else{
           val (states, weight) = getSample(line)
-          instances += new Instance(states, weight)
+          instances += new DenseInstance(states, weight)
         }
       }
     }

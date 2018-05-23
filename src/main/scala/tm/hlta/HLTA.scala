@@ -306,7 +306,7 @@ object HLTA {
     groups.flatMap { g =>
       val r = g.par.map { d =>
         val ctp = tl.get
-        ctp.setEvidence(data.variables.toArray, d.values.map(_.toInt).toArray)
+        ctp.setEvidence(data.variables.toArray, d.denseValues(data.variables.size).map(_.toInt).toArray)
         ctp.propagate()
 
         val values = variables.map { v => ctp.computeBelief(v).getCells }

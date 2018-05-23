@@ -21,8 +21,7 @@ object TupleWriter {
     val writer = new PrintWriter(fileName)
     
     instances.zipWithIndex.foreach{ case (instance, docSeq) =>
-      instance.values.zipWithIndex.filter { case (x, wordId) => x>=0.5 }
-      .foreach { case (x, wordId) => 
+      instance.sparseValues(_>0.5).foreach { case (wordId, x) => 
         //user-name can be non-integer
         val docId = if(instance.name.length()>0) instance.name else docSeq
         val word = variables(wordId)

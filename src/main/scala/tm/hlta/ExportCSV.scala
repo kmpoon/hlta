@@ -53,7 +53,7 @@ object ExportCSV {
     val data = Reader.readData(inputFile)
 
     writer.println(data.variables.map(_.getName).mkString(delimiter))
-    data.instances.foreach(i => writer.println(i.values.mkString(delimiter)))
+    data.instances.foreach(i => writer.println(i.denseValues(data.variables.size).mkString(delimiter)))
   }
 
   def exportTopicTable(inputFile: String, writer: PrintWriter) = {

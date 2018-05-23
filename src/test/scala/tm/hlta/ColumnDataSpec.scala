@@ -16,7 +16,7 @@ class ColumnDataSpec extends BaseSpec {
   
   trait ColumnDataWithCheck extends ColumnsData {
     def check(i: Int)(expected: Double*) = {
-      data.instances(i).values should equal(Vector(expected: _*))
+      data.instances(i).denseValues(data.variables.size) should equal(Vector(expected: _*))
     }
   }
 

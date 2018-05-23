@@ -1,11 +1,6 @@
 package tm.text
 
 import scala.collection.GenSeq
-import tm.text.TfidfWordInfo
-import tm.text.Sentence
-import tm.text.NGram
-import tm.text.Document
-import tm.text.DocumentInfo
 import tm.util.ParMapReduce.mapReduce
 
 object WordSelector {
@@ -43,6 +38,7 @@ object WordSelector {
           // filter words by constraints
           val filteredWords = ws.filter(w =>
             w.token.words.forall(_.length >= minCharacters)
+              && w.df > 1
               && w.df >= minDfFraction * docCount)
 
           val (eligibleWords, frequentWords) =

@@ -29,7 +29,7 @@ object Reader {
     def getDataCases() =
       (0 until d.numInstances).map{n => 
         val i = d.instance(n)
-        Data.Instance(
+        Data.DenseInstance(
           (0 until d.numAttributes).map(i.value).toArray, i.weight, name = n.toString())
       }
         
@@ -51,7 +51,7 @@ object Reader {
       d.getVariables.toIndexedSeq
 
     def getDataCases() =
-      d.getData.map(i => Data.Instance(i.getStates.map(_.toDouble).toArray, i.getWeight)).toIndexedSeq
+      d.getData.map(i => Data.DenseInstance(i.getStates.map(_.toDouble).toArray, i.getWeight)).toIndexedSeq
         
     def toData() = {
       def convert(a: Attribute) = {

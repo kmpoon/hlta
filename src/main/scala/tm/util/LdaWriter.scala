@@ -16,8 +16,8 @@ object LdaWriter {
     val writer = new PrintWriter(fileName)
   
     instances.foreach { instance =>
-      val values = instance.values.zipWithIndex.filter{case(value, index) => value>=0.5}
-      writer.println(values.size+" "+values.map{case(value, index) => index+":"+Math.round(value)}.mkString(" "))
+      val values = instance.sparseValues(_>0.5)
+      writer.println(values.size+" "+values.map{case(index, value) => index+":"+Math.round(value)}.mkString(" "))
     }
   
     writer.close
