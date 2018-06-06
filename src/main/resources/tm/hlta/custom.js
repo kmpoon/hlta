@@ -42,6 +42,10 @@ if (showTopicDocuments) {
 	})
 }
 
+function generateDocumentPage(content){
+	window.open('about:blank', '_blank').document.body.innerText += content;
+}
+
 function generateTopicDocumentTable(topic, max) {
 	var topicDocuments = topicMap[topic];
 
@@ -49,11 +53,12 @@ function generateTopicDocumentTable(topic, max) {
 	for (var i = 0; i < topicDocuments.length && i < max; i++) {
 		var d = topicDocuments[i];
 		var doc = documents[d[0]]; //documents is an array of document name
-		if(Array.isArray(doc)){
+		if(Array.isArray(doc)){//doc can either be in the form of Array("someTitle", "someUrl") or String("titleOnly")
 			rows.push("<tr><td><a href=\"" + doc[1] + "\">" + doc[0] + "</a></td><td>" + d[1].toFixed(2)+ "</td></tr>");
-		}else
-			rows.push("<tr><td>" +doc + "</td><td>" + d[1].toFixed(2)+ "</td></tr>");
-		
+		}else{
+			if(doc.length > 65) rows.push("<tr><td><a href=\"#\" onclick=\"generateDocumentPage('"+doc+"')\">" + doc + "...</a></td><td>" + d[1].toFixed(2)+ "</td></tr>");
+			else rows.push("<tr><td>" +doc + "</td><td>" + d[1].toFixed(2)+ "</td></tr>");
+		}
 	}
 
 	var table = $("<table class=\"tablesorter\"><thead><tr><th>Document</th><th>Prob</th></tr></thead></table>")

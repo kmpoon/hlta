@@ -290,20 +290,20 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
     LdaWriter.writeVocab(vocabFileName, variables.map(_.getName))
   }
   
-  def project[A](vars: IndexedSeq[A]) = vars.head match {
-    case v: Variable => projectV(vars.asInstanceOf[IndexedSeq[Variable]])
-    case s: String => projectS(vars.asInstanceOf[IndexedSeq[String]])
+  def project[A](vars: Seq[A]) = vars.head match {
+    case v: Variable => projectV(vars.asInstanceOf[Seq[Variable]])
+    case s: String => projectS(vars.asInstanceOf[Seq[String]])
   }
 
-  private def projectV(vars: IndexedSeq[Variable]) = {
+  private def projectV(vars: Seq[Variable]) = {
     val indices = vars.map(variables.indexOf(_)).toArray
-    new Data(vars, instances.map(_.select(indices)), isBinary)
+    new Data(vars.toIndexedSeq, instances.map(_.select(indices)), isBinary)
   }
   
-  private def projectS(varNames: IndexedSeq[String]) = {
+  private def projectS(varNames: Seq[String]) = {
     val vars = varNames.map(name => variables.find { v => v.getName.equals(name) }.get)
     val indices = vars.map(variables.indexOf(_)).toArray
-    new Data(vars, instances.map(_.select(indices)), isBinary)
+    new Data(vars.toIndexedSeq, instances.map(_.select(indices)), isBinary)
   }
   
   private def subsetI(docList: Seq[Int]) = {
@@ -319,7 +319,20 @@ class Data(val variables: IndexedSeq[Variable], val instances: IndexedSeq[Data.I
     case s: String => subsetS(docList.asInstanceOf[Seq[String]])
   }
   
-  def randomSubset(ratio: Double) = Random.shuffle(instances).take((instances.size*ratio).toInt)
+  def split(ratio: Double) = {
+    val (set1, set2) = instances.splitAt((this.instances.size*ratio).toInt)
+    (new Data(variables, set1, isBinary, name), new Data(variables, set2, isBinary, name))
+  }
+  
+  def randomSubset(ratio: Double) = {
+    val instances = Random.shuffle(this.instances).take((this.instances.size*ratio).toInt)
+    new Data(variables, instances, isBinary, name)
+  }
+  
+  def randomSplit(ratio: Double) = {
+    val (set1, set2) = Random.shuffle(this.instances).splitAt((this.instances.size*ratio).toInt)
+    (new Data(variables, set1, isBinary, name), new Data(variables, set2, isBinary, name))
+  }
   
   def select[A, B](varList: IndexedSeq[A], docList: Seq[B]) = subset(docList).project(varList)
 }

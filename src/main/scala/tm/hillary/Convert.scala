@@ -24,9 +24,9 @@ object Convert {
     if (args.length < 2)
       printUsage()
     else {
-      import Parameters.implicits.settings
+      //import Parameters.implicits.settings
 
-      tm.text.Convert.convert(args(0), Paths.get(args(1)), 0, None)
+      tm.text.Convert(args(0), path = Paths.get(args(1)), maxWords = 1000, concat = 2)
     }
   }
 
@@ -35,7 +35,7 @@ object Convert {
   }
 
   def run() = {
-    import Parameters.implicits.settings
+    //import Parameters.implicits.settings
 
     logger.info("Extracting bodies")
     val bodies = Emails.readEmailsFromDefaultPath.map{email =>
@@ -46,6 +46,6 @@ object Convert {
       Document(Sentence(tokens))
     }.toList.par
 
-    DataConverter.convert("hillary", bodies, 0)
+    DataConverter("hillary", bodies, maxWords = 1000, concat = 2)
   }
 }

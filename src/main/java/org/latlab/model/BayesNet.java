@@ -348,8 +348,9 @@ public class BayesNet extends DirectedAcyclicGraph {
 		if(TreeChecker.isTree(model))
 		{
 			for (Variable var : getVariables()) {
-				if (!getNode(var).isLeaf())
+				if (!getNode(var).isLeaf()) {
 					vars.add(var);
+				}
 			}
 		}else if(TreeChecker.isBayesNet(model))
 		{
@@ -365,6 +366,17 @@ public class BayesNet extends DirectedAcyclicGraph {
 		return vars;
 	}
 
+	public final Set<Variable> getInternalVarsFromMultiRootTree() {
+		Set<Variable> vars = new HashSet<Variable>();
+		
+		for (Variable var : getVariables()) {
+			if (!getNode(var).isLeaf()) {
+				vars.add(var);
+			}
+		}
+		return vars;
+	}
+	
 	/**
 	 * Get the internalVars as indicated
 	 * @return
@@ -472,7 +484,6 @@ public class BayesNet extends DirectedAcyclicGraph {
 	 */
 	public final double getLoglikelihood(DataSet dataSet) {
 		Double loglikelihood = _loglikelihoods.get(dataSet);
-
 		return loglikelihood == null ? Double.NaN : loglikelihood;
 	}
 

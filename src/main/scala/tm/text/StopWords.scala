@@ -4,12 +4,12 @@ import scala.io.Source
 import java.io.InputStream
 import java.io.FileInputStream
 
-object StopWords {//TODO: update reader encoding option
-  def read(filename: String)(enc: String): StopWords = {
-    read(new FileInputStream(filename))(enc)
+object StopWords {
+  def read(filename: String)(enc: String = "UTF8"): StopWords = {
+    readFromStream(new FileInputStream(filename))(enc)
   }
 
-  def read(input: InputStream)(enc: String): StopWords = {
+  def readFromStream(input: InputStream)(enc: String = "UTF8"): StopWords = {
     new StopWords(
       Source.fromInputStream(input)(enc).getLines.filter(_.size > 0).toSet)
   }
@@ -21,7 +21,9 @@ object StopWords {//TODO: update reader encoding option
     implicit val default = EnglishStopwords()
   }
   
-  def EnglishStopwords() = StopWords.read(this.getClass.getResourceAsStream("/tm/text/stopwords-lewis.csv"))("UTF-8")
+  def EnglishStopwords() = StopWords.readFromStream(this.getClass.getResourceAsStream("/tm/text/stopwords-lewis.csv"))("UTF-8")
+  
+  def ChineseStopwords() = StopWords.readFromStream(this.getClass.getResourceAsStream("/tm/text/chinese-stopwords-list.txt"))("UTF-8")
   
   def Empty() = new StopWords(Set.empty[String])
 }

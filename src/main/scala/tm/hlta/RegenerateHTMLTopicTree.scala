@@ -71,14 +71,15 @@ object RegenerateHTMLTopicTree {
   }
 }
 
-
+/**
+ * BuildWebsite saves all files in .js so no ajax.get is required
+ * Ajax.get will require a server
+ * No ajax call allows to read the website as normal file
+ */
 object BuildWebsite{
   
   /**
    * for external call
-   * 
-   * save all files to js so no ajax.get call is required
-   * this allows to read website without setting up a server
    */
   def apply(dir: String, outputName: String, title: String, topicTree: TopicTree = null, catalog: DocumentCatalog = null, 
       docNames: Seq[String] = null, docUrls: Seq[String] = null){
@@ -89,9 +90,12 @@ object BuildWebsite{
     copyAssetFiles(Paths.get(dir))
   }
   
+  /**
+   * Write document labels
+   */
   def writeDocNames(docNames: GenSeq[String], outputFile: String, docUrls: Seq[String] = null) = {
     implicit class Escape(str: String){
-      def escape = StringEscapeUtils.escapeJavaScript(str)
+      def escape = str.replaceAll("\"", "\\\\\"")
     }
     
     val writer = new PrintWriter(outputFile)
@@ -102,6 +106,9 @@ object BuildWebsite{
     writer.close
   }
   
+  /**
+   * Write main webpage
+   */
   def writeHtmlOutput(title: String, outputName: String, outputFile: String) = {
     
     implicit class Escape(str: String){
@@ -126,6 +133,9 @@ object BuildWebsite{
     writer.close
   }
 
+  /**
+   * Copy image and JavaScript files
+   */
   def copyAssetFiles(basePath: Path) = {
     val baseDir = Option(basePath).getOrElse(Paths.get("."))
     val assetDir = baseDir.resolve("lib")
@@ -150,6 +160,7 @@ object BuildWebsite{
         val name = if (index < 0) source else source.substring(index + 1)
         copyTo(source, dir, name)
       }
+      println(s"Copy from resource, totally done")
     }
 
     Seq(
@@ -201,7 +212,7 @@ object JstreeWriter{
   def writeJs[A](roots: Seq[Tree[A]], outputFile: String, jsVarName: String, jstreeContent: A => Node){
     
     implicit class Escape(str: String){
-      def escape = StringEscapeUtils.escapeJavaScript(str)
+      def escape = str.replaceAll("\"", "\\\\\"")
     }
 
     def _treeToJs(tree: Tree[A], indent: Int): String = {
@@ -227,24 +238,30 @@ object JstreeWriter{
 
   def writeJson[A](roots: Seq[Tree[A]], outputFile: String, jstreeContent: A => Node){
     
+    implicit class Escape(str: String){
+      def escape = str.replaceAll("\"", "\\\\\"")
+    }
+    
     def _treeToJson(tree: Tree[A], indent: Int): String = {
       val node = jstreeContent(tree.value)
       val children = tree.children.map(_treeToJson(_, indent + 4))
       val json = """{
       |  "id": "%s", "text": "%s", "data": {%s}, "children": [%s]
       |}""".format(node.id, node.label, node.data.map{
-        case (variable: String, value: Number) => "\""+variable+"\": "+value
-        case (variable: String, value: String) => "\""+variable+"\": \""+value+"\""
-        case (variable: String, value) => "\""+variable+"\": \""+value+"\""
+        case (variable: String, value: Number) => "\""+variable.escape+"\": "+value
+        case (variable: String, value: String) => "\""+variable.escape+"\": \""+value+"\""
+        case (variable: String, value) => "\""+variable.escape+"\": \""+value+"\""
         }.mkString(", "),  children.mkString(", "))
         .replaceAll(" +\\|", " " * indent)
       json
     }
     
+    println(s"will write json file, open writeJson: " + outputFile)
     val writer = new PrintWriter(outputFile)
     writer.print("[")
     writer.println(roots.map(_treeToJson(_, 0)).mkString(", "))
     writer.println("]")
+    println(s"writeJson done")
     writer.close
   }
 

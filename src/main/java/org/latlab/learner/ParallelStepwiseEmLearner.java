@@ -4,6 +4,7 @@
  */
 package org.latlab.learner;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.concurrent.ForkJoinPool;
@@ -219,7 +220,7 @@ public class ParallelStepwiseEmLearner {
 	 */
 	public BayesNet em(BayesNet bayesNet, SparseDataSet sparseDataSet) {
 
-		// System.out.println("Begin full EM: ");
+		System.out.println("Begin full EM in ParallelStepwiseEmLearner");
 		//
 		// long start = System.currentTimeMillis();
 		// resets the number of EM steps
@@ -228,10 +229,7 @@ public class ParallelStepwiseEmLearner {
 		// selects a good starting point
 		//CliqueTreePropagationGroup ctps =chickeringHeckermanRestart(bayesNet, dataSet);
 		BayesNet copy = bayesNet.clone();
-		CliqueTreePropagationGroup ctps = CliqueTreePropagationGroup.constructFromModel(copy,
-						getForkJoinPool().getParallelism());
-
-		
+		CliqueTreePropagationGroup ctps = CliqueTreePropagationGroup.constructFromModel((BayesNet)copy, getForkJoinPool().getParallelism());	
 		
 		// runs EM steps until convergence
 	/*	double loglikelihood;
@@ -261,7 +259,7 @@ public class ParallelStepwiseEmLearner {
 		for(int epoch = 0; epoch<_nMaxEpochs; epoch++){
 			for(int nBatch = 0; nBatch<numofBatches;nBatch++)	{
 				loglikelihood  = currentloglikelihood;
-				denseData = sparseDataSet.GetNextPartition(_sizeBatch, nBatch);			
+				denseData = sparseDataSet.GetNextPartition(_sizeBatch, nBatch);
 				emStep(ctps, denseData);
 				_nSteps++;
 				System.out.println("Stepwise EM : Epoch "+ epoch+";  Step " +_nSteps);
@@ -356,7 +354,7 @@ public class ParallelStepwiseEmLearner {
 
 			// computes datum by datum
 			for (int i = start; i < start + length; i++) {
-				DataCase dataCase = context.data.getData().get(i);
+				DataCase dataCase = context.data.getData().get(i); // need_island_bridging
 				double weight = dataCase.getWeight();
 
 				// sets evidences
@@ -379,13 +377,12 @@ public class ParallelStepwiseEmLearner {
 
 				// updates sufficient statistics for each node
 				for (Variable var : context.ctps.model.getVariables()) {
-
 					if (context.nonUpdateNodes != null
 							&& context.nonUpdateNodes.contains(var.getName()))
 						continue;
-
+					
 					Function fracWeight = ctp.computeFamilyBelief(var);
-
+					
 					fracWeight.multiply(weight);
 
 					addToSufficientStatistics(suffStatstemp, var, fracWeight);
@@ -437,16 +434,22 @@ public class ParallelStepwiseEmLearner {
 		getForkJoinPool().invoke(computation);
 
 		// updates parameters
+
 		for (AbstractNode node : ctps.model.getNodes()) {
 			BeliefNode bNode = (BeliefNode) node;
 
 			if (_dontUpdateNodes != null
-					&& _dontUpdateNodes.contains(bNode.getName()))
+					&& _dontUpdateNodes.contains(bNode.getName())) {
 				continue;
+			}
 			Function suffStats_batch = computation.suffStatstemp.get(bNode.getVariable());
 			double eta = Math.pow(_nSteps+2, -0.75);
 			addToSufficientStatistics(bNode.getVariable(),suffStats_batch,eta);
 			Function suffStats = _suffStatsAll.get(bNode.getVariable()).clone();
+			/*System.out.println("_suffStatsAll.keySet().size(): " + _suffStatsAll.keySet().size() + " suffStats.getVariables().size(): " + suffStats.getVariables().size() + " bNode name: " + bNode.getName());
+			if (suffStats == null) {
+				System.out.println("suffStats == null");
+			}*/
 			
 			suffStats.normalize(bNode.getVariable());
 			bNode.setCpt(suffStats);

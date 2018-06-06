@@ -322,7 +322,7 @@ public class CliqueNode extends UndirectedNode {
 	 * 
 	 * @return the collection of functions attached to this clique.
 	 */
-	List<Function> getFunctions() {
+	public List<Function> getFunctions() {
 		return _funcs;
 	}
 

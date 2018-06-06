@@ -33,19 +33,19 @@ import org.latlab.util.Variable;
 
 public class ExtractNarrowTopics_LCM {
 
-    private LTM _model;
-    private CliqueTreePropagation _posteriorCtp;
+    protected LTM _model;
+    protected CliqueTreePropagation _posteriorCtp;
 
     private HashMap<Integer, HashSet<String>> _varDiffLevels;
-    private int _MaxBaseSize;
+    protected int _MaxBaseSize;
     private String _output;
     private boolean _outProbNum = false;
     private boolean _outBackground = false;
-    private CliqueTreePropagation _posteriorCtpSub;
+    protected CliqueTreePropagation _posteriorCtpSub;
     private DataSet _subData;
-    private ArrayList<Variable> _collectionVar;
-    private HashMap<Integer, Boolean> _semanticBaseStart;
-    private HashMap<String, String> _semanticBaseString;
+    protected ArrayList<Variable> _collectionVar;
+    protected HashMap<Integer, Boolean> _semanticBaseStart;
+    protected HashMap<String, String> _semanticBaseString;
     private HashMap<String, String[]> _node2topics;
 
     public static void main(String[] args) throws IOException, Exception {
@@ -446,7 +446,7 @@ public class ExtractNarrowTopics_LCM {
 
     }
 
-    private List<Map.Entry<Variable, Double>> SortChildren(Variable var, Set<DirectedNode> nodeSet,
+    protected List<Map.Entry<Variable, Double>> SortChildren(Variable var, Set<DirectedNode> nodeSet,
             CliqueTreePropagation ctp) {
         Map<Variable, Double> children_mi = new HashMap<Variable, Double>();
 
@@ -469,7 +469,7 @@ public class ExtractNarrowTopics_LCM {
         return Utils.computeMutualInformation(ctp.computeBelief(xyNodes));
     }
 
-    private LTM reorderStates(LTM bn, Variable latent, Set<DirectedNode> setNode,
+    public static LTM reorderStates(LTM bn, Variable latent, Set<DirectedNode> setNode,
             List<Map.Entry<Variable, Double>> list) {
         // inference engine
         CliqueTreePropagation ctp = new CliqueTreePropagation(bn);

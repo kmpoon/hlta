@@ -281,7 +281,7 @@ public class PEM {
 
 		double perLL = evaluate(_model);
 		BufferedWriter BWriter = new BufferedWriter(new FileWriter(args[2] + File.separator + "EvaluationResult.txt"));
-		BWriter.write("Per-document log-likelihood =  " + perLL);
+		BWriter.write("In PEM Per-document log-likelihood =  " + perLL);
 		BWriter.close();
 	}
 

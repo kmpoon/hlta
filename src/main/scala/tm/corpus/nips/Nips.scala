@@ -12,7 +12,7 @@ import java.io.FileInputStream
 import java.io.PrintWriter
 import java.nio.file.Paths
 import tm.text.StopWords
-import tm.text.DataConverter.Settings
+//import tm.text.DataConverter.Settings
 import tm.text.StanfordLemmatizer
 import tm.text.Preprocessor
 import tm.util.Arguments
@@ -29,12 +29,12 @@ object Paper {
 case class Paper(id: Int, year: Int,
                  title: String, abs: Option[String], body: String)
 
-object Parameters {
-  object implicits {
-    implicit val settings = DataConverter.Settings(
-      concatenations = 2, minDf = (Int) => 6)
-  }
-}
+//object Parameters {
+//  object implicits {
+//    implicit val settings = DataConverter.Settings(
+//      concatenations = 2, minDf = (Int) => 6)
+//  }
+//}
 
 object ExtractText {
   object Content extends Enumeration {
@@ -81,8 +81,8 @@ object ExtractText {
           take: Option[Int], content: Content.Value,
           lemmatization:     Boolean,
           sentenceSplitting: Boolean) = {
-    implicit val stopWords = StopWords.implicits.default
-    implicit val settings = Parameters.implicits.settings
+    //implicit val stopWords = StopWords.implicits.default
+    //implicit val settings = Parameters.implicits.settings
 
     val output = Paths.get(outputDir)
     if (!output.toFile.exists)
@@ -161,8 +161,7 @@ object ExtractText {
     tokens.map(_.mkString(" ")).mkString("\n")
 
   def preprocess(paper: Paper, content: Content.Value,
-                 lemmatization: Boolean, sentenceSplitting: Boolean)(
-    implicit stopwords: StopWords, settings: Settings): Option[Seq[Seq[String]]] = {
+                 lemmatization: Boolean, sentenceSplitting: Boolean): Option[Seq[Seq[String]]] = {
     val text = content match {
       case Content.Abstract => paper.abs
       case Content.Body     => Some(paper.body)

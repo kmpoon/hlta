@@ -20,3 +20,16 @@ div#jstree {
   line-height: 28px;
   height: 28px;
 }
+
+table.tablesorter{
+  width: 100%;
+}
+td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+td:nth-child(1) {
+  width: 100%; /* Extend the cell as much as possible */
+  max-width: 0; /* Avoid resizing beyond table width */
+}

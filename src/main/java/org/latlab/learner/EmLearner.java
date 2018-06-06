@@ -280,7 +280,7 @@ public class EmLearner {
 			}
 			
 			loglikelihood += Math.log(likelihoodDataCase) * weight;
-			
+            
 		}
 
 		// updates parameters

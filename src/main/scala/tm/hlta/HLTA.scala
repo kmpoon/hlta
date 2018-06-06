@@ -189,25 +189,37 @@ object HLTA {
       levels(levels.keys.max)
     }
     
-    def allWordsOf(root: String) : List[Variable] = {
+    /**
+     * Returns all the children observed variable of a latent node named
+     * Root is the name of the latent node
+     */
+    def observedDescendentOf(root: String) : List[Variable] = {
       val subtopics = scala.collection.mutable.ListBuffer[Variable]()
-      foreachSubtreeNodeOf(root, bNode => if(bNode.isLeaf) subtopics+=bNode.getVariable)
+      foreachDescendentOf(root, bNode => if(bNode.isLeaf) subtopics+=bNode.getVariable)
       subtopics.toList
     }
     
-    def subtopicsOf(root: String) : List[Variable] = {
+    /**
+     * Returns all the children latent variable of a latent node named
+     * Root is the name of the latent node
+     */
+    def latentDescendentOf(root: String) : List[Variable] = {
       val subtopics = scala.collection.mutable.ListBuffer[Variable]()
-      foreachSubtreeNodeOf(root, bNode => if(!bNode.isLeaf) subtopics+=bNode.getVariable)
+      foreachDescendentOf(root, bNode => if(!bNode.isLeaf) subtopics+=bNode.getVariable)
       subtopics.toList
     }
     
-    def subtopicsAndWordsOf(root: String) : List[Variable] = {
+    /**
+     * Return all the children variables of a latent node
+     * Root is the name of the latent node
+     */
+    def descendentOf(root: String) : List[Variable] = {
       val subtopics = scala.collection.mutable.ListBuffer[Variable]()
-      foreachSubtreeNodeOf(root, bNode => subtopics+=bNode.getVariable)
+      foreachDescendentOf(root, bNode => subtopics+=bNode.getVariable)
       subtopics.toList
     }
     
-    def foreachSubtreeNodeOf(root: String, f: BeliefNode => Unit){
+    def foreachDescendentOf(root: String, f: BeliefNode => Unit){
       //Note descendants !== children and (grand)+ children
       //See LTM papers, variable on the same level can root to each other
       //Here we write our own DFS search
@@ -234,7 +246,7 @@ object HLTA {
       val newRootLevel = variableLevels.get(newRoot).get
       assert(newRootNode!=null)
       
-      val subTreeNodes = clone.subtopicsAndWordsOf(newRoot)
+      val subTreeNodes = clone.descendentOf(newRoot)
       
       val allNodes = clone.getNodes.toArray
       for(node <- allNodes){

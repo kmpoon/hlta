@@ -83,6 +83,7 @@ public class Utils {
 
 		// cells of joint and two marginal distributions
 		double[] cells = dist._cells;
+
 		double[] cells1 = dist.sumOut(dist.getVariables().get(1))._cells;
 		double[] cells2 = dist.sumOut(dist.getVariables().get(0))._cells;
 
