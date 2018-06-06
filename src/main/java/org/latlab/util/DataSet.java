@@ -58,6 +58,8 @@ public final class DataSet {
 		 * the weight of this data case.
 		 */
 		private double _weight;
+		
+		private int _globalID;
 
 		/**
 		 * Constructs a data case with the specified data set that contains it,
@@ -74,6 +76,7 @@ public final class DataSet {
 			_dataSet = dataSet;
 			_states = states;
 			_weight = weight;
+			_globalID = -1; // normally, we do not need _globalID, so set it as -1
 		}
 
 		/**
@@ -141,6 +144,14 @@ public final class DataSet {
 
 			_weight = weight;
 		}
+		
+		public int getGlobalID() {
+			return _globalID;
+		}
+		
+		public void setGlobalID(int globalID) {
+			_globalID = globalID;
+		}
 	}
 	
 	/**
@@ -183,6 +194,19 @@ public final class DataSet {
 	 * the flag that indicates whether this data set contains missing values.
 	 */
 	private boolean _missing;
+	
+	/**
+	 * the map from local data to global data.
+	 * normally used in parallel mechanism
+	 * 		local data is used to be the dataCase in this machine's dataSet
+	 * 	    global data is used to be the dataCase in original dataSet before spliting to different machines.
+	 * 	    sometimes, we need to find the datacase back according to this mapping. 
+	 */
+	public Map<DataCase, DataCase> _local2global;
+	
+	public Map<Integer, DataCase> _globalID2GlobalDataCase = new HashMap<Integer, DataCase>();
+
+	public Map<DataCase, Integer> _dataCase2GlobalID = new HashMap<DataCase, Integer>();
 
 	/**
 	 * Reads the data set(HLTM format) from the specified input stream.
@@ -458,6 +482,64 @@ public final class DataSet {
 			dataCase.setWeight(dataCase.getWeight() + weight);
 		}
 
+		// updates total weight
+		_totalWeight += weight;
+	}
+
+	/**
+	 * Adds the specified data case with the specified weight to this data set.
+	 * with global ID
+	 * @param states
+	 *            data case to be added to this data set.
+	 * @param weight
+	 *            weight of the data case.
+	 */
+	public void addDataCase(int[] states, double weight, int globalID) {
+		DataCase dataCase = new DataCase(this, states, weight);
+
+		// finds the position for this data case
+		int index = Collections.binarySearch(_data, dataCase);
+
+		if (index < 0) {
+			// adds unseen data case
+			_data.add(-index - 1, dataCase);
+
+			// updates missing value flag
+			for (int state : states) {
+				_missing |= (state == MISSING_VALUE);
+			}
+		} else {
+			// increases weight for existing data case
+			dataCase = _data.get(index);
+			dataCase.setWeight(dataCase.getWeight() + weight);
+		}
+		
+		if (-1 != globalID) {
+			dataCase.setGlobalID(globalID);
+		}
+
+		// updates total weight
+		_totalWeight += weight;
+	}
+
+	
+	/**
+	* This adds a new datacase even if the same datacase exists i.e. unlike the original function
+	* if the datacase already exists this function will not increment its weight. Moreover, it will
+	* place the datacase at the specified index.
+	* Added by farhan
+	* @param states
+	* @param weight
+	*/
+	public void ForceAddDataCase(int[] states, double weight, int index) {
+		DataCase dataCase = new DataCase(this, states, weight);
+	
+		// adds unseen data case
+		_data.add(index , dataCase);
+		// updates missing value flag
+		for (int state : states) {
+			_missing |= (state == MISSING_VALUE);
+		}
 		// updates total weight
 		_totalWeight += weight;
 	}
@@ -740,7 +822,9 @@ public final class DataSet {
 				projectedStates[i] = states[map[i]];
 			}
 
-			dataSet.addDataCase(projectedStates, dataCase.getWeight());
+			dataSet.addDataCase(projectedStates, dataCase.getWeight(), dataCase.getGlobalID());
+			//_globalID2GlobalDataCase.put(dataCase.getGlobalID(), dataCase);
+			//System.out.println("_globalID2GlobalDataCase put data: " + dataCase + " id: " + dataCase.getGlobalID());
 		}
 
 		return dataSet;
@@ -817,7 +901,8 @@ public final class DataSet {
 				projectedStates[i] = states[map[i]];
 			}
 
-			dataSet.addDataCase(projectedStates, dataCase.getWeight());
+			dataSet.addDataCase(projectedStates, dataCase.getWeight(), dataCase.getGlobalID());
+
 		}
 
 		return dataSet;
@@ -1167,4 +1252,25 @@ public final class DataSet {
 			
 		return AfterSample;		
 	}
+	
+	/**
+	 * Assign a global ID for every datacase to ensure we can find it when change the property of the datacase (e.g.: by projection)  
+	 *
+	 */
+	public void assignGlobalID() {
+		int id = 0;
+		for (DataCase d: this.getData()) {
+			d.setGlobalID(id);
+			id ++;
+		}
+	}
+	
+	public void updateID2DataMap() {
+		for (DataCase d: this.getData()) {
+			int id = d.getGlobalID();
+			_dataCase2GlobalID.put(d, id);
+		}
+	}
+	
+	
 }
