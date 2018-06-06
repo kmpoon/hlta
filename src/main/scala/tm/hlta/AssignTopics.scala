@@ -174,10 +174,10 @@ object Doc2VecAssignment {
 }
 
 /**
- * Assign narrowly defined topics to the documents.
- * It computes the probabilities of the latent variables in a LTM and
- * assign those topics that have a higher probability of state 1
- * to each document.
+ * Compute P(z|d) by re-defining each topic as a latent variable of an LCM
+ * An LCM is a 2 layer tree, root is the latent variable, leaves are the topic keywords
+ * 
+ * For detail, see Peixian's paper section 8.2
  */
 private class NarrowTopicExtractor(model: LTM, data: Data, layer: Option[List[Int]], keywords: Int) extends ExtractNarrowTopics_LCM {
   // Holds topic probabilities (value) for each document for each latent variable (key)
@@ -263,6 +263,11 @@ private class NarrowTopicExtractor(model: LTM, data: Data, layer: Option[List[In
 }
 
 
+/**
+ * A sparse matrix form of P(z|d)
+ * 
+ * Each row is one topic, each column is one document
+ */
 object DocumentCatalog{
   case class Entry(topic: String, doc: List[List[Any]])
    def readJson(fileName: String) = {

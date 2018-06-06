@@ -21,30 +21,30 @@ object Word {
   def apply(w: String, p: Double): Word = new Word(w, Some(p))
 }
 
-class Topic(var name: String, var level: Option[Int], var percentage: Option[Double], var mi: Option[Double], var words: Seq[Word]){
+class Topic(var name: String, var words: Seq[Word], var level: Option[Int], var size: Option[Double], var mi: Option[Double]){
   
   /**
    * Get jstree node content
    * See Topic.JstreeNode
    */
   def defaultContent(showPercentageInLabel: Boolean = true): JstreeWriter.Node = {
-    val label = if(showPercentageInLabel && percentage.isDefined)  f"${percentage.get}%.3f ${words.mkString(" ")}" 
+    val label = if(showPercentageInLabel && size.isDefined)  f"${size.get}%.3f ${words.mkString(" ")}" 
                 else  words.mkString(" ")
     var data = Map[String, Any]()
     data += ("name" -> name)
     if(level.isDefined)         data += ("level" -> level.get)
-    if(percentage.isDefined)    data += ("percentage" -> percentage.get)
+    if(size.isDefined)    data += ("percentage" -> size.get)
     if(mi.isDefined)            data += ("mi" -> mi.get)
     JstreeWriter.Node(name, label, data)
   }
 }
 
 object Topic{
-  def apply(name: String, words: Seq[String]): Topic = new Topic(name, None, None, None, words.map{ x => Word(x)})
+  def apply(name: String, words: Seq[String]): Topic = new Topic(name, words.map{ x => Word(x)}, None, None, None)
   def apply(name: String, level: Int, words: Seq[String]): Topic = 
-    new Topic(name, Some(level), None, None, words.map{ x => Word(x)})
+    new Topic(name, words.map{ x => Word(x)}, Some(level), None, None)
   def apply(name: String, level: Int, percentage: Double, mi: Option[Double], words: Seq[Word]): Topic = 
-    new Topic(name, Some(level), Some(percentage), mi, words)
+    new Topic(name, words, Some(level), Some(percentage), mi)
     
 }
 
@@ -103,7 +103,7 @@ class TopicTree(roots: Seq[Tree[Topic]]) extends TreeList[Topic](roots){
   
   override def sortRoots[B](f: Tree[Topic] => B)(implicit ord: Ordering[B]) = TopicTree(super.sortRoots(f))
   
-  def reassignLevel() = {
+  def reassignLevel(){
     val levelLookup = findLevels()
     foreach{ topic => topic.level = levelLookup.get(topic)}
   }
@@ -123,10 +123,10 @@ object HTMLTopicTable {
 
   class HTMLTopic(name: String, level: Int,
     val indent: Int, size: Double, mi: Option[Double], words: Seq[Word])
-      extends Topic(name, Some(level), Some(size), mi, words)
+      extends Topic(name, words, Some(level), Some(size), mi)
 
   val lineRegex = """<p level ="([^"]*)" name ="([^"]*)" parent = "([^"]*)" (?:percentage ="([^"]*)" )?(?:MI = "([^"]*)" )?style="text-indent:(.+?)em;"> ([.0-9]+) (.*?)</p>""".r
-  val wordsWithProbRegex = """\s*(([^ ]+) ([.0-9]+)\s*)*""".r
+  val wordsWithProbRegex = """\s*(([^. ]+) ([01]\.[0-9]+)\s*)*""".r
 
   def readTopicTree(topicTableFile: String): TopicTree = {
     val topics = readTopics(topicTableFile)

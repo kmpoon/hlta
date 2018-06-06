@@ -10,6 +10,9 @@ import org.slf4j.LoggerFactory
 import tm.util.Reader
 import tm.util.Arguments
 import tm.util.FileHelpers
+import tm.text.Preprocessor
+import tm.text.Document
+import tm.text.Sentence
 import tm.text.StopWords
 
 object HTD {
@@ -55,13 +58,13 @@ object HTD {
    * 
    * @return TopicTree
    */
-  def extractTopicTree(model: LTM, outputName: String, layer: Option[List[Int]] = None, keywords: Int = 7, 
-      broad: Boolean = false, data: Data = null, tempDir: String = "./topic_output") = {  
+  def extractTopicTree(model: LTM, layer: Option[List[Int]] = None, keywords: Int = 7, 
+      broad: Boolean = false, data: Data = null, keywordsProb: Boolean = false) = {  
     if(broad){      
-      ExtractTopicTree.broad(model, outputName, layer, keywords, tempDir)
+      ExtractTopicTree.broad(model, layer, keywords, keywordsProb)
     }else{
       val binaryData = data.binary()
-      ExtractTopicTree.narrow(model, binaryData, outputName, layer, keywords, tempDir)
+      ExtractTopicTree.narrow(model, binaryData, layer, keywords, keywordsProb)
     }
   }
   
@@ -83,8 +86,8 @@ object HTD {
         descr = "use Broad Defined Topic for extraction and assignment, run faster but more document will be categorized into a topic")
     val epoch = opt[Int](default = Some(50), descr = "max number of iterations running through the dataset")
     
-    val nonAscii = opt[Boolean](default = Some(false), 
-        descr = "Allows non-ascii character. This also set min word length to 1. (Data conversion option)")
+    val language = opt[String](default = Some("en"), 
+        descr = "Language, default as English, can be {english, chinese, nonascii}")
     val vocabSize = opt[Int](default = Some(1000), descr = "Corpus size (Data conversion option)")
     val concat = opt[Int](default = Some(2), descr = "Word concatenation (Data conversion option)")
     val topLevelTopics = opt[Int](default = Some(15), descr = "Number of topics on the root level of the topic tree")
@@ -104,14 +107,34 @@ object HTD {
   def main(args: Array[String]) {
     
     val conf = new Conf(args)
+    
+    val stopWords = conf.language().toLowerCase() match{
+                  case "en" | "english" => StopWords.EnglishStopwords()
+                  case "zh" | "chinese" => StopWords.ChineseStopwords()
+                  case "nonascii" | _ => StopWords.Empty()
+                }
+    val minChar = conf.language().toLowerCase() match{
+                    case "en" | "english" => 3
+                    case "zh" | "chinese" => 1
+                    case "nonascii" | _ => 1
+                  }
+    def preprocessor(text: String) = {
+      val tokens = conf.language().toLowerCase() match{
+        case "en" | "english" => Preprocessor.EnglishPreprocessor(text, minChars = minChar, stopwords = StopWords.EnglishStopwords())
+        case "zh" | "chinese" => Preprocessor.ChinesePreprocessor(text, minChars = minChar, stopwords = StopWords.ChineseStopwords())
+        case "nonascii" | _ => Preprocessor.NonAsciiPreprocessor(text, minChars = minChar, stopwords = StopWords.Empty())
+      }
+      Document(Sentence(tokens))
+    }
+    val wordSelector = tm.text.WordSelector.byTfIdf(minChar, 0, .25)
 
     //Simple default settings
     //See tm.text.DataConvert for more options
-    implicit val settings = tm.text.DataConverter.Settings(concatenations = if(conf.nonAscii()) 1 else conf.concat(), 
-        minCharacters = 3, wordSelector = tm.text.WordSelector.byTfIdf(3, 0, .25))
+//    implicit val settings = tm.text.DataConverter.Settings(concatenations = conf.concat(), 
+//        minCharacters = minChar, wordSelector = tm.text.WordSelector.byTfIdf(minChar, 0, .25))
 
     val path = java.nio.file.Paths.get(conf.data())
-    val (data, files) = {
+    val (data, docNames, docUrls) = {
       if(java.nio.file.Files.isDirectory(path)){
         
         //If path is a dir, look for txt or pdf
@@ -120,26 +143,38 @@ object HTD {
         if(files.isEmpty) throw new IllegalArgumentException("No txt/pdf files found files under " + dir)   
         
         //Convert raw text/pdf to .sparse.txt format
-        val data = tm.text.Convert(conf.name(), conf.vocabSize(), paths = files,
-            encoding = conf.encoding(), asciiOnly = !conf.nonAscii())
-        (data, files)
+        val data = tm.text.Convert(conf.name(), conf.vocabSize(), paths = files, encoding = conf.encoding(), 
+            preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat())
+        val docNames = files.map{file => file.getFileName.toString()}
+        val docUrls = files.map(_.toString())
+        (data, docNames, docUrls)
         
       }else if(conf.format.isDefined || List(".arff", ".hlcm", ".sparse.txt", ".lda.txt").exists(path.toString().endsWith(_))){
         //If path is a data file
         val data = tm.util.Reader.readData(path.toString, 
             ldaVocabFile = conf.ldaVocab.getOrElse(""), format = conf.format.toOption)
-        (data, null)
+        val docNames = if(conf.docNames.isDefined) scala.io.Source.fromFile(conf.docNames()).getLines.toList 
+                       else null
+        val docUrls = if(conf.docUrls.isDefined) scala.io.Source.fromFile(conf.docUrls()).getLines.toList 
+                      else null
+        (data, docNames, docUrls)
       }else{
         //If path is not a data file, converts raw text / pdf to .sparse.txt file
-        val data = tm.text.Convert(conf.name(), conf.vocabSize(), path = path, encoding = conf.encoding())
+        val data = tm.text.Convert(conf.name(), conf.vocabSize(), path = path, encoding = conf.encoding(), 
+            preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat())
         data.saveAsTuple(conf.name()+".sparse.txt")
-        (data, null)
+        val docNames = if(conf.docNames.isDefined) scala.io.Source.fromFile(conf.docNames()).getLines.toList 
+                       else scala.io.Source.fromFile(path.toString()).getLines().toVector
+                       //If docNames is not given, use doc context as doc label
+        val docUrls = if(conf.docUrls.isDefined) scala.io.Source.fromFile(conf.docUrls()).getLines.toList 
+                      else null
+        (data, docNames, docUrls)
       }
     }
     
     val model = HLTA(data, conf.name(), maxTop = conf.topLevelTopics(), globalMaxEpochs = conf.epoch())
     
-    val topicTree = extractTopicTree(model, conf.name(), broad = conf.broad(), data = data, keywords = conf.topicKeywords())
+    val topicTree = extractTopicTree(model, broad = conf.broad(), data = data, keywords = conf.topicKeywords())
     topicTree.saveAsJson(conf.name()+".nodes.json")
     
     val catalog = buildDocumentCatalog(model, data, broad = conf.broad(), keywords = conf.topicKeywords())
@@ -147,24 +182,6 @@ object HTD {
     
     //Generate one html file
     topicTree.saveAsSimpleHtml(conf.name()+".nodes.simple.html")
-    
-    val docNames = {
-      if(files!=null)
-        files.map{file => file.getFileName.toString()}
-      else if(conf.docNames.isDefined)
-        scala.io.Source.fromFile(conf.docNames()).getLines.toList
-      else
-        (0 until data.size).map("Line"+_)
-    }
-    
-    val docUrls = {
-      if(files!=null)
-        files.map(_.toString())
-      else if(conf.docUrls.isDefined)
-        scala.io.Source.fromFile(conf.docUrls()).getLines.toList
-      else
-        null
-    }
       
     //Generate a nice and pretty website, no server required
     tm.hlta.BuildWebsite("./", conf.name(), conf.name(), topicTree = topicTree, catalog = catalog, docNames = docNames, docUrls = docUrls)

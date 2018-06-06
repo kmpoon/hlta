@@ -24,32 +24,36 @@ object Preprocessor {
   type TokenCounts = Map[NGram, Int]
   
   /**
-   * A simple English pre-built preprocessor
-   * 
-   * originally called preprocessor(minChars: Int)(s: Sentence)
+   * A simple English preprocessor
    */
-  def EnglishPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.Empty()): Seq[String] = 
+  def EnglishPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.EnglishStopwords()): Seq[String] = 
     tokenizeBySpace(s)
     .map(_.toLowerCase)
     .map(normalize)
     .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
     .map(replaceNonAlnum)
-    .map(replaceStartingDigit)
     .filter(withProperLength(minChars))
+    .filterNot(stopwords.contains)
+      
+  /**
+   * Chinese preprocessor with FNLP tokenization
+   * see https://github.com/FudanNLP
+   */
+  def ChinesePreprocessor(s: String, minChars: Int = 1, stopwords: StopWords = StopWords.ChineseStopwords()): Seq[String] = 
+    tokenizeChinese(s)
+    .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
+    .map(replacePunctuation)
+    .filter(withLength(minChars))
     .filterNot(stopwords.contains)
     
   /**
-   * A simple Korean pre-built preprocessor
-   * 
-   * It is called Korean because we need to tokenize sentence with space in advance
-   * This works for non-ascii language like Chinese
+   * Preprocessor for general non-ascii languages
    */
-  def KoreanPreprocessor(s: String, stopwords: StopWords = StopWords.Empty()): Seq[String] = 
+  def NonAsciiPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.Empty()): Seq[String] = 
     tokenizeBySpace(s)
     .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
     .map(replacePunctuation)
-    .map(replaceStartingDigit)
-    .filter(withLength(1))
+    .filter(withProperLength(minChars))
     .filterNot(stopwords.contains)
   
   /**
@@ -95,13 +99,21 @@ object Preprocessor {
     //containing a single element of empty string will be returned.
     if (text.isEmpty) Array.empty[String]
     else text.split(regex)
+    
+  def tokenizeChinese(text: String): Seq[String] = {
+    //FNLP is specially edited to allow using pipeline to read model
+    import org.fnlp.nlp.cn.CNFactory
+    CNFactory.loadSeg(this.getClass.getResourceAsStream("/tm/text/seg.m"))
+    val factory = CNFactory.getInstance()
+    factory.seg(text)
+  }
 
     
   //Replacement  
   
   val NonAlnum = "\\P{Alnum}".r
-  val Digit = "^(\\p{Digit})".r
-  val Punctuation = "\\p{Punct}".r
+  val Digit = "^(\\p{Digit})|[\uFF10-\uFF19]".r
+  val Punctuation = "\\p{Punct}|[\u2000-\u206F]|[\u3000-\u303F]|[\uFF00-\uFF0F]".r
 
   def useRegexToReplace(pair: (Regex, (Match) => String)) = pair match {
     case (r, m) => (input: String) => r.replaceAllIn(input, m)
@@ -109,7 +121,7 @@ object Preprocessor {
   
   def replaceNonAlnum(input: String): String = NonAlnum.replaceAllIn(input, (m: Match) => "")
   
-  def replaceStartingDigit(input: String): String = Digit.replaceAllIn(input, (m: Match) => s"${m.group(1)}")
+  def replaceStartingDigit(input: String): String = Digit.replaceAllIn(input, (m: Match) => s"_${m.group(1)}")
   
   def replacePunctuation(input: String): String = Punctuation.replaceAllIn(input, (m: Match) => "")
   

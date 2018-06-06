@@ -13,7 +13,8 @@ libraryDependencies ++=
   "org.scalactic" %% "scalactic" % "2.2.6" % "test" ::
   "org.scalaz" %% "scalaz-core" % "7.2.1" ::
   "org.apache.commons" % "commons-csv" % "1.2" ::
-   "org.apache.commons" % "commons-compress" % "1.16.1" ::
+  "org.apache.commons" % "commons-compress" % "1.16.1" ::
+  "org.apache.commons" % "commons-lang3" % "3.0" ::
   "commons-io" % "commons-io" % "2.4" ::
   "edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" ::
   ("edu.stanford.nlp" % "stanford-corenlp" % "3.6.0" classifier "models") ::
@@ -30,7 +31,7 @@ libraryDependencies ++=
   "org.apache.pdfbox" % "pdfbox" % "1.8.10" ::
   "colt" % "colt" % "1.2.0" ::
   "nz.ac.waikato.cms.weka" % "weka-stable" % "3.6.13" ::
-   "org.scala-lang.modules" %% "scala-xml" % "1.0.6" ::
+  "org.scala-lang.modules" %% "scala-xml" % "1.0.6" ::
 //    "io.argonaut" %% "argonaut" % "6.1" ::
 // https://mvnrepository.com/artifact/org.deeplearning4j
   "org.nd4j" % "nd4j-native-platform" % "0.9.1" ::
@@ -38,7 +39,9 @@ libraryDependencies ++=
   "org.deeplearning4j" % "deeplearning4j-nlp" % "0.9.1" ::
   "org.json4s" %% "json4s-native" % "3.6.0-M2" ::
   "com.github.tototoshi" %% "scala-csv" % "1.3.5" ::
-  "org.apache.commons" % "commons-lang3" % "3.0" ::
+  "net.sf.trove4j" % "trove4j" % "3.0.3" ::
+  "commons-cli" % "commons-cli" % "1.2" ::
+  "junit" % "junit" % "4.11" ::
 Nil
 
 

@@ -1,7 +1,7 @@
 package tm.text
 
 object WordSelector {
-  def basic(minCharacters: Int, minTf: Int, minDf: (Int) => Int): WordSelector = {
+  def basic(minCharacters: Int = 3, minTf: Int = 6, minDf: (Int) => Int = (Int) => 6): WordSelector = {
     new WordSelector {
       def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = (
         ws.filter(w =>
@@ -67,40 +67,40 @@ object WordSelector {
       val description = s"Select tokens by TF-IDF. Min characters: ${minCharacters}, minDfFraction: ${minDfFraction}, maxDfFraction: ${maxDfFraction}."
     }
   
-  def byBurstiness(startTime: Int, endTime: Int, increment: Int = 1, minDfFraction: Double = 0.01, maxDfFraction: Double = 0.2) = {
-    import tm.util.LinearRegression
-    new WordSelector {
-      def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
-        // filter words by constraints
-        val (filteredWords, failedWords) = ws.partition{w => w.df >= minDfFraction*docCount && w.df < maxDfFraction*docCount}
-        val wsWithBustiness = filteredWords.map{wordInfo =>
-          val values = (startTime until endTime by increment).map(wordInfo.trend.getOrElse(_, 0)).zipWithIndex.map{case(y, x)=>(x.toDouble, y.toDouble)}
-          (wordInfo, tm.util.LinearRegression(values)._1)
-        }
-        val sortedBurstyWords = wsWithBustiness.sortBy{case(wordInfo, slope) => -slope}.map(_._1)
-        val (burstyWords, remainingWords) = sortedBurstyWords.splitAt(maxWords)
-
-        (burstyWords, failedWords ++ remainingWords)
-      }
-      
-       def description: String = s"Select tokens by trend, during ${startTime} and ${endTime} with minimum df fraction ${minDfFraction}"
-    }
-  }
-  
-  def mixed(wordSelector1: WordSelector, wordSelector2: WordSelector, ratio: Double) = {
-    new WordSelector {
-      def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
-        val (eligibleWords1, remainingWords) = wordSelector1.select(ws, docCount, (maxWords*ratio).toInt)
-        //println(eligibleWords1.size)
-        
-        val (eligibleWords2, frequentWords) = wordSelector2.select(remainingWords, docCount, maxWords-eligibleWords1.size)
-        //println(eligibleWords2.size)
-        (eligibleWords1++eligibleWords2, frequentWords)
-      }
-      
-      def description: String = "Mixed Word Selector: "+wordSelector1.description+" ; "+wordSelector2.description
-    }
-  }
+//  def byBurstiness(startTime: Int, endTime: Int, increment: Int = 1, minDfFraction: Double = 0.01, maxDfFraction: Double = 0.2) = {
+//    import tm.util.LinearRegression
+//    new WordSelector {
+//      def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
+//        // filter words by constraints
+//        val (filteredWords, failedWords) = ws.partition{w => w.df >= minDfFraction*docCount && w.df < maxDfFraction*docCount}
+//        val wsWithBustiness = filteredWords.map{wordInfo =>
+//          val values = (startTime until endTime by increment).map(wordInfo.trend.getOrElse(_, 0)).zipWithIndex.map{case(y, x)=>(x.toDouble, y.toDouble)}
+//          (wordInfo, tm.util.LinearRegression(values)._1)
+//        }
+//        val sortedBurstyWords = wsWithBustiness.sortBy{case(wordInfo, slope) => -slope}.map(_._1)
+//        val (burstyWords, remainingWords) = sortedBurstyWords.splitAt(maxWords)
+//
+//        (burstyWords, failedWords ++ remainingWords)
+//      }
+//      
+//       def description: String = s"Select tokens by trend, during ${startTime} and ${endTime} with minimum df fraction ${minDfFraction}"
+//    }
+//  }
+//  
+//  def mixed(wordSelector1: WordSelector, wordSelector2: WordSelector, ratio: Double) = {
+//    new WordSelector {
+//      def select(ws: IndexedSeq[WordInfo], docCount: Int, maxWords: Int) = {
+//        val (eligibleWords1, remainingWords) = wordSelector1.select(ws, docCount, (maxWords*ratio).toInt)
+//        //println(eligibleWords1.size)
+//        
+//        val (eligibleWords2, frequentWords) = wordSelector2.select(remainingWords, docCount, maxWords-eligibleWords1.size)
+//        //println(eligibleWords2.size)
+//        (eligibleWords1++eligibleWords2, frequentWords)
+//      }
+//      
+//      def description: String = "Mixed Word Selector: "+wordSelector1.description+" ; "+wordSelector2.description
+//    }
+//  }
   
 }
 

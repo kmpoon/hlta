@@ -9,8 +9,6 @@ import scala.util.matching.Regex.Match
 import java.io.FileInputStream
 import java.io.PrintWriter
 import java.nio.file.Paths
-import tm.text.DataConverter.Settings
-
 object ExtractText {
   val minChars = 3
 
@@ -26,9 +24,6 @@ object ExtractText {
   }
 
   def run(inputFile: String, outputDir: String) = {
-    implicit val stopWords = StopWords.implicits.default
-    implicit val settings = Parameters.implicits.settings
-
     val output = Paths.get(outputDir)
     if (!output.toFile.exists)
       output.toFile.mkdirs()
@@ -44,8 +39,7 @@ object ExtractText {
     input.close
   }
 
-  def preprocess(email: Email)(
-    implicit stopwords: StopWords, settings: Settings) = {
+  def preprocess(email: Email) = {
     val subjectSentence = StanfordLemmatizer.processAsSentence(email.subject)
     val sentences = subjectSentence +:
       StanfordLemmatizer.process(email.body).sentences

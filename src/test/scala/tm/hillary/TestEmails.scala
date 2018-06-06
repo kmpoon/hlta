@@ -7,7 +7,7 @@ import java.util.zip.GZIPInputStream
 
 trait TestEmails {
   import StopWords.implicits.default
-  import Parameters.implicits.settings
+  //import Parameters.implicits.settings
 
   val emails = Emails.readEmails(
     new GZIPInputStream(getClass.getResourceAsStream("/Emails.csv.gz")))

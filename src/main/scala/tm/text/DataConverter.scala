@@ -20,45 +20,43 @@ object DataConverter {
   /**
    * For external call
    */
-  def apply(name: String, documents: GenSeq[Document],
-      maxWords: Int, seedWords: Option[SeedTokens], 
-      documentInfos: GenSeq[DocumentInfo] = null)(implicit settings: Settings): Data = {
-    val (countsByDocuments, dictionary) = countTokensWithNGrams(name, documents, documentInfos, maxWords, seedWords)
+  def apply(name: String, documents: GenSeq[Document], maxWords: Int, concat: Int,
+      seedWords: SeedTokens = SeedTokens.Empty(), wordSelector: WordSelector = WordSelector.basic(),
+      documentInfos: GenSeq[DocumentInfo] = null): Data = {
+    val (countsByDocuments, dictionary) = countTokensWithNGrams(name, documents, documentInfos, maxWords, concat, seedWords, wordSelector)
     Data.fromDictionaryAndTokenCounts(dictionary, countsByDocuments.toList, name = name)
   }
 
-  @Deprecated
-  def convert(name: String, documents: GenSeq[Document], maxWords: Int,
-    seeds: Option[SeedTokens] = None)(implicit settings: Settings) = {
-
-    val (countsByDocuments, dictionary) =
-      countTokensWithNGrams(name, documents, null, maxWords, seeds)
-
-    //    log("Converting to bow")
-    //    val bow = convertToBow(countsByDocuments, dictionary.map)
-
-    val bowConverter = toBow(dictionary.map)(_)
-
-    logger.info("Saving in ARFF format (count data)")
-    saveAsArff(name, s"${name}.arff", AttributeType.numeric,
-      dictionary.words, countsByDocuments.seq, bowConverter)
-    logger.info("Saving in HLCM format (binary data)")
-    saveAsBinaryHlcm(name, s"${name}.txt",
-      dictionary.words, countsByDocuments.seq, bowConverter)
-    logger.info("Saving in sparse data format (binary data)")
-    saveAsSparseData(s"${name}.sparse.txt", countsByDocuments.seq, dictionary.map)
-
-    logger.info("done")
-  }
+//  @Deprecated
+//  def convert(name: String, documents: GenSeq[Document], maxWords: Int,
+//    seeds: Option[SeedTokens] = None)(implicit settings: Settings) = {
+//
+//    val (countsByDocuments, dictionary) =
+//      countTokensWithNGrams(name, documents, null, maxWords, settings.concatenations, seeds.getOrElse(SeedTokens.Empty()), settings.wordSelector)
+//
+//    //    log("Converting to bow")
+//    //    val bow = convertToBow(countsByDocuments, dictionary.map)
+//
+//    val bowConverter = toBow(dictionary.map)(_)
+//
+//    logger.info("Saving in ARFF format (count data)")
+//    saveAsArff(name, s"${name}.arff", AttributeType.numeric,
+//      dictionary.words, countsByDocuments.seq, bowConverter)
+//    logger.info("Saving in HLCM format (binary data)")
+//    saveAsBinaryHlcm(name, s"${name}.txt",
+//      dictionary.words, countsByDocuments.seq, bowConverter)
+//    logger.info("Saving in sparse data format (binary data)")
+//    saveAsSparseData(s"${name}.sparse.txt", countsByDocuments.seq, dictionary.map)
+//
+//    logger.info("done")
+//  }
 
   /**
    * Counts the number of tokens with the consideration of n-grams for a n
    * specified in the {@ code settings}.
    */
-  def countTokensWithNGrams(name: String, documents: GenSeq[Document],
-    documentInfos: GenSeq[DocumentInfo], maxWords: Int, seeds: Option[SeedTokens])(
-    implicit settings: Settings): (GenSeq[TokenCounts], Dictionary) = {
-    import settings._
+  def countTokensWithNGrams(name: String, documents: GenSeq[Document], documentInfos: GenSeq[DocumentInfo], 
+      maxWords: Int, concat: Int, seeds: SeedTokens, wordSelector: WordSelector): (GenSeq[TokenCounts], Dictionary) = {
 
     def replaceByNGrams(ds: GenSeq[Document], check: NGram => Boolean, concat: Int = 2) = {
       ds.map(_.sentences.map(s =>
@@ -69,8 +67,8 @@ object DataConverter {
     @tailrec
     def loop(documents: GenSeq[Document], previous: Option[Dictionary],
       frequentWords: Set[NGram], n: Int): (GenSeq[Document], Dictionary) = {
-      val noAppend = n == 0 || n > concatenations
-      val last = (n == concatenations && noAppend) || (n > concatenations)
+      val noAppend = n == 0 || n > concat
+      val last = (n == concat && noAppend) || (n > concat)
 
       if (!last)
         logger.info("Counting n-grams (after {} concatentations) in each document", n)
@@ -97,17 +95,15 @@ object DataConverter {
         logger.info("Saving dictionary before selection")
         Dictionary.save(s"${name}.whole_dict-${n}.csv", allWordInfo)
 
-        val (preSelected, remaining) = seeds match {
-          case Some(sf) => allWordInfo.partition(w => sf.contains(w.token))
-          case None     => (IndexedSeq.empty, allWordInfo)
-        }
+        val (preSelected, remaining) = if(seeds.tokens.isEmpty) (IndexedSeq.empty, allWordInfo)
+                                       else allWordInfo.partition(w => seeds.tokens.contains(w.token))
 
         if (preSelected.size > 0)
           logger.info("Using {} seed tokens", preSelected.size)
 
         logger.info("Selecting words in dictionary")
         val (selected, frequent) =
-          settings.wordSelector.select(
+          wordSelector.select(
             remaining, documents.size, maxWords - preSelected.size)
 
         val allSelected = preSelected ++ selected
@@ -133,14 +129,13 @@ object DataConverter {
     }
 
     logger.info(
-      "Using the following word selector. {}",
-      settings.wordSelector.description)
+      "Using the following word selector. {}", wordSelector.description)
 
     val ds = {
-      if(seeds.isDefined){
+      if(!seeds.tokens.isEmpty){
         logger.info("Replacing constituent tokens by seed tokens")
         //Seed tokens sorted in descending order of length
-        val seedTokensByLength = seeds.get.tokens.groupBy{ token => token.words.length }.toList.sortBy(-_._1)
+        val seedTokensByLength = seeds.tokens.groupBy{ token => token.words.length }.toList.sortBy(-_._1)
         var documentsWithLargerNGrams = documents
         seedTokensByLength.foreach{ case(tokenLength, tokens) =>
           documentsWithLargerNGrams = replaceByNGrams(documentsWithLargerNGrams, tokens.contains, tokenLength)
@@ -162,7 +157,9 @@ object DataConverter {
     if (tokens.isEmpty) {
       Map.empty
     } else {
-      mapReduce(tokens.par)(w => Map(w -> 1))(_ |+| _)
+      val wl = tokens.groupBy{ x => x }.filter(_._2.size>2)
+      wl.map{case (w, l) => (w -> l.size)}.toMap
+      //mapReduce(tokens.par)(w => Map(w -> 1))(_ |+| _)
     }
   }
 
@@ -228,65 +225,65 @@ object DataConverter {
     countsByDocuments.map(toBow(indices))
   }
 
-  @Deprecated
-  def saveAsArff(name: String, filename: String,
-    attributeType: AttributeType.Value, words: Seq[String],
-    countsByDocuments: Seq[TokenCounts], toBow: (TokenCounts) => Array[Int]) = {
-
-    val at = attributeType match {
-      case AttributeType.binary  => "{0, 1}"
-      case AttributeType.numeric => "numeric"
-    }
-
-    val writer = new PrintWriter(filename)
-
-    writer.println(s"@RELATION ${name}\n")
-
-    words.foreach { w => writer.println(s"@ATTRIBUTE ${w} ${at}") }
-
-    writer.println("\n@DATA")
-
-    countsByDocuments.foreach { xs => writer.println(toBow(xs).mkString(",")) }
-
-    writer.close
-  }
-
-  @Deprecated
-  def saveAsBinaryHlcm(name: String, filename: String, words: Seq[String],
-    countsByDocuments: Seq[TokenCounts], toBow: (TokenCounts) => Array[Int]) = {
-    def binarize(v: Int) = if (v > 0) 1 else 0
-
-    val writer = new PrintWriter(filename)
-
-    writer.println(s"//${filename.replaceAll("\\P{Alnum}", "_")}")
-    writer.println(s"Name: ${name}\n")
-
-    writer.println(s"// ${words.size} variables")
-    words.foreach { w => writer.println(s"${w}: s0 s1") }
-    writer.println
-
-    countsByDocuments.foreach { vs =>
-      writer.println(toBow(vs).map(binarize).mkString(" ") + " 1.0")
-    }
-
-    writer.close
-  }
-
-  /**
-   * Note that new standard is document index start from 0 but not 1
-   */
-  @Deprecated
-  def saveAsSparseData(filename: String,
-    countsByDocuments: Seq[TokenCounts], indices: Map[NGram, Int]) = {
-    val writer = new PrintWriter(filename)
-
-    countsByDocuments.zipWithIndex.foreach { p =>
-      val rowId = p._2 + 1 // since the indices from zipWithIndex start with zero
-      // filter out any words not contained in the indices or those with zero counts
-      p._1.filter(tc => indices.contains(tc._1) && tc._2 > 0)
-        .foreach { tc => writer.println(s"${rowId},${tc._1}") }
-    }
-  }
+//  @Deprecated
+//  def saveAsArff(name: String, filename: String,
+//    attributeType: AttributeType.Value, words: Seq[String],
+//    countsByDocuments: Seq[TokenCounts], toBow: (TokenCounts) => Array[Int]) = {
+//
+//    val at = attributeType match {
+//      case AttributeType.binary  => "{0, 1}"
+//      case AttributeType.numeric => "numeric"
+//    }
+//
+//    val writer = new PrintWriter(filename)
+//
+//    writer.println(s"@RELATION ${name}\n")
+//
+//    words.foreach { w => writer.println(s"@ATTRIBUTE ${w} ${at}") }
+//
+//    writer.println("\n@DATA")
+//
+//    countsByDocuments.foreach { xs => writer.println(toBow(xs).mkString(",")) }
+//
+//    writer.close
+//  }
+//
+//  @Deprecated
+//  def saveAsBinaryHlcm(name: String, filename: String, words: Seq[String],
+//    countsByDocuments: Seq[TokenCounts], toBow: (TokenCounts) => Array[Int]) = {
+//    def binarize(v: Int) = if (v > 0) 1 else 0
+//
+//    val writer = new PrintWriter(filename)
+//
+//    writer.println(s"//${filename.replaceAll("\\P{Alnum}", "_")}")
+//    writer.println(s"Name: ${name}\n")
+//
+//    writer.println(s"// ${words.size} variables")
+//    words.foreach { w => writer.println(s"${w}: s0 s1") }
+//    writer.println
+//
+//    countsByDocuments.foreach { vs =>
+//      writer.println(toBow(vs).map(binarize).mkString(" ") + " 1.0")
+//    }
+//
+//    writer.close
+//  }
+//
+//  /**
+//   * Note that new standard is document index start from 0 but not 1
+//   */
+//  @Deprecated
+//  def saveAsSparseData(filename: String,
+//    countsByDocuments: Seq[TokenCounts], indices: Map[NGram, Int]) = {
+//    val writer = new PrintWriter(filename)
+//
+//    countsByDocuments.zipWithIndex.foreach { p =>
+//      val rowId = p._2 + 1 // since the indices from zipWithIndex start with zero
+//      // filter out any words not contained in the indices or those with zero counts
+//      p._1.filter(tc => indices.contains(tc._1) && tc._2 > 0)
+//        .foreach { tc => writer.println(s"${rowId},${tc._1}") }
+//    }
+//  }
   
   /**
    * Given a sequence of tokens, build the n-grams based on the tokens.  The
@@ -302,21 +299,23 @@ object DataConverter {
   /**
    * minDf is computed when the number of documents is given.
    */
-  class Settings(val concatenations: Int, val minCharacters: Int,
-    val wordSelector: WordSelector)
-
-  object Settings{
-    def apply(concatenations: Int = 0, minCharacters: Int = 3,
-        minTf: Int = 6, minDf: (Int) => Int = (Int) => 6, 
-        wordSelector: WordSelector = null): Settings = {
-      val _wordSelector = wordSelector match{
-        case null => WordSelector.basic(minCharacters, minTf, minDf)
-        case _ => wordSelector
-      }
-        
-      new Settings(concatenations, minCharacters, _wordSelector)
-    }
-    
+//  @Deprecated
+//  class Settings(val concatenations: Int, val minCharacters: Int,
+//    val wordSelector: WordSelector)
+//
+//  @Deprecated
+//  object Settings{
+//    def apply(concatenations: Int = 0, minCharacters: Int = 3,
+//        minTf: Int = 6, minDf: (Int) => Int = (Int) => 6, 
+//        wordSelector: WordSelector = null): Settings = {
+//      val _wordSelector = wordSelector match{
+//        case null => WordSelector.basic(minCharacters, minTf, minDf)
+//        case _ => wordSelector
+//      }
+//        
+//      new Settings(concatenations, minCharacters, _wordSelector)
+//    }
+//    
 //    def apply(concatenations: Int = 0, minCharacters: Int = 3, minTf: Int = 6,
 //      minDf: (Int) => Int = (Int) => 6): Settings =
 //      new Settings(concatenations, minCharacters,
@@ -325,5 +324,5 @@ object DataConverter {
 //    def apply(concatenations: Int, minCharacters: Int,
 //      wordSelector: WordSelector): Settings =
 //      new Settings(concatenations, minCharacters, wordSelector)
-  }
+//  }
 }
