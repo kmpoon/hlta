@@ -122,6 +122,14 @@ public class StepwiseEMHLTA {
 	private String _sizeFirstBatch;
 	private boolean _islandNotBridging;
 	private int _sample_size_for_structure_learn = 10000;
+	
+	/** Now, HLTA can switch bewteen parallel training and serial training easily.
+	 *  However, we retain teh old version which can only train serially. 
+	 *  If you still want that old version, assign _useOnlySerialVersion to "true" to reactivate it.
+	 *  If not, keep _useOnlySerialVersion as "false" (Recommended and Default choice)
+	 */
+	private boolean _useOnlySerialVersion = false;
+	//private boolean _useOnlySerialVersion = true;
 	/**
 	 * Maximum number of island size
 	 */
@@ -159,6 +167,41 @@ public class StepwiseEMHLTA {
      */
 	static Map<String, Integer> _varId;
 	
+	public class ConstHyperParameterSet {
+		int _EmMaxSteps;
+		int _EmNumRestarts;
+		double _emThreshold;
+		boolean _islandNotBridging;
+		int _maxTop;
+		int _maxIsland;
+		double _UDthreshold;
+		
+		public void set(int EmMaxSteps, int EmNumRestarts, double emThreshold, 
+				boolean islandNotBridging, int maxTop, int maxIsland, double UDthreshold) {
+
+			_EmNumRestarts = EmNumRestarts;
+			_EmMaxSteps = EmMaxSteps;
+			_emThreshold = emThreshold;
+			_islandNotBridging = islandNotBridging;
+			_maxTop = maxTop;
+			_maxIsland = maxIsland;
+			_UDthreshold = UDthreshold;
+		}
+		
+		/*public int getEmMaxSteps() {
+			return _EmMaxSteps;
+		}
+		
+		public int getEmNumRestarts() {
+			return _EmNumRestarts;
+		}
+		
+		public double getEmThreshold() {
+			return _emThreshold;
+		}*/
+	}
+	
+	ConstHyperParameterSet _hyperParam = new ConstHyperParameterSet();
 	
 	/**
 	 * Main Method
@@ -256,8 +299,8 @@ public class StepwiseEMHLTA {
             _OrigDenseData = _OrigSparseData.getWholeDenseData();
             _islandNotBridging = true;
 		}
+		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold);
 	}
-
 
 	/**
 	 * Added by Leung Chun Fai
@@ -309,6 +352,7 @@ public class StepwiseEMHLTA {
 //			_sizeFirstBatch = "all";
 //            _OrigDenseData = _OrigSparseData.getWholeDenseData();
 //		}
+		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold);
 	}
 	
 	
@@ -324,8 +368,6 @@ public class StepwiseEMHLTA {
          BWriter.write("In StepwiseEMHLTA Per-document log-likelihood =  "+perLL);
          BWriter.close();
 	}
-	
-	
 	
 	
 	public void IntegratedLearn() {
@@ -355,9 +397,11 @@ public class StepwiseEMHLTA {
 			LTM CurrentModel = null;
 			long start = System.currentTimeMillis();
 			System.out.println("Start model construction...");
-			int level = 2;
+			int level = 1;
 			while (true) {
 						
+			System.out.println("===========Building Level "+ level+ "=============");
+
 			DataSet training_data;
 			if (_workingData.getNumberOfEntries() > _sample_size_for_structure_learn) {
 				int nOfTraining = _sample_size_for_structure_learn;
@@ -368,26 +412,35 @@ public class StepwiseEMHLTA {
 			}
 			_workingData = training_data;
 			
-			FastLTA_flat(_workingData, level);
-		
-			LTM Alayer = BuildLatentTree(_workingData);
-			
-			int latVarSize = Alayer.getInternalVars("tree").size();
 
-			CurrentModel = BuildHierarchy(CurrentModel, Alayer);
+			//DataSet this_data = _workingData;
+			LTM alayer = FastLTA_flat_handle(_workingData, level);
+			//_workingData = this_data;
+				
+			int latVarSize = alayer.getInternalVars("tree").size();
+			System.out.println("latVarSize: " + latVarSize);
 	
+			if (latVarSize <= _maxTop && _islandNotBridging) { 
+				// only works when "have accomplished the top layer" and "be in without-bridging-island branch"
+				System.out.println("in FastHLTA_learn data getVariables: " + _workingData.getVariables().length);
+				BridgingIslands(alayer, _workingData, _hierarchies, _bestpairs, _latentPosts, _hyperParam);
+			}
+			
+			CurrentModel = BuildHierarchy(CurrentModel, alayer);
+			
 			if (latVarSize <= _maxTop) {
 				System.out.println("latent variable size(" + latVarSize + ") <= _maxTop size(" + _maxTop + "), build structure level-by-level terminate!");
-				System.out.println("Final, HLTA has " + (level - 1) + " levels.");
+				System.out.println("Final, HLTA has " + level + " levels.");
 				break;
-			}
+			} 
 
 			if (_islandNotBridging) {
-				_workingData = HardAssignmentForIslands(CurrentModel, Alayer, _hierarchies, _workingData);
+				_workingData = HardAssignmentForIslands(CurrentModel, alayer, _hierarchies, _workingData);
 			} else {
-				_workingData = HardAssignment(CurrentModel, Alayer, _workingData);
+				_workingData = HardAssignment(CurrentModel, alayer, _workingData);
 			}
-			System.out.println("Build level: " + (level - 1)  + " of HLTA done!!!, begin to build next level");
+
+			System.out.println("Build level: " + level  + " of HLTA done!!!, begin to build next level");
 
 			level++;
 		}
@@ -398,7 +451,7 @@ public class StepwiseEMHLTA {
 		emLearner.setMaxNumberOfSteps(_globalEMmaxSteps);
 		emLearner.setNumberOfRestarts(1);
 		emLearner.setReuseFlag(true);
-		emLearner.setThreshold(_emThreshold);
+		emLearner.setThreshold(_hyperParam._emThreshold);
 	    emLearner.setBatchSize(_sizeBatch);
 	    emLearner.setMaxNumberOfEpochs(_maxEpochs);
 		
@@ -449,7 +502,7 @@ public class StepwiseEMHLTA {
 	}
 	
 	/**
-	 * Build One layer
+	 * call FastLTA_flat (parellel or serial)
 	 * 
 	 * @param _data
 	 * @param Level
@@ -457,25 +510,95 @@ public class StepwiseEMHLTA {
 	 * @throws UnsupportedEncodingException 
 	 * @throws FileNotFoundException 
 	 */
+	public LTM FastLTA_flat_handle(DataSet data, int level) throws FileNotFoundException, UnsupportedEncodingException {
 
-	public void FastLTA_flat(DataSet _data, int Level) throws FileNotFoundException, UnsupportedEncodingException {
-
-		int i = 1;
-		initialize(_data);
-		//System.out.println("VariablesSet size: " + _VariablesSet.size());
-		System.out.println("===========start to FastLTA_flat=============");
-		System.out.println("===========Building Level "+ (Level-1)+ "=============");
-		long t1 = System.currentTimeMillis();
+		initialize(data);
 		// Call lcmLearner iteratively and learn the LCMs.
-		while (!isDone()) {
-			System.out.println("======================= Learn Island : " + i
-					+ " , number of variables left: " + _VariablesSet.size()
+		LTM latentTree;			
+		Map<Variable, Map<DataCase, Function>> lptmp = new HashMap<Variable, Map<DataCase, Function>>();
+		
+		if (!_useOnlySerialVersion && level == 1) { 
+			// New Version: You can run parallel mode or serial mode. Serial mode is a special case of parallel mode		
+			ParallelLayer pl = new ParallelLayer();
+			
+			/*for (DataCase d : data.getData()) {
+	      		System.out.println("in FastLTA_flat_handle data: " + d.toString());
+      		}*/
+			pl.parallelLayer(_OrigDenseData, data, _hyperParam, _Variables); // latentTree and hardAssign should get value from the parallelLayer
+			
+			// summary the variables from the reduce procedure of parallel	
+			latentTree = pl.getTmpTree();
+			_hierarchies = pl.getHierarchies();
+			_latentPosts = pl.getGloballLatentPosts(); // getLocalLatentPosts when need island bridging
+			_bestpairs = pl.getBestPairs();
+			
+			/* System.out.println("latentTree size in FastLTA_flat_handle: " + latentTree.getInternalVars().size());
+			System.out.println("_hierarchies size in FastLTA_flat_handle: " + _hierarchies.keySet().size());
+			System.out.println("_bestpairs size in FastLTA_flat_handle: " + _bestpairs.keySet().size());
+			System.out.println("_latentPosts size in FastLTA_flat_handle: " + _latentPosts.size()); */
+
+		} else { 
+			// Serial Version: You can only run serial model
+			// This function is not be used in current version 
+			latentTree = FastLTA_flat(data, lptmp);
+			System.out.println("_latentPosts size in FastLTA_flat_handle: " + lptmp.size());
+			_latentPosts = lptmp;
+			System.out.println("_latentPosts size in FastLTA_flat_handle2: " + _latentPosts.size());
+		}
+		
+		return latentTree;
+	}
+	
+	/**
+	 * Build One layer
+	 * This function is not be used in current version 
+	 * @param _data
+	 * @param Level
+	 * @return
+	 * @throws UnsupportedEncodingException 
+	 * @throws FileNotFoundException 
+	 */
+
+	public LTM FastLTA_flat(DataSet _data, Map<Variable, Map<DataCase, Function>> latentPosts) 
+			throws FileNotFoundException, UnsupportedEncodingException {
+
+		System.out.println("===========start to FastLTA_flat=============");
+	
+		int start_of_this_node = -1; // only works for parallel version, -1 means invalid
+		IslandFinding(_VariablesSet, _varId, _data, _mis, _hyperParam, _bestpairs, _hierarchies, _Variables, start_of_this_node);
+		
+		LTM aLayer = BuildLatentTree(_data, _hierarchies, _bestpairs, latentPosts, _hyperParam);
+		System.out.println("after buildLatentTree latentPosts size: " + latentPosts.size());
+		
+		return aLayer;
+	}
+
+	/**
+	 * IslandFinding
+	 * 
+	 * @param _data
+	 * @param Level
+	 * @return
+	 * @throws UnsupportedEncodingException 
+	 * @throws FileNotFoundException 
+	 */
+	public static void IslandFinding(Set<Variable>VariablesSet, Map<String, Integer> varId, DataSet data,
+			ArrayList<double[]> mis, ConstHyperParameterSet hyperParam, Map<String, ArrayList<Variable>> bestpairs,
+			Map<Variable, LTM> hierarchies, ArrayList<Variable> Variables, int start_of_this_node
+			) throws FileNotFoundException, UnsupportedEncodingException {
+		
+		long t1 = System.currentTimeMillis();
+		
+		int islandCount = 1;
+		while (!isDone(VariablesSet)) {
+			System.out.println("======================= Learn Island : " + islandCount
+					+ " , number of variables left: " + VariablesSet.size()
 					+ "  =================================");
-			if (_VariablesSet.size() == 3) {
-				if (_mis.isEmpty()) {
+			if (VariablesSet.size() == 3) {
+				if (mis.isEmpty()) {
 					// compute MI and find the pair with the largest MI value
 					long startMI = System.currentTimeMillis();
-					_mis = computeMis(_data);
+					mis = computeMis(data, Variables);
 					System.out.println("======================= mis has been calculated  =================================");
 					System.out.println("--- ComputingMI Time: "
 							+ (System.currentTimeMillis() - startMI)
@@ -483,39 +606,39 @@ public class StepwiseEMHLTA {
 
 				}
 				ArrayList<Variable> bestP = new ArrayList<Variable>();
-				findBestPair(bestP, _VariablesSet);
+				findBestPair(bestP, VariablesSet, varId, mis);
 			//  System.out.println("Best Pair " + bestP.get(0).getName() +" and " + bestP.get(1).getName());
 				ArrayList<Variable> Varstemp =
-						new ArrayList<Variable>(_VariablesSet);
-				DataSet data_proj = _data.project(Varstemp);
-				LTM subModel = LCM3N(Varstemp, data_proj);
-				updateHierarchies(subModel, bestP);
-				updateVariablesSet(subModel);
+						new ArrayList<Variable>(VariablesSet);
+				DataSet data_proj = data.project(Varstemp);
+				LTM subModel = LCM3N(Varstemp, data_proj, hyperParam);
+				updateHierarchies(subModel, bestP, bestpairs, hierarchies);
+				updateVariablesSet(subModel, VariablesSet);
 				break;
 			}
 
 			ArrayList<Variable> bestPair = new ArrayList<Variable>();
 			// _mis only needs to compute once
 
-			if (_mis.isEmpty()) {
+			if (mis.isEmpty()) {
 				// compute MI and find the pair with the largest MI value
 				long startMI = System.currentTimeMillis();
-				_mis = computeMis( _data);
-				findBestPair(bestPair, _VariablesSet);
+				mis = computeMis(data, Variables);
+				findBestPair(bestPair, VariablesSet, varId, mis);
 				System.out.println("======================= mis has been calculated  =================================");
 				System.out.println("--- ComputingMI Time: "
 						+ (System.currentTimeMillis() - startMI) + " ms ---");
 				//print_mis(_mis, _Variables);
 
 			} else {
-				findBestPair(bestPair, _VariablesSet);
+				findBestPair(bestPair, VariablesSet, varId, mis);
 			}
 
 			Set<Variable> cluster = new HashSet<Variable>(bestPair);
 			// try to find the closest variable to make the cluster have 3
 			// variables now
 			ArrayList<Variable> ClosestVariablePair =
-					findShortestOutLink(_mis, null, cluster, _VariablesSet);
+					findShortestOutLink(mis, null, cluster, VariablesSet, varId, Variables);
 			ArrayList<Variable> cluster_3n = new ArrayList<Variable>(bestPair);
 
 			// cluster_3n is an array containing 3 variables : bestpair and
@@ -526,30 +649,34 @@ public class StepwiseEMHLTA {
 				cluster.add(ClosestVariablePair.get(1));
 			}
 			// m0
-			LTM m0 = LCM3N(cluster_3n, _data.project(cluster_3n));
+			LTM m0 = LCM3N(cluster_3n, data.project(cluster_3n), hyperParam);
+			if (-1 != start_of_this_node) {
+				m0 = renameInternalVariables(m0, start_of_this_node);
+			}
+
 			// cluster is the working set
 			while (true) {
 				ClosestVariablePair =
-						findShortestOutLink(_mis, bestPair, cluster,
-								_VariablesSet);
+						findShortestOutLink(mis, bestPair, cluster,
+								VariablesSet, varId, Variables);
 				cluster.add(ClosestVariablePair.get(1));
 				DataSet data_proj2l =
-						_data.project(new ArrayList<Variable>(cluster));
+						data.project(new ArrayList<Variable>(cluster));
 				LTM m1 =
 						EmLCM_learner(m0, ClosestVariablePair.get(1), bestPair,
-								data_proj2l);
+								data_proj2l, hyperParam);
 				LTM minput = m1.clone();
 				LTM m2 =
 						EmLTM_2L_learner(minput, bestPair, ClosestVariablePair,
-								data_proj2l);
+								data_proj2l, hyperParam);
 				m0 = m1.clone();
 				double mulModelBIC =
 						ScoreCalculator.computeBic(m2, data_proj2l);
 				double uniModelBIC =
 						ScoreCalculator.computeBic(m1, data_proj2l);
 
-				if (mulModelBIC - uniModelBIC > _UDthreshold) {
-					if (_VariablesSet.size() - cluster.size() == 0) {
+				if (mulModelBIC - uniModelBIC > hyperParam._UDthreshold) {
+					if (VariablesSet.size() - cluster.size() == 0) {
 						// split m2 to 2 LCMs subModel1 and subModel2
 						LTM subModel1 = m1.clone();
 						for (int id = 0; id < 2; id++) {
@@ -570,7 +697,7 @@ public class StepwiseEMHLTA {
 								new ArrayList<Variable>(ClosestVariablePair);
 						cluster_sub2_3node.add(bestPair.get(1));
 						//subModel2 = LTM.createLCM(cluster_sub2_3node, 2);
-						subModel2 = LCM3N(cluster_sub2_3node, _data.project(cluster_sub2_3node));
+						subModel2 = LCM3N(cluster_sub2_3node, data.project(cluster_sub2_3node), hyperParam);
 						// copy parameters from m2 to submodel2
 						ArrayList<Variable> var2s =
 								new ArrayList<Variable>(
@@ -591,10 +718,10 @@ public class StepwiseEMHLTA {
                     
 						ParallelEmLearner emLearner = new ParallelEmLearner();
 						emLearner.setLocalMaximaEscapeMethod("ChickeringHeckerman");
-						emLearner.setMaxNumberOfSteps(_EmMaxSteps);
-						emLearner.setNumberOfRestarts(_EmNumRestarts);
+						emLearner.setMaxNumberOfSteps(hyperParam._EmMaxSteps);
+						emLearner.setNumberOfRestarts(hyperParam._EmNumRestarts);
 						emLearner.setReuseFlag(false);
-						emLearner.setThreshold(_emThreshold);
+						emLearner.setThreshold(hyperParam._emThreshold);
 						emLearner.setDontUpdateNodes(donotUpdate);
 						subModel2 =
 								(LTM) emLearner.em(subModel2,
@@ -607,10 +734,10 @@ public class StepwiseEMHLTA {
 						subModel2.removeNode(subModel2.getNode(bestPair.get(1)));
 						subModel2.removeEdge(e2);
                      	
-						updateHierarchies(subModel1, bestPair);
-						updateVariablesSet(subModel1);
-						updateHierarchies(subModel2, ClosestVariablePair);
-						updateVariablesSet(subModel2);
+						updateHierarchies(subModel1, bestPair, bestpairs, hierarchies);
+						updateVariablesSet(subModel1, VariablesSet);
+						updateHierarchies(subModel2, ClosestVariablePair, bestpairs, hierarchies);
+						updateVariablesSet(subModel2, VariablesSet);
 						
 						break;
 					} else {
@@ -622,23 +749,22 @@ public class StepwiseEMHLTA {
 							m1.removeNode(m1.getNode(ClosestVariablePair.get(id)));
 							m1.removeEdge(e);
 						}
-						updateHierarchies(m1, bestPair);
-						updateVariablesSet(m1);
+						updateHierarchies(m1, bestPair, bestpairs, hierarchies);
+						updateVariablesSet(m1, VariablesSet);
 
 						break;
 					}
-				} else if (_VariablesSet.size() - cluster.size() == 0
-						|| (cluster.size() >= _maxIsland && (_VariablesSet.size() - cluster.size()) >= 3)) {
+				} else if (VariablesSet.size() - cluster.size() == 0
+						|| (cluster.size() >= hyperParam._maxIsland && (VariablesSet.size() - cluster.size()) >= 3)) {
 					subModel = m1;
-					updateHierarchies(subModel, bestPair);
-					updateVariablesSet(subModel);
+					updateHierarchies(subModel, bestPair, bestpairs, hierarchies);
+					updateVariablesSet(subModel, VariablesSet);
 
 					break;
 				}
 			}
-			i++;
+			islandCount ++;
 		}
-
 		System.out.println("--- Total Time subroutine1 Find Island: " + (System.currentTimeMillis() - t1) + " ms ---");
 		/*System.out.print("hierarchies size: " + _hierarchies.size() + " _hierarchies:");
 		for (Variable latVar : _hierarchies.keySet()) {
@@ -646,32 +772,51 @@ public class StepwiseEMHLTA {
 		}
 		System.out.println("");*/
 		System.out.println("======================= finish FastLTA_flat  =================================");
-
-		return;
 	}
-
+	
+	/**
+	 * Rename variables of the input model so that their new name is oldname+identifier
+	 * 
+	 * @param model : the input model
+	 * @param identifier: the string to be appended at the end that will distinguish this variable
+	 * from the other variables created at the same time.
+	 * @return
+	 */
+	private static LTM renameInternalVariables(LTM model, int identifier) {
+		
+		Set<Variable> internalVars =  model.getLatVars();
+		
+		for (Variable intVar : internalVars) {
+			String newName = intVar.getName()+Integer.toString(identifier);
+			model.getNode(intVar).setName(newName);
+			
+			
+		}			
+		return model;
+	}
+	
 	/**
 	 * Learn a 3 node LCM
 	 * 
 	 */
-	private LTM LCM3N(ArrayList<Variable> variables3, DataSet data_proj) {
+	public static LTM LCM3N(ArrayList<Variable> variables3, DataSet data_proj, ConstHyperParameterSet hyperParam) {
 		LTM LCM_new = LTM.createLCM(variables3, 2);
 		
 	
 		ParallelEmLearner emLearner = new ParallelEmLearner();
 		emLearner.setLocalMaximaEscapeMethod("ChickeringHeckerman");
-		emLearner.setMaxNumberOfSteps(_EmMaxSteps);
-		emLearner.setNumberOfRestarts(_EmNumRestarts);
+		emLearner.setMaxNumberOfSteps(hyperParam._EmMaxSteps);
+		emLearner.setNumberOfRestarts(hyperParam._EmNumRestarts);
 		emLearner.setReuseFlag(false);
-		emLearner.setThreshold(_emThreshold);
+		emLearner.setThreshold(hyperParam._emThreshold);
 
 		LCM_new = (LTM) emLearner.em(LCM_new, data_proj.project(variables3));
 
 		return LCM_new;
 	}
 
-	private LTM EmLCM_learner(LTM modelold, Variable x,
-			ArrayList<Variable> bestPair, DataSet data_proj) {
+	public static LTM EmLCM_learner(LTM modelold, Variable x,
+			ArrayList<Variable> bestPair, DataSet data_proj, ConstHyperParameterSet hyperParam) {
 
 		ArrayList<Variable> cluster3node = new ArrayList<Variable>(bestPair);
 		cluster3node.add(x);
@@ -701,10 +846,10 @@ public class StepwiseEMHLTA {
 
 		ParallelEmLearner emLearner = new ParallelEmLearner();
 		emLearner.setLocalMaximaEscapeMethod("ChickeringHeckerman");
-		emLearner.setMaxNumberOfSteps(_EmMaxSteps);
-		emLearner.setNumberOfRestarts(_EmNumRestarts);
+		emLearner.setMaxNumberOfSteps(hyperParam._EmMaxSteps);
+		emLearner.setNumberOfRestarts(hyperParam._EmNumRestarts);
 		emLearner.setReuseFlag(false);
-		emLearner.setThreshold(_emThreshold);
+		emLearner.setThreshold(hyperParam._emThreshold);
 		emLearner.setDontUpdateNodes(donotUpdate);
 		LCM3var = (LTM) emLearner.em(LCM3var, data_proj.project(cluster3node));
 
@@ -731,8 +876,8 @@ public class StepwiseEMHLTA {
 	 * @return a model with two latent variables (without node relocation step)
 	 */
 
-	private LTM EmLTM_2L_learner(LTM unimodel, ArrayList<Variable> bestPair,
-			ArrayList<Variable> ClosestPair, DataSet data_proj) {
+	public static LTM EmLTM_2L_learner(LTM unimodel, ArrayList<Variable> bestPair,
+			ArrayList<Variable> ClosestPair, DataSet data_proj, ConstHyperParameterSet hyperParam) {
 
 		ArrayList<Variable> cluster2BeAdded =
 				new ArrayList<Variable>(unimodel.getManifestVars());
@@ -784,10 +929,10 @@ public class StepwiseEMHLTA {
 		
 		ParallelEmLearner emLearner = new ParallelEmLearner();
 		emLearner.setLocalMaximaEscapeMethod("ChickeringHeckerman");
-		emLearner.setMaxNumberOfSteps(_EmMaxSteps);
-		emLearner.setNumberOfRestarts(_EmNumRestarts);
+		emLearner.setMaxNumberOfSteps(hyperParam._EmMaxSteps);
+		emLearner.setNumberOfRestarts(hyperParam._EmNumRestarts);
 		emLearner.setReuseFlag(false);
-		emLearner.setThreshold(_emThreshold);
+		emLearner.setThreshold(hyperParam._emThreshold);
 		emLearner.setDontUpdateNodes(donotUpdate);
 
 		LTM LTM4var = (LTM) emLearner.em(lCM, data_proj.project(cluster4var));
@@ -811,7 +956,8 @@ public class StepwiseEMHLTA {
 	/**
 	 * Update the collection of hierarchies.
 	 */
-	private void updateHierarchies(LTM subModel, ArrayList<Variable> bestPair) {
+	public static void updateHierarchies(LTM subModel, ArrayList<Variable> bestPair, 
+			Map<String, ArrayList<Variable>> _bestpairs, Map<Variable, LTM> _hierarchies) {
 		BeliefNode root = subModel.getRoot();
 		_bestpairs.put(root.getName(), bestPair);
 		// add new hierarchy
@@ -824,7 +970,7 @@ public class StepwiseEMHLTA {
 	 * 
 	 * @param subModel
 	 */
-	private void updateVariablesSet(LTM subModel) {
+	public static void updateVariablesSet(LTM subModel,Set<Variable> _VariablesSet) {
 		BeliefNode root = subModel.getRoot();
 
 		for (DirectedNode child : root.getChildren()) {
@@ -832,22 +978,34 @@ public class StepwiseEMHLTA {
 		}
 	}
 	
-	private LTM BuildLatentTree(DataSet _data) throws FileNotFoundException, UnsupportedEncodingException {
+	public static LTM BuildLatentTree(DataSet _data, Map<Variable, LTM> hierarchies, 
+			Map<String, ArrayList<Variable>> bestpairs, Map<Variable, Map<DataCase, Function>> latentPosts, 
+			ConstHyperParameterSet hyperParam) throws FileNotFoundException, UnsupportedEncodingException {
 
 		System.out.println("======================= start to BuildLatentTree  =================================");
+		
+		System.out.print("hierarchies keys: size: " + hierarchies.keySet().size() + " ");
+		for (Variable latVar : hierarchies.keySet()) {
+			System.out.print(latVar.getName() + " ");
+		}
+		System.out.println();
 		long t0 = System.currentTimeMillis();
 		long t1 = System.currentTimeMillis();
 		System.out.println("getNumberOfEntries of data: " + _data.getNumberOfEntries());
-		if(_latentPosts.isEmpty())
+		//Map<Variable, Map<DataCase, Function>> latentPosts = new HashMap<Variable, Map<DataCase, Function>>();
+
+		if(latentPosts.isEmpty()) //????? is it necessary??? how about doing it every times ??? (by Tian Zhiliang)
 		{
 			System.gc();
-			for(Variable var : _hierarchies.keySet())
+			for(Variable var : hierarchies.keySet())
 			{
 				//System.out.println("updateStats. var: " + var.getName());
-				LTM subModel = _hierarchies.get(var);
-				updateStats(subModel,_data);
+				LTM subModel = hierarchies.get(var);
+				updateStats(subModel, _data, latentPosts);
+				//System.out.println("in BuildLatentTree latentPosts size: " + latentPosts.size());
 			}
 		}
+		
 		System.gc();
 		
 		//	System.out.println("Compute Latent Posts Time: " + (System.currentTimeMillis() - LatentPostTime) + " ms ---");
@@ -855,8 +1013,8 @@ public class StepwiseEMHLTA {
 
 		// Construct tree: first, add all manifest nodes and latent nodes.
 		// Second, copy the edges and CPTs in each LCMs.
-		for (Variable var : _hierarchies.keySet()) {
-			LTM tempTree = _hierarchies.get(var);
+		for (Variable var : hierarchies.keySet()) {
+			LTM tempTree = hierarchies.get(var);
 
 			//System.out.println("Construct tree. var: " + var.getName());
 			for (AbstractNode node : tempTree.getNodes()) {
@@ -885,25 +1043,22 @@ public class StepwiseEMHLTA {
 		}
 		System.out.println("--- Time blt1: BuildLatentTree Construct tree done: " + (System.currentTimeMillis() - t1) + " ms ---");
 		
-		//System.out.println("InternalVars size: " + latentTree.getInternalVars("tree").size());
-		boolean need_island_bridging = true;
-		if (_islandNotBridging) {
-			if (latentTree.getInternalVars("tree").size() <= _maxTop) {
-				need_island_bridging = true;
-			} else {
-				need_island_bridging = false;
-			}
-			
-			if (!need_island_bridging) {
-				System.out.println("--- Total Time subroutine2 BuildLatentTree: " + (System.currentTimeMillis() - t0) + " ms ---");
-				System.out.println("======================= BuildLatentTree done =================================");
-				return latentTree;
-			}
+		if (!hyperParam._islandNotBridging) {
+			latentTree = BridgingIslands(latentTree, _data, hierarchies, bestpairs, latentPosts, hyperParam);
 		}
+		System.out.println("--- Total Time subroutine2 BuildLatentTree: " + (System.currentTimeMillis() - t0) + " ms ---");
+		System.out.println("======================= BuildLatentTree done =================================");
+		
+		return latentTree;
+	}
+	
+	public static LTM BridgingIslands(LTM latentTree, DataSet data, Map<Variable, LTM> hierarchies,
+			Map<String, ArrayList<Variable>> bestpairs, Map<Variable, Map<DataCase, Function>> latentPosts,
+			ConstHyperParameterSet hyperParam) throws FileNotFoundException, UnsupportedEncodingException {
 
 		long t2 = System.currentTimeMillis();
 		System.gc();
-		UndirectedGraph mst = learnMaximumSpanningTree(_hierarchies, _data);
+		UndirectedGraph mst = learnMaximumSpanningTree(hierarchies, data, latentPosts);
 		System.gc();
 		System.out.println("--- Time blt2: BuildLatentTree learnMaximumSpanningTree done: " + (System.currentTimeMillis() - t2) + " ms ---");
 
@@ -953,7 +1108,7 @@ public class StepwiseEMHLTA {
 				BeliefNode h2 = lTM_4n.addNode(new Variable(2));
 				BeliefNode h1 = lTM_4n.addNode(new Variable(2));
 
-				for (Variable vtemp :_bestpairs.get(parent.getName())) {
+				for (Variable vtemp :bestpairs.get(parent.getName())) {
 					lTM_4n.addEdge(lTM_4n.addNode(vtemp), h1);
 					ArrayList<Variable> var2s = new ArrayList<Variable>(lTM_4n.getNode(vtemp).getCpt().getVariables());
 					lTM_4n.getNode(vtemp).getCpt().setCells(var2s, latentTree.getNode(vtemp).getCpt().getCells());
@@ -964,14 +1119,14 @@ public class StepwiseEMHLTA {
 					System.out.println("v.getName() == null");
 				}*/
 				
-				for (Variable vtemp : _bestpairs.get(v.getName())){
+				for (Variable vtemp : bestpairs.get(v.getName())){
 					lTM_4n.addEdge(lTM_4n.addNode(vtemp), h2);
 					ArrayList<Variable> var2s = new ArrayList<Variable>(lTM_4n.getNode(vtemp).getCpt().getVariables());
 					lTM_4n.getNode(vtemp).getCpt().setCells(var2s, latentTree.getNode(vtemp).getCpt().getCells());
 					donotUpdate.add(vtemp.getName());
 				}
 				lTM_4n.addEdge(h2, h1);
-				LTM temp = _hierarchies.get(parent.getVariable());
+				LTM temp = hierarchies.get(parent.getVariable());
 				ArrayList<Variable> var2s = new ArrayList<Variable>(lTM_4n.getRoot().getCpt().getVariables());
                 lTM_4n.getRoot().getCpt().setCells(var2s, temp.getRoot().getCpt().getCells());
 				donotUpdate.add(h1.getName());
@@ -980,13 +1135,13 @@ public class StepwiseEMHLTA {
 				
 				ParallelEmLearner emLearner = new ParallelEmLearner();
 				emLearner.setLocalMaximaEscapeMethod("ChickeringHeckerman");
-				emLearner.setMaxNumberOfSteps(_EmMaxSteps);
-				emLearner.setNumberOfRestarts(_EmNumRestarts);
+				emLearner.setMaxNumberOfSteps(hyperParam._EmMaxSteps);
+				emLearner.setNumberOfRestarts(hyperParam._EmNumRestarts);
 				emLearner.setReuseFlag(false);
-				emLearner.setThreshold(_emThreshold);
+				emLearner.setThreshold(hyperParam._emThreshold);
 				emLearner.setDontUpdateNodes(donotUpdate);
 				
-				LTM LTM4var = (LTM) emLearner.em(lTM_4n, _data.project(cluster4var));
+				LTM LTM4var = (LTM) emLearner.em(lTM_4n, data.project(cluster4var));
 				
 				ArrayList<Variable> vars = new ArrayList<Variable>(latentTree.getNode(v).getCpt().getVariables());
 				latentTree.getNode(v).getCpt().setCells(vars, LTM4var.getNode(h2.getVariable()).getCpt().getCells());
@@ -994,9 +1149,6 @@ public class StepwiseEMHLTA {
 			//System.out.println("--- Time blt41: BuildLatentTree: EM for " + count_v++ + "-th variable " + (System.currentTimeMillis() - startEM) + " ms ---");
 		}
 		System.out.println("--- Time blt4: BuildLatentTree EM done: " + (System.currentTimeMillis() - t4) + " ms ---");
-		
-		System.out.println("--- Total Time subroutine2 BuildLatentTree: " + (System.currentTimeMillis() - t0) + " ms ---");
-		System.out.println("======================= BuildLatentTree done =================================");
 	
 		return latentTree;
 	}
@@ -1025,7 +1177,7 @@ public class StepwiseEMHLTA {
 		 * @throws Exception
 		 */
 		protected double compute(Variable vi, Variable vj) {
-			Function pairDist = computeEmpDist(Arrays.asList(vi, vj), data);
+			Function pairDist = computeEmpDist(Arrays.asList(vi, vj), data, _latentPosts);
 			double mi = Utils.computeMutualInformation(pairDist);
 
 			// use normalized version of MI.
@@ -1125,31 +1277,47 @@ public class StepwiseEMHLTA {
 
 	}
 
-	protected ArrayList<double[]> computeMis(DataSet _data) {
-		return computeMisByCount(_data);
+	public static ArrayList<double[]> computeMis(DataSet _data, ArrayList<Variable> Variables) {
+		return computeMisByCount(_data, Variables);
 	}
-
-
-
-	protected ArrayList<double[]> computeMisByCount(DataSet _data) {
-
+	
+	public static ArrayList<double[]> computeMis(DataSet _data,ArrayList<Variable> Variables ,String cosine) {
+		return computeMisByCountStep(_data,Variables,cosine);
+	}
+	
+	protected static ArrayList<double[]> computeMisByCount(DataSet _data, ArrayList<Variable> Variables) {
 
 		EmpiricalMiComputerForBinaryData computer =
-				new EmpiricalMiComputerForBinaryData(_data, _Variables);
+				new EmpiricalMiComputerForBinaryData(_data, Variables);
 		ArrayList<double[]> miArray = computer.computerPairwise();
 
 		return  miArray;
 	}
-
 	
+	protected static ArrayList<double[]> computeMisByCountStep(DataSet _data, ArrayList<Variable> Variables) {
+		EmpiricalMiComputerForBinaryDataStep computer =
+				new EmpiricalMiComputerForBinaryDataStep(_data, Variables);
+		ArrayList<double[]> miArray = computer.computerPairwise();
 
+		return  miArray;
+	}
+	
+	protected static ArrayList<double[]> computeMisByCountStep(DataSet _data,ArrayList<Variable> Variables, String cosine ) {
+
+
+		EmpiricalMiComputerForBinaryDataStep computer =
+				new EmpiricalMiComputerForBinaryDataStep(_data, Variables);
+		ArrayList<double[]> miArray = computer.computerPairwise(cosine);
+
+		return  miArray;
+	}
 	
 	/**
 	 * 
 	 * Return the best pair of variables with max MI in _mis.
 	 */
-	private void findBestPair(ArrayList<Variable> bestPair,
-			Set<Variable> VariablesSet) {
+	public static void findBestPair(ArrayList<Variable> bestPair,
+			Set<Variable> VariablesSet, Map<String, Integer> varId, ArrayList<double[]> mis) {
 		// Initialize vars as _VarisblesSet
 		List<Variable> vars = new ArrayList<Variable>(VariablesSet);
 
@@ -1165,14 +1333,14 @@ public class StepwiseEMHLTA {
 		// enumerate all pairs of variables
 		for (int i = 0; i < nVars; i++) {
 			Variable vi = vars.get(i);
-			int iId = _varId.get(vi.getName());
+			int iId = varId.get(vi.getName());
 			varPair.set(0, vi);
 
 			for (int j = i + 1; j < nVars; j++) {
 				Variable vj = vars.get(j);
 				varPair.set(1, vj);
-				int jId = _varId.get(vj.getName());
-				double mi = _mis.get(iId)[jId];
+				int jId = varId.get(vj.getName());
+				double mi = mis.get(iId)[jId];
 
 				// update max MI and indices of best pair
 				if (mi > maxMi) {
@@ -1191,7 +1359,9 @@ public class StepwiseEMHLTA {
 	/**
 	 * Compute the empirical distribution of the given pair of variables
 	 */
-	private Function computeEmpDist(List<Variable> varPair, DataSet _data) {
+	public static int count_print = 0;
+
+	public static Function computeEmpDist(List<Variable> varPair, DataSet _data, Map<Variable, Map<DataCase, Function>> latentPosts) {
 		Variable[] vars = _data.getVariables();
 
 		Variable vi = varPair.get(0);
@@ -1200,12 +1370,12 @@ public class StepwiseEMHLTA {
 		int viIdx = -1, vjIdx = -1;
 
 		// retrieve P(Y|d) for latent variables and locate manifest variables
-		Map<DataCase, Function> viPosts = _latentPosts.get(vi);
+		Map<DataCase, Function> viPosts = latentPosts.get(vi);
 		if (viPosts == null) {
 			viIdx = Arrays.binarySearch(vars, vi);
 		}
 
-		Map<DataCase, Function> vjPosts = _latentPosts.get(vj);
+		Map<DataCase, Function> vjPosts = latentPosts.get(vj);
 		if (vjPosts == null) {
 			vjIdx = Arrays.binarySearch(vars, vj);
 		}
@@ -1220,6 +1390,7 @@ public class StepwiseEMHLTA {
 					|| (vjIdx != -1 && states[vjIdx] == -1)) {
 				continue;
 			}
+
 			// P(vi, vj|d) = P(vi|d) * P(vj|d)
 			Function freq;
 
@@ -1251,8 +1422,8 @@ public class StepwiseEMHLTA {
 	 * Return true if and only if the whole clustering procedure is done, or
 	 * equivalently, there is only one hierarchy left.
 	 */
-	private boolean isDone() {
-		return _VariablesSet.size() < 1;
+	public static boolean isDone(Set<Variable> VariablesSet) {
+		return VariablesSet.size() < 1;
 	}
 
 	/**
@@ -1262,20 +1433,20 @@ public class StepwiseEMHLTA {
 	 * @param cluster
 	 * @return
 	 */
-	private ArrayList<Variable> findShortestOutLink(
+	public static ArrayList<Variable> findShortestOutLink(
 			ArrayList<double[]> mis,
 			ArrayList<Variable> bestPair, Set<Variable> cluster,
-			Set<Variable> VariablesSet) {
+			Set<Variable> VariablesSet,Map<String, Integer> varId,ArrayList<Variable> Variables) {
 		double maxMi = Double.NEGATIVE_INFINITY;
 		Variable bestInCluster = null, bestOutCluster = null;
 
 		for (Variable inCluster : cluster) {
 			boolean a = bestPair == null;
-			if (a || !bestPair.contains(inCluster)) {
-				for(int l = 0; l< mis.get(_varId.get(inCluster.getName())).length;l++ ){
+			if (a || !bestPair.contains(inCluster)) {	
+				for(int l = 0; l< mis.get(varId.get(inCluster.getName())).length;l++ ){
 				//for (Entry<Integer, Double> entry : mis.get(_varId.get(inCluster.getName())).entrySet()) {
-					Variable outCluster =_Variables.get(l);
-					double mi = mis.get(_varId.get(inCluster.getName()))[l];
+					Variable outCluster =Variables.get(l);
+					double mi = mis.get(varId.get(inCluster.getName()))[l];
 
 					// skip variables already in cluster
 					if (cluster.contains(outCluster)
@@ -1301,65 +1472,10 @@ public class StepwiseEMHLTA {
 	}
 
 	/**
-	 * Find the closest variable to cluster. Note: Never move the bestpair out
-	 * Version:            MI(X, S) = \sum_{Z \in S} MI(X, Z)/|S|.
-
-	 * @param mis
-	 * @param cluster
-	 * @return
-	 */
-	/*private ArrayList<Variable> findShortestOutLink(
-			ArrayList<double[]> mis,
-			ArrayList<Variable> bestPair, Set<Variable> cluster,
-			Set<Variable> VariablesSet) {
-		
-		Variable bestOutCluster = null;
-		Variable bestInCluster = null;
-		boolean a = bestPair == null;
-		double maxMI_sum = Double.NEGATIVE_INFINITY;
-		for(int l = 0; l< mis.get(1).length;l++ ){
-			
-			Variable outCluster =_Variables.get(l);
-			if (cluster.contains(outCluster)
-					|| !(VariablesSet.contains(outCluster))) {
-				continue;
-			}
-			double maxMI = Double.NEGATIVE_INFINITY;
-			double mi_sum = 0;
-			Variable bestIn = null;
-			for(Variable inCluster : cluster){
-				double mi =  mis.get(_varId.get(inCluster.getName()))[l];
-				mi_sum  = mi_sum + mi;
-				if (a || !bestPair.contains(inCluster)){
-					if(mi > maxMI){
-						maxMI = mi;
-						bestIn = inCluster;
-					}
-				}
-                     
-			}
-			
-			
-			if (mi_sum > maxMI_sum) {
-				maxMI_sum = mi_sum;
-				bestOutCluster = outCluster;
-				bestInCluster = bestIn;
-			}	
-		}
-			
-		ArrayList<Variable> ClosestVariablePair = new ArrayList<Variable>();
-		ClosestVariablePair.add(bestInCluster);
-		ClosestVariablePair.add(bestOutCluster);
-
-		return ClosestVariablePair;
-	}*/
-
-
-	/**
 	 * Stack the results
 	 * @param _data
 	 */
-private LTM BuildHierarchy(LTM OldModel, LTM tree) {
+    private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 		long start = System.currentTimeMillis();
 		System.out.println("======================= start to BuildHierarchy  =================================");
 		LTM CurrentModel = new LTM();
@@ -1743,16 +1859,16 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 	 * all the latent variables in the given sub-model except the root, and
 	 * compute P(Y|d) for the latent variable at the root and each data case d.
 	 */
-	private void updateStats(LTM subModel, DataSet _data) {
+	public static void updateStats(LTM subModel, DataSet _data, Map<Variable, Map<DataCase, Function>> latentPosts) {
 		BeliefNode root = subModel.getRoot();
 		Variable latent = root.getVariable();
 		// Function prior = root.getCpt();
 
 		for (DirectedNode child : root.getChildren()) {
-			_latentPosts.remove(((BeliefNode) child).getVariable());
+			latentPosts.remove(((BeliefNode) child).getVariable());
 		}
 
-		Map<DataCase, Function> latentPosts = new HashMap<DataCase, Function>();
+		Map<DataCase, Function> latentPostsTmp = new HashMap<DataCase, Function>();
 
 		CliqueTreePropagation ctp = new CliqueTreePropagation(subModel);
 
@@ -1777,19 +1893,23 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 
 			// compute P(Y|d)
 			Function post = ctp.computeBelief(latent);
-			latentPosts.put(dataCase, post);
+			latentPostsTmp.put(dataCase, post);
 		}
+		//System.out.println("in updateStats data getVariables: " + _data.getVariables().length);
 
-		_latentPosts.put(latent, latentPosts);
+		latentPosts.put(latent, latentPostsTmp);
+		//System.out.println("in updateStats latentPosts size: " + latentPosts.size());
 	}
 	
-	private UndirectedGraph learnMaximumSpanningTree(
-			Map<Variable, LTM> hierarchies, DataSet _data) {
+	public static UndirectedGraph learnMaximumSpanningTree(
+			Map<Variable, LTM> hierarchies, DataSet data, Map<Variable, Map<DataCase, Function>> latentPosts) {
 		// initialize the data structure for pairwise MI
 		List<StringPair> pairs = new ArrayList<StringPair>();
 		
 		// the collection of latent variables.
 		List<Variable> vars = new ArrayList<Variable>(hierarchies.keySet());
+		//System.out.println("hierarchies.keySet() size: " + hierarchies.keySet().size());
+		//System.out.println("in learnMaximumSpanningTree data getVariables: " + data.getVariables().length);
 
 		List<Variable> varPair = new ArrayList<Variable>(2);
 		varPair.add(null);
@@ -1808,7 +1928,7 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 				varPair.set(1, vj);
 				
 				// compute empirical MI
-				Function pairDist = computeEmpDist(varPair, _data);
+				Function pairDist = computeEmpDist(varPair, data, latentPosts);
 
 				double mi = Utils.computeMutualInformation(pairDist);
 
@@ -1934,22 +2054,38 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 		return da;
 	}
 	
+	public void print_hierarchies(Map<Variable, LTM> hierarchies, Set<Variable> LatInternalVars) {
+		System.out.println("hierarchies size: " + hierarchies.size());
+		System.out.println("LatInternalVars size: " + LatInternalVars.size());
+
+		int count = 0;
+		for (Variable latvar : LatInternalVars) {
+			if (! hierarchies.containsKey(latvar)) {
+				System.out.println("not contain variable. index: " + (count++) + " name: " + latvar.getName());
+			} else {
+				System.out.println("finding hierarchies variable. index: " + (count++) + " name: " + latvar.getName());
+			}
+		}
+	}
+	
 	private DataSet HardAssignmentForIslands(LTM CurrentModel, LTM latentTree, Map<Variable, LTM> hierarchies, DataSet working_data) {
 		long t0 = System.currentTimeMillis();
 		System.out.println("Start HardAssignmentForIslands...");
 		ArrayList<DataCase> data = working_data.getData();
 
-		Set<Variable> LatVarsTmp = latentTree.getVariables();
-		Set<Variable> LatInternalVars;
-
-		LatInternalVars = new HashSet<Variable>();
+		/*Set<Variable> LatVarsTmp = latentTree.getVariables();
+		 LatInternalVars = new HashSet<Variable>();
 		for(Variable v: LatVarsTmp) {
 			if(((BeliefNode)latentTree.getNode(v)).getParent() == null){
 				LatInternalVars.add(v);
 			}
-		}
+		}*/
+		//LatInternalVars = latentTree.getInternalVars();
 		
-		//System.out.println("latentTree getInternalVars size: " + LatInternalVars.size());
+		Set<Variable> LatInternalVars;
+		LatInternalVars = latentTree.getInternalVars("tree");
+		
+		System.out.println("latentTree getInternalVars size: " + LatInternalVars.size());
 		Variable[] varName = new Variable[LatInternalVars.size()];
 		int[][] newData = new int[data.size()][varName.length];
 
@@ -1961,10 +2097,18 @@ private LTM BuildHierarchy(LTM OldModel, LTM tree) {
 			index++;
 		}
 
+		//print_hierarchies(hierarchies, latentTree.getInternalVars("tree"));
+		
 		// update for every data case
 		for (int i = 0; i < varName.length; i++) {
 			Variable latent =
 					((BeliefNode) CurrentModel.getNode(varName[i].getName())).getVariable();
+			/*if (null == latent) {
+				System.out.println("null == latent");
+			}
+			if (null == hierarchies.get(latent)) {
+				System.out.println("null == hierarchies.get(latent)");
+			}*/
 			CliqueTreePropagation ctp = new CliqueTreePropagation(hierarchies.get(latent));
 
 			ArrayList<Variable> island_obs_variables = new ArrayList<Variable>(hierarchies.get(latent).getManifestVars());
