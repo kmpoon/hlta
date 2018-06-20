@@ -128,8 +128,8 @@ public class StepwiseEMHLTA {
 	 *  If you still want that old version, assign _useOnlySerialVersion to "true" to reactivate it.
 	 *  If not, keep _useOnlySerialVersion as "false" (Recommended and Default choice)
 	 */
-	private boolean _useOnlySerialVersion = false;
-	//private boolean _useOnlySerialVersion = true;
+	//private boolean _useOnlySerialVersion = false;
+	private boolean _useOnlySerialVersion = true;
 	/**
 	 * Maximum number of island size
 	 */
