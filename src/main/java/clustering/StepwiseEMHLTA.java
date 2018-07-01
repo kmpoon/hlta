@@ -21,6 +21,10 @@ import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
 
+import mpi.MPI;
+import mpi.MPIException;
+import mpi.Status;
+
 import org.latlab.graph.AbstractNode;
 import org.latlab.graph.DirectedNode;
 import org.latlab.graph.Edge;
@@ -94,6 +98,12 @@ public class StepwiseEMHLTA {
 	 * The maximum number of latent variables at top level
 	 */
 	private int _maxTop;
+	
+	/**
+	 * The maximum number of core on one machine
+	 */	
+	private int _MaxCoreNumber;
+	
 	/**
 	 * The collection of hierarchies. Each hierarchy represents a LCM and is
 	 * indexed by the variable at its root.
@@ -128,8 +138,8 @@ public class StepwiseEMHLTA {
 	 *  If you still want that old version, assign _useOnlySerialVersion to "true" to reactivate it.
 	 *  If not, keep _useOnlySerialVersion as "false" (Recommended and Default choice)
 	 */
-	//private boolean _useOnlySerialVersion = false;
-	private boolean _useOnlySerialVersion = true;
+	private boolean _useOnlySerialVersion = false;
+	//private boolean _useOnlySerialVersion = true;
 	/**
 	 * Maximum number of island size
 	 */
@@ -175,9 +185,11 @@ public class StepwiseEMHLTA {
 		int _maxTop;
 		int _maxIsland;
 		double _UDthreshold;
+		int _MaxCoreNumber;
 		
 		public void set(int EmMaxSteps, int EmNumRestarts, double emThreshold, 
-				boolean islandNotBridging, int maxTop, int maxIsland, double UDthreshold) {
+				boolean islandNotBridging, int maxTop, int maxIsland, 
+				double UDthreshold, int MaxCoreNumber) {
 
 			_EmNumRestarts = EmNumRestarts;
 			_EmMaxSteps = EmMaxSteps;
@@ -186,6 +198,7 @@ public class StepwiseEMHLTA {
 			_maxTop = maxTop;
 			_maxIsland = maxIsland;
 			_UDthreshold = UDthreshold;
+			_MaxCoreNumber = MaxCoreNumber;
 		}
 		
 		/*public int getEmMaxSteps() {
@@ -205,30 +218,37 @@ public class StepwiseEMHLTA {
 	
 	/**
 	 * Main Method
-	 * 
+	 * This function was moved to default package
 	 * @param args
 	 * @throws Throwable
 	 */
 
 	public static void main(String[] args) throws Exception {
-		if (args.length != 14 &&args.length != 1 &&args.length != 2 &&args.length != 3 &&args.length!= 0) {
-			System.err.println("Usage: java PEMHLTA trainingdata outputmodel (IslandNotBridging (EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold outputmodel MaxIsland MaxTop GlobalsizeBatch GlobalMaxEpochs GlobalEMmaxsteps FirstBatch SampleSizeForstructureLearn)) ");
+		boolean useMultiProcess = false;
+		if (useMultiProcess) {
+			System.out.println("input args.length: " + args.length);
+			clustering.StepwiseEMHLTA.MPIDemo(args);
+			int args_num_for_mpi = 3;
+			args = clustering.StepwiseEMHLTA.SwitchArgs(args, args_num_for_mpi);
+			System.out.println("new args.length: " + args.length);
+		}
+		//int args_for_mpi = 0;
+		if (args.length != 15 && args.length != 1 && args.length != 2 && args.length != 3 && args.length!= 0) {
+			System.err.println("Usage: java PEMHLTA trainingdata outputmodel (IslandNotBridging (EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold outputmodel MaxIsland MaxTop GlobalsizeBatch GlobalMaxEpochs GlobalEMmaxsteps FirstBatch SampleSizeForstructureLearn MaxCoreNumber)) ");
 			System.exit(1);
 		}
 		// TODO Auto-generated method stub
 
-		if(args.length == 14 ||args.length ==2||args.length ==1||args.length ==0){
-			StepwiseEMHLTA Fast_learner = new StepwiseEMHLTA();
+		if(args.length == 15 || args.length == 2 || args.length == 1 || args.length == 0){
+			clustering.StepwiseEMHLTA Fast_learner = new clustering.StepwiseEMHLTA();
 			Fast_learner.initialize(args);
-			
 			
 			Fast_learner.IntegratedLearn();
 		}
-		if(args.length==3){
-			StepwiseEMHLTA test = new StepwiseEMHLTA();
+		if(args.length == 3){
+			clustering.StepwiseEMHLTA test = new clustering.StepwiseEMHLTA();
 			test.testtest(args);	
 		}
-		
 	}
 
 	/**
@@ -239,9 +259,7 @@ public class StepwiseEMHLTA {
 	 * @throws Exception
 	 */
 	public void initialize(String[] args) throws IOException, Exception
-
 	{
-
 		// _model = new LTM();
 		// Parser parser = new BifParser(new FileInputStream(args[0]),"UTF-8");
 		// parser.parse(_model);
@@ -249,7 +267,8 @@ public class StepwiseEMHLTA {
 		// Read the data set
 
         if(args.length==0){
-        	 _OrigSparseData = new SparseDataSet("./data/SampleData_5000.arff");
+        	    //_OrigSparseData = new SparseDataSet("./data/SampleData_5000.arff");
+    	        _OrigSparseData = new SparseDataSet("sample.txt");
  			_modelname ="HLTAModel";
         } else if(args.length==1){
     		_OrigSparseData = new SparseDataSet(args[0]);
@@ -260,7 +279,7 @@ public class StepwiseEMHLTA {
 		_modelname = args[1];
         }
 
-		if(args.length==14){
+		if(args.length==15){
 		_EmMaxSteps = Integer.parseInt(args[1]);
 
 		_EmNumRestarts = Integer.parseInt(args[2]);
@@ -279,6 +298,7 @@ public class StepwiseEMHLTA {
 		_sizeFirstBatch = args[11];
 		_islandNotBridging = (Integer.parseInt(args[12]) == 0) ? false : true;
 		_sample_size_for_structure_learn = (Integer.parseInt(args[13]));
+		_MaxCoreNumber = (Integer.parseInt(args[14]));
 		if(_sizeFirstBatch.contains("all")){
             _OrigDenseData = _OrigSparseData.getWholeDenseData();
 		}else{
@@ -298,8 +318,12 @@ public class StepwiseEMHLTA {
 			_sample_size_for_structure_learn = 10000;
             _OrigDenseData = _OrigSparseData.getWholeDenseData();
             _islandNotBridging = true;
+            _MaxCoreNumber = 2;
 		}
-		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold);
+		if (1 == _MaxCoreNumber) {
+			_useOnlySerialVersion = true;
+		}
+		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold, _MaxCoreNumber);
 	}
 
 	/**
@@ -352,7 +376,11 @@ public class StepwiseEMHLTA {
 //			_sizeFirstBatch = "all";
 //            _OrigDenseData = _OrigSparseData.getWholeDenseData();
 //		}
-		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold);
+		
+		if (1 == _MaxCoreNumber) {
+			_useOnlySerialVersion = true;
+		}
+		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold, _MaxCoreNumber);
 	}
 	
 	
@@ -384,6 +412,53 @@ public class StepwiseEMHLTA {
 		}
 	}
 
+	/*
+	 * Switch args
+	 * When some of args were read by former function, we need switch the position of args for next function. 
+	 */
+	public static String[] SwitchArgs(String[] args, int step) {
+		String[] newargs = new String [args.length - step];
+		for (int i = 0; i < args.length - step; i ++) {
+			newargs[i] = args[i + step];
+		}
+		return newargs;
+	}
+	
+	
+	/*
+	 * MPI Demo
+	 */
+	public static void MPIDemo(String[] args) {
+		  //String[] args = {"1","1","smpdev"};
+	      MPI.Init(args);
+
+	      int my_rank; // Rank of process
+	      int source;  // Rank of sender
+	      int dest;    // Rank of receiver 
+	      int tag=50;  // Tag for messages	
+	      int myrank = MPI.COMM_WORLD.Rank() ;
+	      int      p = MPI.COMM_WORLD.Size() ;
+
+	      if(myrank != 0) {
+		dest=0;
+		String myhost = MPI.Get_processor_name();
+	        char [] message = ("Greetings from process " + myrank+" on "+myhost).toCharArray() ;
+	        MPI.COMM_WORLD.Send(message, 0, message.length, MPI.CHAR,dest, tag) ;
+	     }
+	      else {  // my_rank == 0
+		for (source =1;source < p;source++) {
+	        	char [] message = new char [60] ;
+	        	Status s = MPI.COMM_WORLD.Recv(message, 0, 60, MPI.CHAR, MPI.ANY_SOURCE, tag) ;
+	        	int nrecv = s.Get_count(MPI.CHAR);
+	        	String s1 = new String(message);
+	        	System.out.println("received: " + s1.substring(0,nrecv) + " : ") ;
+		}
+	      }
+	 
+	      MPI.Finalize();
+	      System.out.println("Totally Done (This is compiled by Mac)");
+	}
+	
 	/**
 	 * Build the whole HLTA layer by layer
 	 * 
@@ -518,6 +593,7 @@ public class StepwiseEMHLTA {
 		Map<Variable, Map<DataCase, Function>> lptmp = new HashMap<Variable, Map<DataCase, Function>>();
 		
 		if (!_useOnlySerialVersion && level == 1) { 
+			System.out.println("In Parallel(MultiCode) mode");
 			// New Version: You can run parallel mode or serial mode. Serial mode is a special case of parallel mode		
 			ParallelLayer pl = new ParallelLayer();
 			
@@ -538,6 +614,7 @@ public class StepwiseEMHLTA {
 			System.out.println("_latentPosts size in FastLTA_flat_handle: " + _latentPosts.size()); */
 
 		} else { 
+			System.out.println("In Serial mode");
 			// Serial Version: You can only run serial model
 			// This function is not be used in current version 
 			latentTree = FastLTA_flat(data, lptmp);
