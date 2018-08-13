@@ -145,7 +145,29 @@ The output files include:
 
    You may also see the Testing section of the [Old HLTA Page](https://github.com/kmpoon/hlta/blob/master/RESEARCH.md) (v2.0)
 
+# Options
+As introduced in Subroutine2 of Quick Example, we can train HLTA with default hyper-parameters by :
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA data.sparse.txt 50 modelName
+   ```
+   
+HLTA also supports to tune hyper-parameters by :
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA $trainingdata $EmMaxSteps $EmNumRestarts $EM-threshold $UDtest-threshold $outputmodel $MaxIsland $MaxTop $GlobalsizeBatch $GlobalMaxEpochs $GlobalEMmaxsteps $FirstBatch $IslandNotBridging $SampleSizeForstructureLearn $MaxCoreNumber
+   ```
+
+For example,
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA data.sparse.txt 50 3 0.01 3 modelName 15 30 500 10 100 8000 1 10000 2
+   ```
+
+Notice that, to speed up the training:
+1. $IslandNotBridging is always 1 
+2. $MaxCoreNumber means the number of parallel CPU process. Users can choose a suitable core number considering the scale of their dataset.
+The further analysis on the balance of speed and performance can be found [*paper*](https://github.com/kmpoon/hlta/wiki/Document-for-Speeding-up-HLTA)
+
 # Assemble
+If you need to modify source code and recompile HLTA, please follow next steps to build a sbt directory and compile HLTA. If not, please skip this session.
 0. Have sbt installed.
 1. Change directory to the project directory. (e.g. user/git/hlta)
 2. Run the following command to build the JAR files from source code:
@@ -153,7 +175,7 @@ The output files include:
    ```
    sbt clean assembly assemblyPackageDependency && ./rename-deps.sh
    ```
-
+   The output of Assemble is "HLTA.jar" and "HLTA-deps.jar" under "target/scala-2.11/", which can be executed following the instruction of "Quick Example".
 # Enquiry
 
 * Current Maintainer: Chun Fai Leung (cfleungac@connect.ust.hk) (The Hong Kong University of Science and Techonology)
