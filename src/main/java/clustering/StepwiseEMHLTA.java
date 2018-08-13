@@ -21,9 +21,9 @@ import java.util.Set;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.RecursiveAction;
 
-import mpi.MPI;
-import mpi.MPIException;
-import mpi.Status;
+//import mpi.MPI;
+//import mpi.MPIException;
+//import mpi.Status;
 
 import org.latlab.graph.AbstractNode;
 import org.latlab.graph.DirectedNode;
@@ -224,14 +224,14 @@ public class StepwiseEMHLTA {
 	 */
 
 	public static void main(String[] args) throws Exception {
-		boolean useMultiProcess = false;
+		/*boolean useMultiProcess = false;
 		if (useMultiProcess) {
 			System.out.println("input args.length: " + args.length);
 			clustering.StepwiseEMHLTA.MPIDemo(args);
 			int args_num_for_mpi = 3;
 			args = clustering.StepwiseEMHLTA.SwitchArgs(args, args_num_for_mpi);
 			System.out.println("new args.length: " + args.length);
-		}
+		}*/
 		//int args_for_mpi = 0;
 		if (args.length != 15 && args.length != 1 && args.length != 2 && args.length != 3 && args.length!= 0) {
 			System.err.println("Usage: java PEMHLTA trainingdata outputmodel (IslandNotBridging (EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold outputmodel MaxIsland MaxTop GlobalsizeBatch GlobalMaxEpochs GlobalEMmaxsteps FirstBatch SampleSizeForstructureLearn MaxCoreNumber)) ");
@@ -428,7 +428,7 @@ public class StepwiseEMHLTA {
 	/*
 	 * MPI Demo
 	 */
-	public static void MPIDemo(String[] args) {
+	/*public static void MPIDemo(String[] args) {
 		  //String[] args = {"1","1","smpdev"};
 	      MPI.Init(args);
 
@@ -457,7 +457,7 @@ public class StepwiseEMHLTA {
 	 
 	      MPI.Finalize();
 	      System.out.println("Totally Done (This is compiled by Mac)");
-	}
+	}*/
 	
 	/**
 	 * Build the whole HLTA layer by layer
