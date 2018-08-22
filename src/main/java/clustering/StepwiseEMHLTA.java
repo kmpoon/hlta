@@ -131,6 +131,7 @@ public class StepwiseEMHLTA {
 	private int _sizeBatch;
 	private String _sizeFirstBatch;
 	private boolean _islandNotBridging;
+	private int _parallelIslandFindingLevel;
 	private int _sample_size_for_structure_learn = 10000;
 	
 	/** Now, HLTA can switch bewteen parallel training and serial training easily.
@@ -233,13 +234,13 @@ public class StepwiseEMHLTA {
 			System.out.println("new args.length: " + args.length);
 		}*/
 		//int args_for_mpi = 0;
-		if (args.length != 15 && args.length != 1 && args.length != 2 && args.length != 3 && args.length!= 0) {
-			System.err.println("Usage: java PEMHLTA trainingdata outputmodel (IslandNotBridging (EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold outputmodel MaxIsland MaxTop GlobalsizeBatch GlobalMaxEpochs GlobalEMmaxsteps FirstBatch SampleSizeForstructureLearn MaxCoreNumber)) ");
+		if (args.length != 16 && args.length != 1 && args.length != 2 && args.length != 3 && args.length!= 0) {
+			System.err.println("Usage: java PEMHLTA trainingdata outputmodel (IslandNotBridging (EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold outputmodel MaxIsland MaxTop GlobalsizeBatch GlobalMaxEpochs GlobalEMmaxsteps FirstBatch SampleSizeForstructureLearn MaxCoreNumber serialIslandFindingLevel)) ");
 			System.exit(1);
 		}
 		// TODO Auto-generated method stub
 
-		if(args.length == 15 || args.length == 2 || args.length == 1 || args.length == 0){
+		if(args.length == 16 || args.length == 2 || args.length == 1 || args.length == 0){
 			clustering.StepwiseEMHLTA Fast_learner = new clustering.StepwiseEMHLTA();
 			Fast_learner.initialize(args);
 			
@@ -279,7 +280,7 @@ public class StepwiseEMHLTA {
 		_modelname = args[1];
         }
 
-		if(args.length==15){
+		if(args.length==16){
 		_EmMaxSteps = Integer.parseInt(args[1]);
 
 		_EmNumRestarts = Integer.parseInt(args[2]);
@@ -299,6 +300,7 @@ public class StepwiseEMHLTA {
 		_islandNotBridging = (Integer.parseInt(args[12]) == 0) ? false : true;
 		_sample_size_for_structure_learn = (Integer.parseInt(args[13]));
 		_MaxCoreNumber = (Integer.parseInt(args[14]));
+		_parallelIslandFindingLevel = (Integer.parseInt(args[15]));
 		if(_sizeFirstBatch.contains("all")){
             _OrigDenseData = _OrigSparseData.getWholeDenseData();
 		}else{
@@ -319,6 +321,7 @@ public class StepwiseEMHLTA {
             _OrigDenseData = _OrigSparseData.getWholeDenseData();
             _islandNotBridging = true;
             _MaxCoreNumber = 2;
+            _parallelIslandFindingLevel = 1;
 		}
 		if (1 == _MaxCoreNumber) {
 			_useOnlySerialVersion = true;
@@ -592,7 +595,7 @@ public class StepwiseEMHLTA {
 		LTM latentTree;			
 		Map<Variable, Map<DataCase, Function>> lptmp = new HashMap<Variable, Map<DataCase, Function>>();
 		
-		if (!_useOnlySerialVersion && level == 1) { 
+		if (!_useOnlySerialVersion && level <= _parallelIslandFindingLevel) { 
 			System.out.println("In Parallel(MultiCode) mode");
 			// New Version: You can run parallel mode or serial mode. Serial mode is a special case of parallel mode		
 			ParallelLayer pl = new ParallelLayer();
