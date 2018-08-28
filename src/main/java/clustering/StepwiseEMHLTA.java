@@ -272,15 +272,17 @@ public class StepwiseEMHLTA {
     	        _OrigSparseData = new SparseDataSet("sample.txt");
  			_modelname ="HLTAModel";
         } else if(args.length==1){
-    		_OrigSparseData = new SparseDataSet(args[0]);
-		_modelname ="HLTAModel";
+    			_OrigSparseData = new SparseDataSet(args[0]);
+    			_modelname ="HLTAModel";
         }
         else if(args.length==2){
-		_OrigSparseData = new SparseDataSet(args[0]);
-		_modelname = args[1];
+        		_OrigSparseData = new SparseDataSet(args[0]);
+        		_modelname = args[1];
         }
 
 		if(args.length==16){
+		_OrigSparseData = new SparseDataSet(args[0]);
+			
 		_EmMaxSteps = Integer.parseInt(args[1]);
 
 		_EmNumRestarts = Integer.parseInt(args[2]);
@@ -317,9 +319,9 @@ public class StepwiseEMHLTA {
 			_maxEpochs = 10;//paper:not mentioned, and not usually work
 			_globalEMmaxSteps = 100;//128 < paper:100
 			_sizeFirstBatch = "all";//8000 >
-			_sample_size_for_structure_learn = 10000;
             _OrigDenseData = _OrigSparseData.getWholeDenseData();
             _islandNotBridging = true;
+			_sample_size_for_structure_learn = 10000;
             _MaxCoreNumber = 2;
             _parallelIslandFindingLevel = 1;
 		}
