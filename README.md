@@ -145,18 +145,55 @@ The output files include:
 
    You may also see the Testing section of the [Old HLTA Page](https://github.com/kmpoon/hlta/blob/master/RESEARCH.md) (v2.0)
 
+# Options
+As introduced in Subroutine2 of Quick Example, we can train HLTA with default hyper-parameters by :
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA data.sparse.txt 50 modelName
+   ```
+   
+HLTA also supports to tune hyper-parameters by :
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA $trainingdata $EmMaxSteps $EmNumRestarts $EM-threshold $UDtest-threshold $outputmodel $MaxIsland $MaxTop $GlobalsizeBatch $GlobalMaxEpochs $GlobalEMmaxsteps $FirstBatch $IslandNotBridging $SampleSizeForstructureLearn $MaxCoreNumber $parallelIslandFindingLevel
+   ```
+
+For example,
+   ```
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA data.sparse.txt 50 3 0.01 3 modelName 15 30 500 10 100 8000 1 10000 2 1
+   ```
+
+Notice that, to speed up the training:
+1. $trainingdata: the file name of training data
+2. $EmMaxSteps: max steps in EM (default: 50)
+3. $EmNumRestarts: numner of restarters in EM (default: 3)
+4. $EM-threshold: threshold to control the stop of EM (default: 0.01)
+5. $UDtest-threshold: threshold to control whether the islands can pass UStest (default: 3)
+6. $outputmodel: name of output model
+7. $MaxIsland: The maximum number of variables in one island (default: 15)
+8. $MaxTop: max variable numbers for top level (default: 30)
+9. $GlobalsizeBatch: batch size in global stepwise EM for parameter learning (default: 500)
+10. $GlobalMaxEpochs: max epoch number in global stepwise EM for parameter learning (default: 10)
+11. $GlobalEMmaxsteps: step numbers  in global stepwise EM for parameter learning (default: 100)
+12. $FirstBatch: training samples size in the first batch (default: "all", means use all the training samples in first batch)
+13. $IslandNotBridging: remove island bridging or not, the default value is 1 meaning to remove island bridging. (default: 1)
+14. $SampleSizeForstructureLearn: how many samples are used in structure leanring. (default: 10000)
+15. $MaxCoreNumber: means the number of parallel CPU process. (default: 2) Users can choose a suitable core number considering the scale of their dataset. The further analysis on the balance of speed and performance can be found [*paper*](https://github.com/kmpoon/hlta/wiki/Document-for-Speeding-up-HLTA). Notice that, this number should not exceed the CPU core number of your machine, otherwise, it will slow HLTA.
+16. $parallelIslandFindingLevel: when $MaxCoreNumber > 1, $parallelIslandFindingLevel means the max level that use parallel island finding. For example, $parallelIslandFindingLevel == 3 means level1, level2 and level3 use parallel island finding; while other levels use serial island finding.
+
 # Assemble
+If you need to modify source code and recompile HLTA, please follow next steps to build a sbt directory and compile HLTA. If not, please skip this session.
+
 0. Have sbt installed.
-1. Change directory to the project directory. (e.g. user/git/hlta)
-2. Run the following command to build the JAR files from source code:
+1. Git clone this repository
+2. Change directory to the project directory. (e.g. user/git/hlta)
+3. Run the following command to build the JAR files from source code:
 
    ```
    sbt clean assembly assemblyPackageDependency && ./rename-deps.sh
    ```
-
+   The output of Assemble is "HLTA.jar" and "HLTA-deps.jar" under "target/scala-2.11/", which can be executed following the instruction of "Quick Example".
 # Enquiry
 
-* Developer: Chun Fai Leung (cfleungac@connect.ust.hk) (The Hong Kong University of Science and Techonology)
+* Current Maintainer: Chun Fai Leung (cfleungac@connect.ust.hk) (The Hong Kong University of Science and Techonology)
 * General questions: Leonard Poon (kmpoon@eduhk.hk) (The Education University of Hong Kong)
 * PEM questions: Peixian Chen (pchenac@cse.ust.hk) (The Hong Kong University of Science and Technology)
 

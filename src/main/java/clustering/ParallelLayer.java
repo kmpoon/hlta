@@ -209,10 +209,10 @@ public class ParallelLayer {
 				this._maxIsland= _maxIsland;
 				//this.Level = Level;
 				this._OriVariablesSize = OriVariablesSize;
-				double NumSplits = (double) Runtime.getRuntime().availableProcessors()>8?8:Runtime.getRuntime().availableProcessors(); // making the max split to be 8
-				//NumSplits = 1;
+				int MaxCoreNum = hyperParam._MaxCoreNumber;
+				double NumSplits = (double) Runtime.getRuntime().availableProcessors() > MaxCoreNum ? MaxCoreNum:Runtime.getRuntime().availableProcessors(); // making the max split to be 8
 				splitThreshold =(int) Math.ceil(_VariableArray.size() / NumSplits);
-				System.out.println("NumSplits: " + NumSplits + " splitThreshold: " + splitThreshold + " _VariableArray.size(): " + _VariableArray.size());
+				System.out.println("NumSplits: " + NumSplits + " splitThreshold: " + splitThreshold + " _VariableArray.size(): " + _VariableArray.size() + " MaxCoreNum: " + MaxCoreNum);
 			}
 		}
 		
