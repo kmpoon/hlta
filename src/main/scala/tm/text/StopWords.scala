@@ -5,11 +5,11 @@ import java.io.InputStream
 import java.io.FileInputStream
 
 object StopWords {
-  def read(filename: String)(enc: String = "UTF8"): StopWords = {
+  def read(filename: String)(implicit enc: String = "UTF8"): StopWords = {
     readFromStream(new FileInputStream(filename))(enc)
   }
 
-  def readFromStream(input: InputStream)(enc: String = "UTF8"): StopWords = {
+  def readFromStream(input: InputStream)(implicit enc: String = "UTF8"): StopWords = {
     new StopWords(
       Source.fromInputStream(input)(enc).getLines.filter(_.size > 0).toSet)
   }

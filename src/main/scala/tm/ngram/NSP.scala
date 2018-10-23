@@ -97,7 +97,7 @@ object NSPSelect {
 
 object NSPCheck {
   def main(args: Array[String]) {
-    val seedTokens = SeedTokens.read(args(0))("UTF-8")
+    val seedTokens = SeedTokens.read(args(0))
     val dictionary = Dictionary.read(args(1))
 
     println(seedTokens.tokens.size)

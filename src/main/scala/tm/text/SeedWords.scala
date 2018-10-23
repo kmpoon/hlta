@@ -17,7 +17,13 @@ class SeedTokens(val tokens: Seq[NGram]) {
 }
 
 object SeedTokens {
-  def read(file: String)(enc: String): SeedTokens = new SeedTokens(NGram.readFile(file)(enc))
+  //def read(file: String)(enc: String): SeedTokens = new SeedTokens(NGram.readFile(file)(enc))
+  def read(file: String)(implicit enc: String = "UTF-8"): SeedTokens = {
+    if(file.endsWith(".csv") && file.contains(".dict"))
+      new SeedTokens(Dictionary.read(file)(enc).info.map(_.token))
+    else
+      new SeedTokens(NGram.readFile(file)(enc))
+  }
   
   def Empty() = new SeedTokens(Seq.empty[NGram])
 }

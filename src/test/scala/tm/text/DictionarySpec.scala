@@ -6,7 +6,7 @@ import java.text.Normalizer
 import tm.hillary.TestEmails
 
 class DictionarySpec extends BaseSpec {
-  implicit val stopwords = StopWords.read("stopwords.csv")("UTF-8")
+  implicit val stopwords = StopWords.read("stopwords.csv")
 
   trait HillaryDictionary extends TestEmails {
     Given("The first 500 emails")
@@ -49,7 +49,7 @@ class DictionarySpec extends BaseSpec {
 
   trait PapersDictionary {
     Given("Dictionary")
-    val dictionary = Dictionary.read(
+    val dictionary = Dictionary.readFromStream(
       getClass.getResourceAsStream("/papers2.dict-10000.csv"))
     //      val dictionary = Dictionary.read(
     //    new GZIPInputStream(getClass.getResourceAsStream("/Emails.csv.gz")))

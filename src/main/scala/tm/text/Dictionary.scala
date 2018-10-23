@@ -47,15 +47,15 @@ object Dictionary{
         .toIterable)
   }
 
-  def read(input: InputStream): Dictionary = {
-    read(Source.fromInputStream(input))
+  def readFromStream(input: InputStream)(implicit enc: String = "UTF-8"): Dictionary = {
+    read(Source.fromInputStream(input)(enc))
   }
 
   /**
    * Reads a dictionary from a file specified by the given file name.
    */
-  def read(filename: String): Dictionary = {
-    read(Source.fromFile(filename))
+  def read(filename: String)(implicit enc: String = "UTF-8"): Dictionary = {
+    read(Source.fromFile(filename)(enc))
   }
 
   def save(filename: String, ws: Iterable[WordInfo]) = {
