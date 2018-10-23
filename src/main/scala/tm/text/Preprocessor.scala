@@ -26,7 +26,7 @@ object Preprocessor {
   /**
    * A simple English preprocessor
    */
-  def EnglishPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.EnglishStopwords()): Seq[String] = 
+  def EnglishPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.EnglishStopwords): Seq[String] = 
     tokenizeBySpace(s)
     .map(_.toLowerCase)
     .map(normalize)
@@ -39,8 +39,8 @@ object Preprocessor {
    * Chinese preprocessor with FNLP tokenization
    * see https://github.com/FudanNLP
    */
-  def ChinesePreprocessor(s: String, minChars: Int = 1, stopwords: StopWords = StopWords.ChineseStopwords()): Seq[String] = 
-    tokenizeChinese(s)
+  def ChinesePreprocessor(s: String, minChars: Int = 1, stopwords: StopWords = StopWords.ChineseStopwords): Seq[String] = 
+    tokenizeChinese(replaceSpace(s))
     .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
     .map(replacePunctuation)
     .filter(withLength(minChars))
@@ -49,7 +49,7 @@ object Preprocessor {
   /**
    * Preprocessor for general non-ascii languages
    */
-  def NonAsciiPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.Empty()): Seq[String] = 
+  def NonAsciiPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.Empty): Seq[String] = 
     tokenizeBySpace(s)
     .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
     .map(replacePunctuation)
@@ -92,7 +92,7 @@ object Preprocessor {
 
   //Tokenization methods
   
-  def tokenizeBySpace(text: String): Seq[String] = tokenizeByRegex(text, "\\s+")
+  def tokenizeBySpace(text: String): Seq[String] = tokenizeByRegex(text, Space.regex)
   
   def tokenizeByRegex(text: String, regex: String): Seq[String] = 
     //It needs to handle the case of an empty string, otherwise an array
@@ -102,15 +102,20 @@ object Preprocessor {
     
   def tokenizeChinese(text: String): Seq[String] = {
     //FNLP is specially edited to allow using pipeline to read model
-    import org.fnlp.nlp.cn.CNFactory
-    CNFactory.loadSeg(this.getClass.getResourceAsStream("/tm/text/seg.m"))
-    val factory = CNFactory.getInstance()
-    factory.seg(text)
+    if(text.length()==0)
+      Seq(text)
+    else{
+      import org.fnlp.nlp.cn.CNFactory
+      CNFactory.loadSeg(this.getClass.getResourceAsStream("/tm/text/seg.m"))
+      val factory = CNFactory.getInstance()
+      factory.seg(text)
+    }
   }
 
     
   //Replacement  
   
+  val Space = "\\s+|\u00A0|\u202F|\uFEFF".r
   val NonAlnum = "\\P{Alnum}".r
   val Digit = "^(\\p{Digit})|[\uFF10-\uFF19]".r
   val Punctuation = "\\p{Punct}|[\u2000-\u206F]|[\u3000-\u303F]|[\uFF00-\uFF0F]".r
@@ -118,6 +123,8 @@ object Preprocessor {
   def useRegexToReplace(pair: (Regex, (Match) => String)) = pair match {
     case (r, m) => (input: String) => r.replaceAllIn(input, m)
   }
+  
+  def replaceSpace(input: String) = Space.replaceAllIn(input, (m: Match) => "")
   
   def replaceNonAlnum(input: String): String = NonAlnum.replaceAllIn(input, (m: Match) => "")
   
@@ -163,7 +170,7 @@ object Preprocessor {
 
   def tokenizeAndCount(text: String, n: Int = 1)(implicit stopWords: StopWords) =
     DataConverter.countTokens(
-      find1ToNGrams(tokenizeBySpace(text).filterNot(_.isEmpty).filterNot(stopWords.contains), n).flatten)
+      find1ToNGrams(tokenizeBySpace(text).filterNot(_.isEmpty).filterNot(stopWords.contains), n).flatten, 1)
 
   //    def add(p1: TokenCounts, p2: TokenCounts): TokenCounts = {
   //        type mutableMap = mutable.Map[NGram, Int]

@@ -50,19 +50,51 @@ function generateTopicDocumentTable(topic, max) {
 	var topicDocuments = topicMap[topic];
 
 	var rows = [];
-	for (var i = 0; i < topicDocuments.length && i < max; i++) {
-		var d = topicDocuments[i];
-		var doc = documents[d[0]]; //documents is an array of document name
-		if(Array.isArray(doc)){//doc can either be in the form of Array("someTitle", "someUrl") or String("titleOnly")
-			rows.push("<tr><td><a href=\"" + doc[1] + "\">" + doc[0] + "</a></td><td>" + d[1].toFixed(2)+ "</td></tr>");
-		}else{
-			if(doc.length > 65) rows.push("<tr><td><a href=\"#\" onclick=\"generateDocumentPage('"+doc+"')\">" + doc + "...</a></td><td>" + d[1].toFixed(2)+ "</td></tr>");
-			else rows.push("<tr><td>" +doc + "</td><td>" + d[1].toFixed(2)+ "</td></tr>");
+	
+	if(typeof(fieldnames) !== 'undefined'){
+		var title = fieldnames.indexOf('title');
+		var url = fieldnames.indexOf('url');
+		for (var i = 0; i < topicDocuments.length && i < max; i++) {
+			var d = topicDocuments[i];
+			var doc = documents[d[0]]; //documents is an array of document name
+			
+			var columns = [];
+			if(url != -1 && doc[url].length>0) columns.push("<a href=\"" + doc[url] + "\">" + doc[title] + "</a>");
+			else columns.push(doc[title]);
+			for(var j=0; j<doc.length; j++){
+				if(j==url || j==title)
+					continue;
+				columns.push(doc[j]);
+			}
+			columns.push(d[1].toFixed(2));
+			rows.push("<tr><td>" + columns.join("</td><td>") + "</td></tr>");
 		}
+		var otherFields = ["Document"];
+		for(var j=0; j<fieldnames.length; j++){
+			if(j==url || j==title)
+				continue;
+			otherFields.push(fieldnames[j]);
+		}
+		otherFields.push("Prob");
+		var table = $("<table class=\"tablesorter\"><thead><tr><th>"+otherFields.join("</th><th>")+"</th></tr></thead></table>")
+				.append("<tbody/>").append(rows.join(""));
+	}else{
+		for (var i = 0; i < topicDocuments.length && i < max; i++) {
+			var d = topicDocuments[i];
+			var doc = documents[d[0]]; //documents is an array of document name
+
+			if(Array.isArray(doc)){//doc can either be in the form of Array("someTitle", "someUrl", "somethingElse1", ...) or String("titleOnly")
+				rows.push("<tr><td><a href=\"" + doc[1] + "\">" + doc[0] + "</a></td><td>" + d[1].toFixed(2)+ "</td></tr>");
+			}else{
+				if(doc.length > 65) rows.push("<tr><td><a href=\"#\" onclick=\"generateDocumentPage('"+doc+"')\">" + doc + "...</a></td><td>" + d[1].toFixed(2)+ "</td></tr>");
+				else rows.push("<tr><td>" +doc + "</td><td>" + d[1].toFixed(2)+ "</td></tr>");
+			}
+		}
+		var table = $("<table class=\"tablesorter\"><thead><tr><th>Document</th><th>Prob</th></tr></thead></table>")
+			.append("<tbody/>").append(rows.join(""));
 	}
 
-	var table = $("<table class=\"tablesorter\"><thead><tr><th>Document</th><th>Prob</th></tr></thead></table>")
-			.append("<tbody/>").append(rows.join(""));
+	
 
 	table.tablesorter({
 		theme : "bootstrap",
@@ -113,10 +145,11 @@ function constructTree(n) {
 			$("#topic-modal-body").html("")
 	
 			if (showTopicDocuments) {
-				var topicDocuments = topicMap[data.node.id]
-				max = 500
+				var topicDocumentsCount = topicMap[data.node.id].length;
+				var max = 50000;
 	
-				$("#topic-modal-body").append("<h5>Document details (showing only the top " + max +"):</h5>")
+				if(topicDocumentsCount > max) $("#topic-modal-body").append("<h5>Document details (showing only the top " + max +"):</h5>");
+				else $("#topic-modal-body").append("<h5>Document details (" + topicDocumentsCount + " documents):</h5>");
 				$("#topic-modal-body").append(generateTopicDocumentTable(
 						data.node.id, max));
 			} else {

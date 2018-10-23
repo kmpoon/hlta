@@ -18,16 +18,16 @@ object StopWords {
   //alternative StopWords.EnglishStopwords()
   @Deprecated
   object implicits {
-    implicit val default = EnglishStopwords()
+    implicit val default = EnglishStopwords
   }
   
-  def EnglishStopwords() = StopWords.readFromStream(this.getClass.getResourceAsStream("/tm/text/stopwords-lewis.csv"))("UTF-8")
+  val EnglishStopwords = readFromStream(this.getClass.getResourceAsStream("/tm/text/stopwords-lewis.csv"))("UTF-8")
   
-  def ChineseStopwords() = StopWords.readFromStream(this.getClass.getResourceAsStream("/tm/text/chinese-stopwords-list.txt"))("UTF-8")
+  val ChineseStopwords = readFromStream(this.getClass.getResourceAsStream("/tm/text/chinese-stopwords-list.txt"))("UTF-8")
   
-  def Empty() = new StopWords(Set.empty[String])
+  val Empty = new StopWords(Set.empty[String])
 }
 
-class StopWords(words: Set[String]) {
+class StopWords(val words: Set[String]) {
   def contains(word: String) = words.contains(word)
 }

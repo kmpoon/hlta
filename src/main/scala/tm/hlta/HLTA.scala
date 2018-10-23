@@ -39,6 +39,7 @@ object HLTA {
     val emNumRestart = opt[Int](descr = "Number of restarts in EM (e.g. 5). <paper section 6.1>", default = Some(5))
     val emThreshold = opt[Double](descr = "Threshold of improvement to stop EM (e.g. 0.01) <paper section 6.1>", default = Some(0.01))
     val udThreshold = opt[Double](descr = "The threshold used in unidimensionality test for constructing islands (e.g. 3). <paper setion 5.2>", default = Some(3))
+    val ctThreshold = opt[Double](descr = "The correlation test threshold, high threshold makes island harder to expand.", default = Some(3))
     val maxIsland = opt[Int](descr = "Maximum number of variables in an island (e.g. 10). <paper section 5.1>", default = Some(10))
     val maxTop = opt[Int](descr = "Maximum number of variables in top level (e.g. 15). <paper section 5.1>", default = Some(15))
     
@@ -74,7 +75,7 @@ object HLTA {
    */
   def apply(data: Data, modelName: String, ldaVocab: String = null, maxThread: Option[Int] = None,
       emMaxStep: Int = 50, emNumRestart: Int = 3, emThreshold: Double = 0.01,
-      udThreshold: Int = 3, maxIsland: Int = 15, maxTop: Int = 30, 
+      udThreshold: Double = 3.0, ctThreshold: Double = 3.0, maxIsland: Int = 15, noBridging: Boolean = true, maxTop: Int = 30, 
       globalBatchSize: Int = 500, globalMaxEpochs: Int = 10, globalMaxEmSteps: Int = 100, 
       structBatchSize: Option[Int] = None, structBatchAll: Boolean = false): LTM = {
     
@@ -88,7 +89,7 @@ object HLTA {
       Parallelism.instance().setLevel(maxThread.get)
       
     val builder = new clustering.StepwiseEMHLTA()
-    builder.initialize(data.toTupleSparseDataSet(), emMaxStep, emNumRestart, emThreshold, udThreshold, modelName, maxIsland, maxTop, globalBatchSize, globalMaxEpochs,
+    builder.initialize(data.toTupleSparseDataSet(), emMaxStep, emNumRestart, emThreshold, udThreshold, ctThreshold, modelName, maxIsland, noBridging, maxTop, globalBatchSize, globalMaxEpochs,
           globalMaxEmSteps, _sizeFirstBatch)
     builder.IntegratedLearn()
       
@@ -108,8 +109,8 @@ object HLTA {
       }
       
     val builder = new clustering.StepwiseEMHLTA()
-    builder.initialize(data.toTupleSparseDataSet(), conf.emMaxStep(), conf.emNumRestart(), conf.emThreshold(), conf.udThreshold(), conf.outputName(), 
-        conf.maxIsland(), conf.maxTop(), conf.globalBatchSize(), conf.globalMaxEpochs(), conf.globalMaxEmSteps(), _sizeFirstBatch)
+    builder.initialize(data.toTupleSparseDataSet(), conf.emMaxStep(), conf.emNumRestart(), conf.emThreshold(), conf.udThreshold(), conf.ctThreshold(), conf.outputName(), 
+        conf.maxIsland(), true, conf.maxTop(), conf.globalBatchSize(), conf.globalMaxEpochs(), conf.globalMaxEmSteps(), _sizeFirstBatch)
     builder.IntegratedLearn()
   }
   

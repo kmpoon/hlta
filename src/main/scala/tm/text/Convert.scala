@@ -61,9 +61,9 @@ object Convert {
                       StopWords.read(conf.stopWords())(conf.inputEncoding()) 
                     }
                     else conf.language().toLowerCase() match{
-                      case "en" | "english" => StopWords.EnglishStopwords()
-                      case "zh" | "chinese" => StopWords.ChineseStopwords()
-                      case "nonascii" | _ => StopWords.Empty()
+                      case "en" | "english" => StopWords.EnglishStopwords
+                      case "zh" | "chinese" => StopWords.ChineseStopwords
+                      case "nonascii" | _ => StopWords.Empty
                     }
     val seedWords = if(conf.seedWords.isDefined){
                       logger.info("Using seed tokens from file: {}", conf.seedWords())
@@ -163,7 +163,7 @@ object Convert {
   }
   
   def defaultPreprocessor(text: String) = {
-    val tokens = Preprocessor.EnglishPreprocessor(text, minChars = 3, stopwords = StopWords.EnglishStopwords())
+    val tokens = Preprocessor.EnglishPreprocessor(text, minChars = 3, stopwords = StopWords.EnglishStopwords)
     Document(Sentence(tokens))
   }
 
@@ -172,7 +172,7 @@ object Convert {
    */
   def apply(name: String, maxWords: Int, path: Path = null, paths: Vector[Path] = null,
       encoding: String = "UTF-8", preprocessor: (String) => Document = defaultPreprocessor, 
-      wordSelector: WordSelector = WordSelector.basic(), concat: Int = 2,
+      wordSelector: WordSelector = WordSelector.basic(), concat: Int = 2, documentMinTf: Int = 1,
       seedWords: SeedTokens = SeedTokens.Empty()) = {
     val documents = {
       if(paths != null)
@@ -182,7 +182,7 @@ object Convert {
       else
         throw new Exception("Either path or paths must be given")
     }
-    DataConverter(name, documents, maxWords = maxWords, concat = concat, seedWords = seedWords, wordSelector = wordSelector)
+    DataConverter(name, documents, maxWords = maxWords, concat = concat, seedWords = seedWords, wordSelector = wordSelector, documentMinTf = documentMinTf)
   }
 
   val logger = LoggerFactory.getLogger(Convert.getClass)
@@ -251,7 +251,6 @@ object Convert {
     logger.info("Reading documents")
     import com.github.tototoshi.csv._
     val reader = CSVReader.open(new File(path.toString()), encoding)
-    //val source = Source.fromFile(path.toFile())(encoding)
     try {
       logger.debug("Reading {}", path.toFile())
       reader.iteratorWithHeaders.map{ line =>

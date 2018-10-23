@@ -78,6 +78,11 @@ public class StepwiseEMHLTA {
 	 * Threshold for UD-test.
 	 */
 	private double _UDthreshold;
+	
+	/**
+	 * Threshold for Correlation test, the higher it is, the more correlated the variables inside an island are
+	 */
+	private double _CTthreshold;
 
 	/**
 	 * Threshold for EM.
@@ -175,9 +180,14 @@ public class StepwiseEMHLTA {
 		int _maxTop;
 		int _maxIsland;
 		double _UDthreshold;
+		/*
+		 * Correlation threshold. A variable is correlated to the island if
+		 * BIC(m_1) - BIC(m_0) > _Cthrehsold
+		 */
+		double _CTthreshold;
 		
 		public void set(int EmMaxSteps, int EmNumRestarts, double emThreshold, 
-				boolean islandNotBridging, int maxTop, int maxIsland, double UDthreshold) {
+				boolean islandNotBridging, int maxTop, int maxIsland, double UDthreshold, double CTthreshold) {
 
 			_EmNumRestarts = EmNumRestarts;
 			_EmMaxSteps = EmMaxSteps;
@@ -186,6 +196,7 @@ public class StepwiseEMHLTA {
 			_maxTop = maxTop;
 			_maxIsland = maxIsland;
 			_UDthreshold = UDthreshold;
+			_CTthreshold = CTthreshold;
 		}
 		
 		/*public int getEmMaxSteps() {
@@ -260,7 +271,7 @@ public class StepwiseEMHLTA {
 		_modelname = args[1];
         }
 
-		if(args.length==14){
+		if(args.length==15){
 		_EmMaxSteps = Integer.parseInt(args[1]);
 
 		_EmNumRestarts = Integer.parseInt(args[2]);
@@ -268,17 +279,19 @@ public class StepwiseEMHLTA {
 		_emThreshold = Double.parseDouble(args[3]);
 
 		_UDthreshold = Double.parseDouble(args[4]);
+		
+		_CTthreshold = Double.parseDouble(args[5]);
 
-		_modelname = args[5];
+		_modelname = args[6];
 
-		_maxIsland = Integer.parseInt(args[6]);
-		_maxTop = Integer.parseInt(args[7]);
-		_sizeBatch = Integer.parseInt(args[8]);
-		_maxEpochs = Integer.parseInt(args[9]);
-		_globalEMmaxSteps = Integer.parseInt(args[10]);
-		_sizeFirstBatch = args[11];
-		_islandNotBridging = (Integer.parseInt(args[12]) == 0) ? false : true;
-		_sample_size_for_structure_learn = (Integer.parseInt(args[13]));
+		_maxIsland = Integer.parseInt(args[7]);
+		_maxTop = Integer.parseInt(args[8]);
+		_sizeBatch = Integer.parseInt(args[9]);
+		_maxEpochs = Integer.parseInt(args[10]);
+		_globalEMmaxSteps = Integer.parseInt(args[11]);
+		_sizeFirstBatch = args[12];
+		_islandNotBridging = (Integer.parseInt(args[13]) == 0) ? false : true;
+		_sample_size_for_structure_learn = (Integer.parseInt(args[14]));
 		if(_sizeFirstBatch.contains("all")){
             _OrigDenseData = _OrigSparseData.getWholeDenseData();
 		}else{
@@ -289,6 +302,7 @@ public class StepwiseEMHLTA {
 			_EmNumRestarts=3;//5 <
 			_emThreshold=0.01;// paper: not mentioned
 			_UDthreshold=3; // paper: 3
+			_CTthreshold=3;
 			_maxIsland = 15;//10 > paper: 15
 			_maxTop =30;//15 > paper: NYT:30 other:20
 			_sizeBatch = 500;//1000 < paper:1000
@@ -299,19 +313,21 @@ public class StepwiseEMHLTA {
             _OrigDenseData = _OrigSparseData.getWholeDenseData();
             _islandNotBridging = true;
 		}
-		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold);
+		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold, _CTthreshold);
 	}
 
 	/**
 	 * Added by Leung Chun Fai
-	 * Seperates IO from initialize(args)
+	 * General user call this instead of the other initialize
+	 * Make sure you make this method consistent with the other initialize
+	 * Or otherwise no one gonna use your new code
 	 * 
 	 * @param args
 	 * @throws IOException
 	 * @throws Exception
 	 */
-	public void initialize(SparseDataSet sparseDataSet, int emMaxSteps, int emNumRestarts, double emThreshold, double udThreshold,
-			String modelName, int maxIsland, int maxTop, int sizeBatch, int maxEpochs, int globalEmMaxSteps, String sizeFirstBatch) throws IOException, Exception{
+	public void initialize(SparseDataSet sparseDataSet, int emMaxSteps, int emNumRestarts, double emThreshold, double udThreshold, double ctThreshold,
+			String modelName, int maxIsland, boolean noBridging, int maxTop, int sizeBatch, int maxEpochs, int globalEmMaxSteps, String sizeFirstBatch) throws IOException, Exception{
         System.out.println("Initializing......");
 		// Read the data set
 		_OrigSparseData = sparseDataSet;
@@ -324,10 +340,13 @@ public class StepwiseEMHLTA {
 		_emThreshold = emThreshold;//Double.parseDouble(args[3]);
 
 		_UDthreshold = udThreshold;//Double.parseDouble(args[4]);
+		
+		_CTthreshold = ctThreshold;
 
 		_modelname = modelName;//args[5];
 
 		_maxIsland = maxIsland;//Integer.parseInt(args[6]);
+		_islandNotBridging = noBridging;
 		_maxTop = maxTop;//Integer.parseInt(args[7]);
 		_sizeBatch = sizeBatch;//Integer.parseInt(args[8]);
 		_maxEpochs = maxEpochs;//Integer.parseInt(args[9]);
@@ -352,7 +371,7 @@ public class StepwiseEMHLTA {
 //			_sizeFirstBatch = "all";
 //            _OrigDenseData = _OrigSparseData.getWholeDenseData();
 //		}
-		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold);
+		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold, _CTthreshold);
 	}
 	
 	
@@ -444,6 +463,8 @@ public class StepwiseEMHLTA {
 
 			level++;
 		}
+			
+		CurrentModel.saveAsBif(_modelname + ".beforeLearning.bif");
 		
 		System.out.println("Model construction is completed. EM parameter estimation begins...");
 
@@ -465,6 +486,8 @@ public class StepwiseEMHLTA {
 				+ (System.currentTimeMillis() - start) + " ms ---");
 		
 		long startSaveModel = System.currentTimeMillis();
+		
+		CurrentModel.saveAsBif(_modelname + ".beforeStateReordering.bif");
 		// rename latent variables, reorder the states.
 		CurrentModel = postProcessingModel(CurrentModel);
 
@@ -662,20 +685,28 @@ public class StepwiseEMHLTA {
 				cluster.add(ClosestVariablePair.get(1));
 				DataSet data_proj2l =
 						data.project(new ArrayList<Variable>(cluster));
-				LTM m1 =
-						EmLCM_learner(m0, ClosestVariablePair.get(1), bestPair,
+				LTM m0Plus = EmLCM_addOneChild(m0, ClosestVariablePair.get(1), bestPair, data_proj2l, hyperParam);
+				LTM m1 = EmLCM_learner(m0, ClosestVariablePair.get(1), bestPair,
 								data_proj2l, hyperParam);
 				LTM minput = m1.clone();
-				LTM m2 =
-						EmLTM_2L_learner(minput, bestPair, ClosestVariablePair,
+				LTM m2 = EmLTM_2L_learner(minput, bestPair, ClosestVariablePair,
 								data_proj2l, hyperParam);
-				m0 = m1.clone();
+				//m0 = m1.clone();
+				double oldModelBIC = ScoreCalculator.computeLoglikelihood(m0Plus, data_proj2l) - (m0.computeDimension()+ClosestVariablePair.get(1).getCardinality()-1)
+						* Math.log(data_proj2l.getTotalWeight()) / 2.0;
 				double mulModelBIC =
 						ScoreCalculator.computeBic(m2, data_proj2l);
 				double uniModelBIC =
 						ScoreCalculator.computeBic(m1, data_proj2l);
 
-				if (mulModelBIC - uniModelBIC > hyperParam._UDthreshold) {
+				if (uniModelBIC - oldModelBIC < hyperParam._CTthreshold && VariablesSet.size() - cluster.size() + 1 >= 3){
+					subModel = m0;
+					updateHierarchies(subModel, bestPair, bestpairs, hierarchies);
+					updateVariablesSet(subModel, VariablesSet);
+
+					break;
+					
+				} else if (mulModelBIC - uniModelBIC > hyperParam._UDthreshold) {
 					if (VariablesSet.size() - cluster.size() == 0) {
 						// split m2 to 2 LCMs subModel1 and subModel2
 						LTM subModel1 = m1.clone();
@@ -762,6 +793,7 @@ public class StepwiseEMHLTA {
 
 					break;
 				}
+				m0 = m1;
 			}
 			islandCount ++;
 		}
@@ -771,6 +803,7 @@ public class StepwiseEMHLTA {
 			System.out.print(" " + latVar.getName());
 		}
 		System.out.println("");*/
+		
 		System.out.println("======================= finish FastLTA_flat  =================================");
 	}
 	
@@ -813,6 +846,36 @@ public class StepwiseEMHLTA {
 		LCM_new = (LTM) emLearner.em(LCM_new, data_proj.project(variables3));
 
 		return LCM_new;
+	}
+	
+	public static LTM EmLCM_addOneChild(LTM modelold, Variable x,
+			ArrayList<Variable> bestPair, DataSet data_proj, ConstHyperParameterSet hyperParam) {
+
+		LTM modeloldPlus = modelold.clone();
+		
+		modeloldPlus.addNode(x);
+		
+		modeloldPlus.addEdge(modeloldPlus.getRoot(), modeloldPlus.getNode(x));
+		
+		/*
+		 * To create a conditional prob table (a|b), s.t. a independent of b
+		 *            var b
+		 *            0    1
+		 * var a 0    p    1-p
+		 *       1    p    1-p
+		 */		
+		double[] cpt = new double[4];
+		Map<Variable, Double> varFreq = data_proj.getFreq();
+		double dataSize = data_proj.getTotalWeight();
+		cpt[0] = 1 - varFreq.get(x)/dataSize;
+		cpt[2] = cpt[0];
+		cpt[1] = varFreq.get(x)/dataSize;
+		cpt[3] = cpt[1];
+		
+		ArrayList<Variable> vars = new ArrayList<Variable>(modeloldPlus.getNode(x).getCpt().getVariables());
+		modeloldPlus.getNode(x).getCpt().setCells(vars, cpt);		
+
+		return modeloldPlus;
 	}
 
 	public static LTM EmLCM_learner(LTM modelold, Variable x,

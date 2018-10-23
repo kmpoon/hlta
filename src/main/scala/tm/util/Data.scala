@@ -37,13 +37,13 @@ object Data{
       counts.filter(wc => indices.contains(wc._1)).map(wc => (indices(wc._1), wc._2.toDouble)).toMap
     }
     
-    val variables = tokens.map{token => _newVariable(token.identifier)}
+    val variables = tokens.map{token => _newVariable(token.toString)}
     val tokenIndices = tokens.zipWithIndex.toMap
     val instances = tokenCountsSeq.zipWithIndex.map{ case(tokenCounts, index) => 
       val values = _toBow(tokenIndices, tokenCounts)
       //Each instance has a unique name
       //Such that even data is cut, instance name remain the same as tokenCountsSeq's order
-      new Data.SparseInstance(values, 1.0, name = index.toString())
+      new Data.SparseInstance(values, 1.0, name = index.toString)
     }
     new Data(variables.toIndexedSeq, instances.toIndexedSeq, isBinary, name)
   }
@@ -64,11 +64,11 @@ object Data{
 //        indices.get(wc._1).foreach { i => values(i) = wc._2 }
 //      }
 //      values
-      counts.map{wc => (indices.apply(wc._1), wc._2.toDouble)}.toMap
+      counts.flatMap{wc => indices.get(wc._1).map{ i => (i -> wc._2.toDouble )}}
     }
     
     val tokenIndices = dictionary.map
-    val variables = dictionary.info.map{info => _newVariable(info.token.identifier)}
+    val variables = dictionary.info.map{info => _newVariable(info.token.toString)}
     val instances = tokenCountsSeq.zipWithIndex.map{ case(tokenCounts, index) => 
       val values = _toBow(tokenIndices, tokenCounts)
       //Each instance has a unique name

@@ -95,14 +95,35 @@ object BuildWebsite{
    */
   def writeDocNames(docNames: GenSeq[String], outputFile: String, docUrls: Seq[String] = null) = {
     implicit class Escape(str: String){
-      def escape = str.replaceAll("\"", "\\\\\"")
+      def escape = str.replaceAll("\\\\", "\\\\\\\\").replaceAll("\"", "\\\\\"").replaceAll("\n", " ").replaceAll("\r", " ")
     }
     
     val writer = new PrintWriter(outputFile)
     writer.println("var documents = [")
     if(docUrls==null)    writer.println(docNames.map{docName=>"\""+docName.escape+"\""}.mkString(",\n"))
-    else    writer.println(docNames.zip(docUrls).map{case(docName, docUrl)=>"[\""+docName.escape+"\",\""+docUrl.escape+"\"]"}.mkString(",\n"))
+    else   writer.println(docNames.zip(docUrls).map{case(docName, docUrl)=>"[\""+docName.escape+"\",\""+docUrl.escape+"\"]"}.mkString(",\n"))
     writer.println("]")
+    writer.close
+  }
+  
+  /**
+   * Translate csv to js
+   */
+  def translateCsv2Js(inputFile: String, outputFile: String, encoding: String = "UTF-8") = {
+    implicit class Escape(str: String){
+      def escape = str.replaceAll("\\\\", "\\\\\\\\").replaceAll("\"", "\\\\\"").replaceAll("\n", " ").replaceAll("\r", " ")
+    }
+    import com.github.tototoshi.csv._
+    val reader = CSVReader.open(inputFile, encoding)
+    val (List(header), data) = reader.all().splitAt(1)
+    
+    val writer = new PrintWriter(outputFile, encoding)
+    writer.println("var fieldnames = [")
+    writer.println("\""+header.map(_.escape).mkString("\", \"")+"\"")
+    writer.println("];")
+    writer.println("var documents = [")
+    writer.println(data.map{d=>"[\""+d.map(_.escape).mkString("\", \"")+"\"]"}.mkString(",\n"))
+    writer.println("];")
     writer.close
   }
   
@@ -212,7 +233,7 @@ object JstreeWriter{
   def writeJs[A](roots: Seq[Tree[A]], outputFile: String, jsVarName: String, jstreeContent: A => Node){
     
     implicit class Escape(str: String){
-      def escape = str.replaceAll("\"", "\\\\\"")
+      def escape = str.replaceAll("\\\\", "\\\\\\\\").replaceAll("\"", "\\\\\"").replaceAll("\n", " ").replaceAll("\r", " ")
     }
 
     def _treeToJs(tree: Tree[A], indent: Int): String = {
@@ -239,7 +260,7 @@ object JstreeWriter{
   def writeJson[A](roots: Seq[Tree[A]], outputFile: String, jstreeContent: A => Node){
     
     implicit class Escape(str: String){
-      def escape = str.replaceAll("\"", "\\\\\"")
+      def escape = str.replaceAll("\\\\", "\\\\\\\\").replaceAll("\"", "\\\\\"").replaceAll("\n", " ").replaceAll("\r", " ")
     }
     
     def _treeToJson(tree: Tree[A], indent: Int): String = {

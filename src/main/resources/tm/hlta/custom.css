@@ -24,11 +24,19 @@ div#jstree {
 table.tablesorter{
   width: 100%;
 }
+
 td {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+td:hover{
+  text-overflow: clip;
+  width: 100%;
+  white-space: normal;
+}
+
 td:nth-child(1) {
   width: 100%; /* Extend the cell as much as possible */
   max-width: 0; /* Avoid resizing beyond table width */

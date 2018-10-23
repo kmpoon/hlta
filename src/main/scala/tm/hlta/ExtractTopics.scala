@@ -11,7 +11,6 @@ import tm.hlta.HLTA._
 import org.latlab.util.DataSet
 import tm.util.Reader
 import tm.util.Data
-import tm.text.Lemmatization
 
 object ExtractTopicTree {
   class Conf(args: Seq[String]) extends Arguments(args) {    
@@ -113,43 +112,6 @@ object ExtractTopicTree {
 //    }
   }
   
-  private class ExtractNarrowTopics_Scala(model: LTM, data: Data, keywords: Int) extends ExtractNarrowTopics_LCM {
-    import org.latlab.graph.DirectedNode
-    import org.latlab.util.Variable
-    import java.util.ArrayList
-    
-    def apply(){
-      initialize(model, data.toHlcmDataSet, Array("", "", "tmp", "no", "no", keywords.toString))
-      extractTopics()
-    }
-    
-    override def extractTopicsBySubtree1(latent: String, setNode: java.util.Set[DirectedNode], subtree: LTM) {
-      //val posteriorCtp = new CliqueTreePropagation(model);
-      //posteriorCtp.propagate();
-      val globallist = this.SortChildren(this._model.getNodeByName(latent).getVariable(), setNode, this._posteriorCtp);
-
-      // use the same base words as the global model
-      setNode.clear();
-      this._collectionVar = new ArrayList[Variable]();
-      val lemma = tm.text.Lemmatization.EnglishLemma()
-      val distinctWords = scala.collection.mutable.MutableList[String]();
-      (0 until globallist.size()).iterator.takeWhile(_ => distinctWords.size < keywords).foreach{ ind =>
-          subtree.addNode(globallist.get(ind).getKey());
-          subtree.addEdge(subtree.getNode(globallist.get(ind).getKey()),
-                  subtree.getNodeByName(latent));
-          setNode.add(subtree.getNode(globallist.get(ind).getKey()));
-          _collectionVar.add(globallist.get(ind).getKey());
-          val repeat = (for (j <- (0 until ind)) yield lemma.lemma(globallist.get(j).getKey().getName)).contains(lemma.lemma(globallist.get(ind).getKey().getName))
-          if(!repeat)
-          	distinctWords.+=(globallist.get(ind).getKey().getName())
-      }
-
-      this._semanticBaseString.put(latent, distinctWords.mkString(" "));
-    }
-  
-  }
-  
-  
   private class BroadTopicsExtractor(model: LTM, keywords: Int, 
       layers: Option[List[Int]] = None, outProbNum: Boolean = false, assignProb: Boolean = true){  
     import org.latlab.util.Variable
@@ -159,7 +121,6 @@ object ExtractTopicTree {
     import tm.hlta.HLTA
     import tm.util.Tree
     
-    val topicProbabilities = scala.collection.mutable.Map.empty[String, IndexedSeq[Double]]    
     val _posteriorCtp = new CliqueTreePropagation(model);
     
     def extractTopics(): TopicTree = {    
@@ -193,14 +154,7 @@ object ExtractTopicTree {
   		val setNode = model.observedDescendentOf(latent.getName)
   		val globallist = SortChildren(latent, setNode, _posteriorCtp);
   		
-  		val lemma = tm.text.Lemmatization.EnglishLemma()
-     // var distinctWords = scala.collection.mutable.MutableList[String]()
-      val observedVarOrder = globallist.take(keywords).map{ case(v, mi) =>
-        //val repeat = distinctWords.map{word => lemma.lemma(word).equals(lemma.lemma(v.getName))}.exists{ x => x==true }
-        //if(!repeat)
-        //	distinctWords += v.getName
-        v
-      }
+      val observedVarOrder = globallist.take(keywords).map{ case(v, mi) => v }
   		
   		_posteriorCtp.clearEvidence();
   		_posteriorCtp.propagate();
@@ -222,8 +176,22 @@ object ExtractTopicTree {
 			  }else
 				  Word(manifest.getName)
 			}
+			
+			// set evidence for latent state
+			_posteriorCtp.setEvidence(latentArray, Array(0));
+			_posteriorCtp.propagate();
+
+			// compute posterior for each manifest variable
+			val stateZeroWordsProbLookup = observedVarOrder.map{ manifest =>
+				  val posterior = _posteriorCtp.computeBelief(manifest);
+				  val prob = if(manifest.getCardinality()>1) (Math.rint(posterior.getCells()(1) * 100) / 100) else 0.0
+				  (manifest.getName, prob)
+			}.toMap
+			
+			val newWords = words.map{w=> new Word(w.w+" "+stateZeroWordsProbLookup(w.w), w.probability)}
+			
       val size = p.getCells()(card);
-			new Topic(name = latent.getName, words = words, level = None, size = Some(size), mi = None)
+			new Topic(name = latent.getName, words = newWords, level = None, size = Some(size), mi = None)
   	}
   	
   	def SortChildren(latent: Variable, varSet: Seq[Variable], ctp: CliqueTreePropagation) = {
@@ -281,14 +249,14 @@ object ExtractTopicTree {
       val (validObserved, indices) = observed.map{o => (o, data.variables.indexOf(o))}.filterNot(_._2 == -1).unzip
       val wordCounts = scala.collection.mutable.MutableList.fill(validObserved.size)(0.0)
       val topicProbs = data.instances.map { i =>
-        val values = indices.map(i.values.apply)
+        val values = indices.map(i.values)
         if(outProbNum) values.zipWithIndex.foreach{case (v, j) => wordCounts(j) += v}
         val latentProb = if(values.find(_ > 0.0).isDefined) 1.0 else 0.0
         latentProb
       }
       
       if(keepProb) topicProbabilities += (latent.getName -> topicProbs)
-      val size = topicProbs.count(_>=0.5) //Hard assignment, the same practice as in HLTA Java
+      val size = topicProbs.count(_>=0.5)/topicProbs.size //Hard assignment, the same practice as in HLTA Java
       val words = validObserved.zip(wordCounts).sortBy(-_._2).map{case (o, count) =>
         if(outProbNum) Word(o.getName, count/data.size)
         else Word(o.getName)
@@ -314,7 +282,7 @@ object ExtractTopicTree {
         }).toArray.unzip
     
         def getObservedStates(instance: Data.Instance) =
-          indices.map(instance.values.apply).map(v => if (v > 0) 1 else 0)
+          indices.map(instance.values).map(v => if (v > 0) 1 else 0)
     
         // check 
         val test = observed.map(learnedLcm.getNode)
@@ -342,14 +310,9 @@ object ExtractTopicTree {
       subtree.addNode(latent);
 
       val lemma = tm.text.Lemmatization.EnglishLemma()
-      //var distinctWords = scala.collection.mutable.MutableList[String]()
-      //TODO: keep only those will be printed? or keep all in the tree
       val observedVarOrder = globallist.take(keywords).map{ case(v, mi) =>
         subtree.addNode(v);
         subtree.addEdge(subtree.getNode(v), subtree.getNode(latent));
-        //val repeat = distinctWords.map{word => lemma.lemma(word).equals(lemma.lemma(v.getName))}.exists{ x => x==true }
-        //if(!repeat)
-        //	distinctWords += v.getName
         v
       }
       (subtree, observedVarOrder)
@@ -359,8 +322,6 @@ object ExtractTopicTree {
       val subData = data.project(subtree.getManifestVars.asScala.toIndexedSeq).toHlcmDataSet();
       subData.synchronize(subtree);
 
-      // System.out.println("Run EM on submodel, reorder the states of the
-      // root node");
       val emLearner = new org.latlab.learner.ParallelEmLearner();
       emLearner.setLocalMaximaEscapeMethod("ChickeringHeckerman");
       emLearner.setMaxNumberOfSteps(64);
@@ -393,7 +354,7 @@ object ExtractTopicTree {
       // LP: Holds P(W=1|Z=z), where W is the word variable, for z=0 and z=1
       // to save the topics for each node
       val latentArray = Array(latent)
-      var card = 1 // When rewriting the following code, we ignore the z=0 state because it is not useful in text mining
+      val card = 1 // When rewriting the following code, we ignore the z=0 state because it is not useful in text mining
       val states = Array(card);
 
       // set evidence for latent state

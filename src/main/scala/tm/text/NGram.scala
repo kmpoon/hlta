@@ -10,6 +10,7 @@ case class NGram(val words: Seq[String]) {
   lazy val identifier = words.mkString(NGram.separator)
 
   override def toString() = identifier
+  def toString(separator: String) = words.mkString(separator)
   
   def involves(subNgram: NGram) = words.containsSlice(subNgram.words)
 }

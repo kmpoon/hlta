@@ -20,14 +20,11 @@ object DataConverter {
   /**
    * For external call
    */
-  def apply(name: String, documents: GenSeq[Document], maxWords: Int, concat: Int,
+  def apply(name: String, documents: GenSeq[Document], maxWords: Int, concat: Int, documentMinTf: Int = 1,
       seedWords: SeedTokens = SeedTokens.Empty(), wordSelector: WordSelector = WordSelector.basic(),
       documentInfos: GenSeq[DocumentInfo] = null): Data = {
-    val (countsByDocuments, dictionary) = countTokensWithNGrams(name, documents, documentInfos, maxWords, concat, seedWords, wordSelector)
-    val countsByDocumentsWithMinCount = countsByDocuments.map{tokenCounts =>
-      tokenCounts.filter{case (token, count) => count>=2}
-    }
-    Data.fromDictionaryAndTokenCounts(dictionary, countsByDocumentsWithMinCount.toList, name = name)
+    val (countsByDocuments, dictionary) = countTokensWithNGrams(name, documents, documentInfos, maxWords, concat, documentMinTf, seedWords, wordSelector)
+    Data.fromDictionaryAndTokenCounts(dictionary, countsByDocuments.toList, name = name)
   }
 
 //  @Deprecated
@@ -59,7 +56,7 @@ object DataConverter {
    * specified in the {@ code settings}.
    */
   def countTokensWithNGrams(name: String, documents: GenSeq[Document], documentInfos: GenSeq[DocumentInfo], 
-      maxWords: Int, concat: Int, seeds: SeedTokens, wordSelector: WordSelector): (GenSeq[TokenCounts], Dictionary[TfidfWordInfo]) = {
+      maxWords: Int, concat: Int, documentMinTf: Int, seeds: SeedTokens, wordSelector: WordSelector): (GenSeq[TokenCounts], Dictionary[TfidfWordInfo]) = {
 
     def replaceByNGrams(ds: GenSeq[Document], check: NGram => Boolean, concat: Int = 2) = {
       ds.map(_.sentences.map(s =>
@@ -93,13 +90,18 @@ object DataConverter {
       // select words
       val (dictionary, currentFrequent) = {
         logger.info("Building Dictionary")
-        val allWordInfo = computeWordInfo(documents, documentInfos, appendNextNGram).sorted
+        val allWordInfo = computeWordInfo(documents, documentInfos, appendNextNGram, documentMinTf).sorted
 
         logger.info("Saving dictionary before selection")
         Dictionary.save(s"${name}.whole_dict-${n}.csv", allWordInfo)
 
         val (preSelected, remaining) = if(seeds.tokens.isEmpty) (IndexedSeq.empty, allWordInfo)
-                                       else allWordInfo.partition(w => seeds.tokens.contains(w.token))
+                                       else //allWordInfo.partition(w => seeds.tokens.contains(w.token))
+                                       {
+                                         val preSelected = allWordInfo.filter(w => seeds.tokens.contains(w.token)).take(maxWords)
+                                         val remaining = allWordInfo.filterNot(w => preSelected.contains(w))
+                                         (preSelected, remaining)
+                                       }
 
         if (preSelected.size > 0)
           logger.info("Using {} seed tokens", preSelected.size)
@@ -150,38 +152,38 @@ object DataConverter {
 
     logger.info("Extracting words")
     val (newDocuments, dictionary) = loop(ds, None, Set.empty, 0)
-    (newDocuments.map(countTermFrequencies), dictionary)
+    (newDocuments.map(countTermFrequencies(_, documentMinTf)), dictionary)
   }
 
   /**
    * Counts number of tokens in the given sequence of words.
+   * DocumentMinTf, the minimum term frequency within a document to consider that term exists in a document
    */
-  def countTokens(tokens: Seq[NGram]): TokenCounts = {
+  def countTokens(tokens: Seq[NGram], documentMinTf: Int): TokenCounts = {
     if (tokens.isEmpty) {
       Map.empty
     } else {
-      val wl = tokens.groupBy{ x => x }.filter(_._2.size>2)
-      wl.map{case (w, l) => (w -> l.size)}.toMap
+      tokens.groupBy{x => x}.filter(_._2.size >= documentMinTf).map{wl => (wl._1 -> wl._2.size)}
       //mapReduce(tokens.par)(w => Map(w -> 1))(_ |+| _)
     }
   }
 
-  def countTermFrequencies(d: Document): TokenCounts = {
-    countTermFrequencies(d, _.tokens)
+  def countTermFrequencies(d: Document, documentMinTf: Int): TokenCounts = {
+    countTermFrequencies(d, _.tokens, documentMinTf)
   }
 
   def countTermFrequencies(d: Document,
-    tokenizer: (Sentence) => Seq[NGram]): TokenCounts = {
-    countTokens(d.sentences.flatMap(tokenizer))
+    tokenizer: (Sentence) => Seq[NGram], documentMinTf: Int): TokenCounts = {
+    countTokens(d.sentences.flatMap(tokenizer), documentMinTf)
   }
 
   def computeWordInfo(documents: GenSeq[Document], documentInfos: GenSeq[DocumentInfo],
-    tokenizer: (Sentence) => Seq[NGram] = _.tokens): IndexedSeq[TfidfWordInfo] = {
+    tokenizer: (Sentence) => Seq[NGram] = _.tokens, documentMinTf: Int): IndexedSeq[TfidfWordInfo] = {
     import Preprocessor._
     import tm.util.ParMapReduce._
 
     val (tf, df, trend, n) = mapReduce(documents.zipWithIndex.par) { case(d, i) =>
-      val tf = countTermFrequencies(d, tokenizer)
+      val tf = countTermFrequencies(d, tokenizer, documentMinTf)
 
       // document count (1 for each occurring token)
       val df = tf.mapValues(c => if (c > 0) 1 else 0)

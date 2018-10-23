@@ -108,11 +108,6 @@ object HTD {
     
     val conf = new Conf(args)
     
-    val stopWords = conf.language().toLowerCase() match{
-                  case "en" | "english" => StopWords.EnglishStopwords()
-                  case "zh" | "chinese" => StopWords.ChineseStopwords()
-                  case "nonascii" | _ => StopWords.Empty()
-                }
     val minChar = conf.language().toLowerCase() match{
                     case "en" | "english" => 3
                     case "zh" | "chinese" => 1
@@ -120,9 +115,9 @@ object HTD {
                   }
     def preprocessor(text: String) = {
       val tokens = conf.language().toLowerCase() match{
-        case "en" | "english" => Preprocessor.EnglishPreprocessor(text, minChars = minChar, stopwords = StopWords.EnglishStopwords())
-        case "zh" | "chinese" => Preprocessor.ChinesePreprocessor(text, minChars = minChar, stopwords = StopWords.ChineseStopwords())
-        case "nonascii" | _ => Preprocessor.NonAsciiPreprocessor(text, minChars = minChar, stopwords = StopWords.Empty())
+        case "en" | "english" => Preprocessor.EnglishPreprocessor(text, minChars = minChar, stopwords = StopWords.EnglishStopwords)
+        case "zh" | "chinese" => Preprocessor.ChinesePreprocessor(text, minChars = minChar, stopwords = StopWords.ChineseStopwords)
+        case "nonascii" | _ => Preprocessor.NonAsciiPreprocessor(text, minChars = minChar, stopwords = StopWords.Empty)
       }
       Document(Sentence(tokens))
     }
@@ -153,9 +148,9 @@ object HTD {
         //If path is a data file
         val data = tm.util.Reader.readData(path.toString, 
             ldaVocabFile = conf.ldaVocab.getOrElse(""), format = conf.format.toOption)
-        val docNames = if(conf.docNames.isDefined) scala.io.Source.fromFile(conf.docNames()).getLines.toList 
+        val docNames = if(conf.docNames.isDefined) scala.io.Source.fromFile(conf.docNames())(conf.encoding()).getLines.toList 
                        else null
-        val docUrls = if(conf.docUrls.isDefined) scala.io.Source.fromFile(conf.docUrls()).getLines.toList 
+        val docUrls = if(conf.docUrls.isDefined) scala.io.Source.fromFile(conf.docUrls())(conf.encoding()).getLines.toList 
                       else null
         (data, docNames, docUrls)
       }else{
@@ -163,10 +158,10 @@ object HTD {
         val data = tm.text.Convert(conf.name(), conf.vocabSize(), path = path, encoding = conf.encoding(), 
             preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat())
         data.saveAsTuple(conf.name()+".sparse.txt")
-        val docNames = if(conf.docNames.isDefined) scala.io.Source.fromFile(conf.docNames()).getLines.toList 
+        val docNames = if(conf.docNames.isDefined) scala.io.Source.fromFile(conf.docNames())(conf.encoding()).getLines.toList 
                        else scala.io.Source.fromFile(path.toString()).getLines().toVector
                        //If docNames is not given, use doc context as doc label
-        val docUrls = if(conf.docUrls.isDefined) scala.io.Source.fromFile(conf.docUrls()).getLines.toList 
+        val docUrls = if(conf.docUrls.isDefined) scala.io.Source.fromFile(conf.docUrls())(conf.encoding()).getLines.toList 
                       else null
         (data, docNames, docUrls)
       }
