@@ -34,7 +34,7 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
    ``` 
    The output files include:
   * `someName.sparse.txt`: the converted data, generated if data conversion is necessary
-  * `model.bif`: HLTA model file
+  * `someName.bif`: HLTA model file
   * `someName.html`: HTML visualization 
   * `someName.nodes.js`: a topic tree
   * `someName-topics.js`: a document catalog grouped by topics
@@ -43,7 +43,7 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
    
 - You can also do
    ```
-   java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HTD documents.txt modelName
+   java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HTD documents.txt someName
    ``` 
    
   Your `documents.txt`:
@@ -60,12 +60,11 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
  
 - Convert text files to bag-of-words representation with 1000 words and 1 concatenation:
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert datasetName ./source 1000 1
+   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert myData ./source 1000 1
    ```
   After conversion, you can find:
-  - `sample.sparse.txt`: data in tuple format, i.e. lines of (docId, word) pair
-  - `sample.dict-1.csv`: information of words after selection after 1 possible concatenations
-  - `sample.whole_dict-1.csv`: information of words before selection after 1 possible concatenations 
+  - `myData.sparse.txt`: data in tuple format, i.e. lines of (docId, word) pair
+  - `myData.dict.csv`: the vocabulary list ('.dict-0.csv' is the list w/o concatenation, '.dict-1.csv' is after 1 concatenation, etc.)
   
   You may put your files anywhere in ./source. It accepts txt and pdf.
    ```
@@ -75,63 +74,63 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
    ```
 - Split into training set and testing set if needed: (v2.1)
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --testset-ratio 0.2 datasetName ./source 1000 1
+   java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --testset-ratio 0.2 myData ./source 1000 1
    ```
 
 # Subroutine 2: Model Building
 
 - Build model through with maximum 50 em steps (uses StepwiseEM)
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA data.sparse.txt 50 modelName
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA myData.sparse.txt 50 myModel
    ```
 The output files include:
-  * `model.bif`: HLTA model file
+  * `myModel.bif`: HLTA model file
 
 # Subroutine 3: Extract Topic Trees
 
 - Exract topic from topic model
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopicTree someName model.bif data.sparse.txt
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopicTree myTopicTree myModel.bif myDataset.sparse.txt
    ```
 
   The output files include:
-  * `someName.html`: a website
-  * `someName.nodes.js`: a topic tree stored in javascript
-  * `someName.nodes.json`: a topic tree stored as json
+  * `myTopicTree.html`: a website
+  * `myTopicTree.nodes.js`: a topic tree stored in javascript
+  * `myTopicTree.nodes.json`: a topic tree stored as json
   * `lib`: Javascript and CSS files required by the main HTML file
   * `fonts`: fonts used by some CSS files
 
 - You may use the "broadly defined topics" to speed up the process. Under this definition, more document will be categorized into a topic. (ref [*paper*](https://arxiv.org/abs/1605.06650) section 8.2.1)
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopicTree --broad someName model.bif
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopicTree --broad myTopicTree myModel.bif
    ```
 
 # Subroutine 4: Doc2Vec Assignment
 
 - Find out which documents belongs to that topic (i.e. inference)
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.Doc2VecAssignment model.bif data.sparse.txt outputName
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.Doc2VecAssignment myModel.bif myData.sparse.txt myAssignment
    ```
   The output files include:
-  * `output-topics.json`: a document catalog grouped by topic
-  * `output-topics.js`: a document catalog stored as javascript variable
-  * `output-topics.arff`: doc2vec assignments in arff format
+  * `myAssignment.topics.json`: a document catalog grouped by topic
+  * `myAssignment.topics.js`: a document catalog stored as javascript variable
+  * `myAssignment.arff`: doc2vec assignments in arff format
 
 - You may use the "broadly defined topics" to speed up the process. Under this definition, more document will be categorized into a topic. (ref [*paper*](https://arxiv.org/abs/1605.06650) section 8.2.1)
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.Doc2VecAssignment --broad model.bif data.sparse.txt outputName
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.Doc2VecAssignment --broad myModel.bif myData.sparse.txt topics
    ``` 
   
 # Evaluate Topic Model
 
 - Evaluate by topic coherence
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCoherence topic.nodes.json data.sparse.txt
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCoherence myTopicTree.nodes.json myData.sparse.txt
    ```
 
 - Evaluate by topic compactness. 
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCompactness topic.nodes.json data.sparse.txt GoogleNews-vectors-negative300.bin
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCompactness myTopicTree.nodes.json myData.sparse.txt GoogleNews-vectors-negative300.bin
    ```
    Download pre-trained word2vec model from https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing
 
@@ -140,7 +139,7 @@ The output files include:
    
  - Evaluate by loglikelihood. You will need to create a testing set in advance. (v2.1)
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.PerDocumentLoglikelihood model.bif data.test.sparse.txt
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.PerDocumentLoglikelihood myModel.bif myData.test.sparse.txt
    ```
 
    You may also see the Testing section of the [Old HLTA Page](https://github.com/kmpoon/hlta/blob/master/RESEARCH.md) (v2.0)
@@ -148,17 +147,17 @@ The output files include:
 # Options
 As introduced in Subroutine2 of Quick Example, we can train HLTA with default hyper-parameters by :
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA data.sparse.txt 50 modelName
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA myData.sparse.txt 50 myModel
    ```
    
 HLTA also supports to tune hyper-parameters by :
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA $trainingdata $EmMaxSteps $EmNumRestarts $EM-threshold $UDtest-threshold $outputmodel $MaxIsland $MaxTop $GlobalsizeBatch $GlobalMaxEpochs $GlobalEMmaxsteps $FirstBatch $IslandNotBridging $SampleSizeForstructureLearn $MaxCoreNumber $parallelIslandFindingLevel
+   java -cp HLTA.jar:HLTA-deps.jar clustering.StepwiseEMHLTA $trainingdata $EmMaxSteps $EmNumRestarts $EM-threshold $UDtest-threshold $CT-threshold $outputmodel $MaxIsland $MaxTop $GlobalsizeBatch $GlobalMaxEpochs $GlobalEMmaxsteps $FirstBatch $IslandNotBridging $SampleSizeForstructureLearn $MaxCoreNumber $parallelIslandFindingLevel
    ```
 
 For example,
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA data.sparse.txt 50 3 0.01 3 modelName 15 30 500 10 100 8000 1 10000 2 1
+   java -cp HLTA.jar:HLTA-deps.jar clustering.StepwiseEMHLTA myData.sparse.txt 50 3 0.01 3 off myModel 15 30 500 10 100 8000 1 10000 2 1
    ```
 
 Notice that, to speed up the training:
@@ -166,18 +165,19 @@ Notice that, to speed up the training:
 2. $EmMaxSteps: max steps in EM (default: 50)
 3. $EmNumRestarts: numner of restarters in EM (default: 3)
 4. $EM-threshold: threshold to control the stop of EM (default: 0.01)
-5. $UDtest-threshold: threshold to control whether the islands can pass UStest (default: 3)
-6. $outputmodel: name of output model
-7. $MaxIsland: The maximum number of variables in one island (default: 15)
-8. $MaxTop: max variable numbers for top level (default: 30)
-9. $GlobalsizeBatch: batch size in global stepwise EM for parameter learning (default: 500)
-10. $GlobalMaxEpochs: max epoch number in global stepwise EM for parameter learning (default: 10)
-11. $GlobalEMmaxsteps: step numbers  in global stepwise EM for parameter learning (default: 100)
-12. $FirstBatch: training samples size in the first batch (default: "all", means use all the training samples in first batch)
-13. $IslandNotBridging: remove island bridging or not, the default value is 1 meaning to remove island bridging. (default: 1)
-14. $SampleSizeForstructureLearn: how many samples are used in structure leanring. (default: 10000)
-15. $MaxCoreNumber: means the number of parallel CPU process. (default: 2) Users can choose a suitable core number considering the scale of their dataset. The further analysis on the balance of speed and performance can be found [*paper*](https://github.com/kmpoon/hlta/wiki/Document-for-Speeding-up-HLTA). Notice that, this number should not exceed the CPU core number of your machine, otherwise, it will slow HLTA.
-16. $parallelIslandFindingLevel: when $MaxCoreNumber > 1, $parallelIslandFindingLevel means the max level that use parallel island finding. For example, $parallelIslandFindingLevel == 3 means level1, level2 and level3 use parallel island finding; while other levels use serial island finding.
+5. $UDtest-threshold: threshold to control whether the islands can pass UDtest (default: 3)
+6. $CT-threshold: threshold to control whether the island can pass correlation test (default: off, that is no correlation test)
+7. $outputmodel: name of output model
+8. $MaxIsland: The maximum number of variables in one island (default: 15)
+9. $MaxTop: max variable numbers for top level (default: 30)
+10. $GlobalsizeBatch: batch size in global stepwise EM for parameter learning (default: 500)
+11. $GlobalMaxEpochs: max epoch number in global stepwise EM for parameter learning (default: 10)
+12. $GlobalEMmaxsteps: step numbers  in global stepwise EM for parameter learning (default: 100)
+13. $FirstBatch: training samples size in the first batch (default: "all", means use all the training samples in first batch)
+14. $IslandNotBridging: remove island bridging or not, the default value is 1 meaning to remove island bridging. (default: 1)
+15. $SampleSizeForstructureLearn: how many samples are used in structure leanring. (default: 10000)
+16. $MaxCoreNumber: means the number of parallel CPU process. (default: 2) Users can choose a suitable core number considering the scale of their dataset. The further analysis on the balance of speed and performance can be found [*paper*](https://github.com/kmpoon/hlta/wiki/Document-for-Speeding-up-HLTA). Notice that, this number should not exceed the CPU core number of your machine, otherwise, it will slow HLTA.
+17. $parallelIslandFindingLevel: when $MaxCoreNumber > 1, $parallelIslandFindingLevel means the max level that use parallel island finding. For example, $parallelIslandFindingLevel == 3 means level1, level2 and level3 use parallel island finding; while other levels use serial island finding.
 
 # Assemble
 If you need to modify source code and recompile HLTA, please follow next steps to build a sbt directory and compile HLTA. If not, please skip this session.

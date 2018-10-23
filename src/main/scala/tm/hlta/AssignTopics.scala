@@ -117,7 +117,7 @@ object Doc2VecAssignment {
     logger.info("Done")
   }
     
-  def getFileName(output: String, ext: String) = s"${output}-topics.${ext}"
+  def getFileName(output: String, ext: String) = s"${output}.topics.${ext}"
   
   /**
    * Assign broadly defined topics to the documents.

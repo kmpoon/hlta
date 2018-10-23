@@ -87,6 +87,7 @@ public class StepwiseEMHLTA {
 	 * Threshold for Correlation test, the higher it is, the more correlated the variables inside an island are
 	 */
 	private double _CTthreshold;
+	private boolean _noCT;
 
 	/**
 	 * Threshold for EM.
@@ -196,10 +197,11 @@ public class StepwiseEMHLTA {
 		 * BIC(m_1) - BIC(m_0) > _Cthrehsold
 		 */
 		double _CTthreshold;
+		boolean _noCT;
 		int _MaxCoreNumber;
 		
 		public void set(int EmMaxSteps, int EmNumRestarts, double emThreshold, 
-				boolean islandNotBridging, int maxTop, int maxIsland, double UDthreshold, double CTthreshold, int MaxCoreNumber) {
+				boolean islandNotBridging, int maxTop, int maxIsland, double UDthreshold, double CTthreshold, boolean noCT, int MaxCoreNumber) {
 
 			_EmNumRestarts = EmNumRestarts;
 			_EmMaxSteps = EmMaxSteps;
@@ -209,6 +211,7 @@ public class StepwiseEMHLTA {
 			_maxIsland = maxIsland;
 			_UDthreshold = UDthreshold;
 			_CTthreshold = CTthreshold;
+			_noCT = noCT;
 			_MaxCoreNumber = MaxCoreNumber;
 		}
 		
@@ -244,13 +247,13 @@ public class StepwiseEMHLTA {
 			System.out.println("new args.length: " + args.length);
 		}*/
 		//int args_for_mpi = 0;
-		if (args.length != 16 && args.length != 1 && args.length != 2 && args.length != 3 && args.length!= 0) {
-			System.err.println("Usage: java PEMHLTA trainingdata outputmodel (IslandNotBridging (EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold outputmodel MaxIsland MaxTop GlobalsizeBatch GlobalMaxEpochs GlobalEMmaxsteps FirstBatch SampleSizeForstructureLearn MaxCoreNumber serialIslandFindingLevel)) ");
+		if (args.length != 17 && args.length != 1 && args.length != 2 && args.length != 3 && args.length!= 0) {
+			System.err.println("Usage: java StepwiseEMHLTA trainingdata outputmodel (IslandNotBridging (EmMaxSteps EmNumRestarts EM-threshold UDtest-threshold CT-threshold outputmodel MaxIsland MaxTop GlobalsizeBatch GlobalMaxEpochs GlobalEMmaxsteps FirstBatch SampleSizeForstructureLearn MaxCoreNumber serialIslandFindingLevel)) ");
 			System.exit(1);
 		}
 		// TODO Auto-generated method stub
 
-		if(args.length == 16 || args.length == 2 || args.length == 1 || args.length == 0){
+		if(args.length == 17 || args.length == 2 || args.length == 1 || args.length == 0){
 			clustering.StepwiseEMHLTA Fast_learner = new clustering.StepwiseEMHLTA();
 			Fast_learner.initialize(args);
 			
@@ -290,7 +293,7 @@ public class StepwiseEMHLTA {
         		_modelname = args[1];
         }
 
-		if(args.length==16){
+		if(args.length==17){
 		_OrigSparseData = new SparseDataSet(args[0]);
 			
 		_EmMaxSteps = Integer.parseInt(args[1]);
@@ -301,7 +304,12 @@ public class StepwiseEMHLTA {
 
 		_UDthreshold = Double.parseDouble(args[4]);
 		
-		_CTthreshold = Double.parseDouble(args[5]);
+		try{
+			_CTthreshold = Double.parseDouble(args[5]);
+			_noCT = false;
+		}catch(Exception e){
+			_noCT = true;
+		}
 
 		_modelname = args[6];
 
@@ -326,6 +334,7 @@ public class StepwiseEMHLTA {
 			_emThreshold=0.01;// paper: not mentioned
 			_UDthreshold=3; // paper: 3
 			_CTthreshold=3;
+			_noCT = false; //if noCT is true, HLTA does not care about ctThreshold
 			_maxIsland = 15;//10 > paper: 15
 			_maxTop =30;//15 > paper: NYT:30 other:20
 			_sizeBatch = 500;//1000 < paper:1000
@@ -341,7 +350,7 @@ public class StepwiseEMHLTA {
 		if (1 == _MaxCoreNumber) {
 			_useOnlySerialVersion = true;
 		}
-		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold, _CTthreshold, _MaxCoreNumber);
+		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold, _CTthreshold, _noCT, _MaxCoreNumber);
 	}
 
 	/**
@@ -354,7 +363,7 @@ public class StepwiseEMHLTA {
 	 * @throws IOException
 	 * @throws Exception
 	 */
-	public void initialize(SparseDataSet sparseDataSet, int emMaxSteps, int emNumRestarts, double emThreshold, double udThreshold, double ctThreshold,
+	public void initialize(SparseDataSet sparseDataSet, int emMaxSteps, int emNumRestarts, double emThreshold, double udThreshold, double ctThreshold, boolean noCorrelationTest,
 			String modelName, int maxIsland, boolean noBridging, int maxTop, int sizeBatch, int maxEpochs, int globalEmMaxSteps, String sizeFirstBatch) throws IOException, Exception{
         System.out.println("Initializing......");
 		// Read the data set
@@ -370,6 +379,7 @@ public class StepwiseEMHLTA {
 		_UDthreshold = udThreshold;//Double.parseDouble(args[4]);
 		
 		_CTthreshold = ctThreshold;
+		_noCT = noCorrelationTest;
 
 		_modelname = modelName;//args[5];
 
@@ -385,25 +395,11 @@ public class StepwiseEMHLTA {
 		}else{
             _OrigDenseData = _OrigSparseData.GiveDenseBatch(Integer.parseInt(_sizeFirstBatch));
 		}
-//		}else{
-//			_EmMaxSteps =50;
-//			_EmNumRestarts=3;
-//			_emThreshold=0.01;
-//			_UDthreshold=3;
-//			_modelname ="HLTAModel";
-//			_maxIsland = 15;
-//			_maxTop =30;
-//			_sizeBatch =500;
-//			_maxEpochs = 10;
-//			_globalEMmaxSteps =100;
-//			_sizeFirstBatch = "all";
-//            _OrigDenseData = _OrigSparseData.getWholeDenseData();
-//		}
 		
 		if (1 == _MaxCoreNumber) {
 			_useOnlySerialVersion = true;
 		}
-		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold, _CTthreshold, _MaxCoreNumber);
+		_hyperParam.set(_EmMaxSteps, _EmNumRestarts, _emThreshold, _islandNotBridging, _maxTop, _maxIsland, _UDthreshold, _CTthreshold, _noCT, _MaxCoreNumber);
 	}
 	
 	
@@ -780,7 +776,7 @@ public class StepwiseEMHLTA {
 				double uniModelBIC =
 						ScoreCalculator.computeBic(m1, data_proj2l);
 
-				if (uniModelBIC - oldModelBIC < hyperParam._CTthreshold && VariablesSet.size() - cluster.size() + 1 >= 3){
+				if (!hyperParam._noCT && uniModelBIC - oldModelBIC < hyperParam._CTthreshold && VariablesSet.size() - cluster.size() + 1 >= 3){
 					subModel = m0;
 					updateHierarchies(subModel, bestPair, bestpairs, hierarchies);
 					updateVariablesSet(subModel, VariablesSet);
