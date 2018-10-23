@@ -76,7 +76,7 @@ object Convert {
                     case "zh" | "chinese" => 1
                     case "nonascii" | _ => 1
                   }
-    val engLemma = Lemmatization.EnglishLemma()
+    val engLemma = Lemmatization.EnglishLemma
     def preprocessor(text: String) = {
       val tokens = conf.language().toLowerCase() match{
         case "en" | "english" => {
