@@ -5,7 +5,7 @@ import tm.text.NGram
 
 object FindInterestingBigrams {
   def main(args: Array[String]) {
-    val dictionary = Dictionary.read(args(0), tm.text.TfidfWordInfo.fromString(_))
+    val dictionary = Dictionary.read(args(0))
     // find n-grams where each of the token in that n-gram is also a token in
     // the dictionary
     val ngrams = dictionary.info.filter(w =>

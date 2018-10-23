@@ -50,7 +50,7 @@ class DictionarySpec extends BaseSpec {
   trait PapersDictionary {
     Given("Dictionary")
     val dictionary = Dictionary.read(
-      getClass.getResourceAsStream("/papers2.dict-10000.csv"), tm.text.TfidfWordInfo.fromString(_))
+      getClass.getResourceAsStream("/papers2.dict-10000.csv"))
     //      val dictionary = Dictionary.read(
     //    new GZIPInputStream(getClass.getResourceAsStream("/Emails.csv.gz")))
   }

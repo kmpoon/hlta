@@ -9,7 +9,7 @@ object CheckDataVariables {
   def main(args: Array[String]) {
     val name = "aaai"
 
-    val dictionary = Dictionary.read(s"${name}.dict-3.csv", tm.text.TfidfWordInfo.fromString(_))
+    val dictionary = Dictionary.read(s"${name}.dict-3.csv")
     val data = new DataSet(DataSetLoader.convert(s"${name}.txt"))
 
     val variables = data.getVariables.map(_.getName)

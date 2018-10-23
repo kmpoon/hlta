@@ -212,7 +212,7 @@ object Preprocessor {
     val N = countsByDocuments.size
 
     def buildWordInfo(token: NGram, tf: Int, df: Int) =
-      TfidfWordInfo(token, tf, df, computeTfIdf(tf, df, N))
+      WordInfo(token, tf, df, computeTfIdf(tf, df, N))
 
     val info = termFrequencies.keys.map { w =>
       buildWordInfo(w, termFrequencies(w), documentFrequencies(w))

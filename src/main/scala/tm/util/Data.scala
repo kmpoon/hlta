@@ -13,13 +13,12 @@ import org.latlab.model.LTM
 import org.slf4j.LoggerFactory
 import scala.util.Random
 import tm.text.Dictionary
-import tm.text.GeneralWordInfo
 import tm.text.NGram
 
 object Data{
   type TokenCounts = Map[NGram, Int]
   
-  def fromTokenAndTokenCounts[T <: GeneralWordInfo with Ordered[T]](tokens: Seq[NGram], tokenCountsSeq: Seq[TokenCounts], 
+  def fromTokenAndTokenCounts(tokens: Seq[NGram], tokenCountsSeq: Seq[TokenCounts], 
       isBinary: Boolean = false, name: String = "data"): Data = { 
     
     def _newVariable(name: String) = {
@@ -48,7 +47,7 @@ object Data{
     new Data(variables.toIndexedSeq, instances.toIndexedSeq, isBinary, name)
   }
   
-  def fromDictionaryAndTokenCounts[T <: GeneralWordInfo with Ordered[T]](dictionary: Dictionary[T], tokenCountsSeq: Seq[TokenCounts], 
+  def fromDictionaryAndTokenCounts(dictionary: Dictionary, tokenCountsSeq: Seq[TokenCounts], 
       isBinary: Boolean = false, name: String = "data"): Data = { 
     
     def _newVariable(name: String) = {
