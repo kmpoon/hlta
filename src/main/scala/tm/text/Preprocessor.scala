@@ -16,22 +16,19 @@ import scala.util.matching.Regex
 import scala.util.matching.Regex.Match
 import tm.util.ParMapReduce
 
-/**
- * Preprocessor meant to be an API for HLTA users
- * See https://nlp.stanford.edu/software/tmt/tmt-0.4/ for reference
- */
 object Preprocessor {
   type TokenCounts = Map[NGram, Int]
   
   /**
    * A simple English preprocessor
    */
-  def EnglishPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.EnglishStopwords): Seq[String] = 
+  def EnglishPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.EnglishStopwords, 
+      lemmatizer: DictionaryLemmatizer = DictionaryLemmatizer.EnglishLemmatizer): Seq[String] = 
     tokenizeBySpace(s)
     .map(_.toLowerCase)
     .map(normalize)
-    .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
     .map(replaceNonAlnum)
+    .map(lemmatizer.lemmatize)
     .filter(withProperLength(minChars))
     .filterNot(stopwords.contains)
       
@@ -41,7 +38,6 @@ object Preprocessor {
    */
   def ChinesePreprocessor(s: String, minChars: Int = 1, stopwords: StopWords = StopWords.ChineseStopwords): Seq[String] = 
     tokenizeChinese(replaceSpace(s))
-    .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
     .map(replacePunctuation)
     .filter(withLength(minChars))
     .filterNot(stopwords.contains)
@@ -51,7 +47,6 @@ object Preprocessor {
    */
   def NonAsciiPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.Empty): Seq[String] = 
     tokenizeBySpace(s)
-    .map(StanfordLemmatizer.bracketRegex.replaceAllIn(_, ""))
     .map(replacePunctuation)
     .filter(withProperLength(minChars))
     .filterNot(stopwords.contains)

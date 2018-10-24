@@ -14,6 +14,7 @@ import tm.text.Preprocessor
 import tm.text.Document
 import tm.text.Sentence
 import tm.text.StopWords
+import tm.text.StanfordNlp
 
 object HTD {
   /**
@@ -114,12 +115,22 @@ object HTD {
                     case "nonascii" | _ => 1
                   }
     def preprocessor(text: String) = {
-      val tokens = conf.language().toLowerCase() match{
-        case "en" | "english" => Preprocessor.EnglishPreprocessor(text, minChars = minChar, stopwords = StopWords.EnglishStopwords)
-        case "zh" | "chinese" => Preprocessor.ChinesePreprocessor(text, minChars = minChar, stopwords = StopWords.ChineseStopwords)
-        case "nonascii" | _ => Preprocessor.NonAsciiPreprocessor(text, minChars = minChar, stopwords = StopWords.Empty)
+      conf.language().toLowerCase() match{
+        case "en" | "english" => {
+          StanfordNlp.EnglishPreprocessor(text, minChars = minChar, stopwords = StopWords.EnglishStopwords)
+          //Without standford nlp
+          //val tokens = Preprocessor.EnglishPreprocessor(text, minChars = minChar, stopwords = stopWords)
+          //Docuemnt(Sentence(tokens))
+        }
+        case "zh" | "chinese" => {
+          val tokens = Preprocessor.ChinesePreprocessor(text, minChars = minChar, stopwords = StopWords.ChineseStopwords)
+          Document(Sentence(tokens))
+        }
+        case "nonascii" | _ => {
+          val tokens = Preprocessor.NonAsciiPreprocessor(text, minChars = minChar, stopwords = StopWords.Empty)
+          Document(Sentence(tokens))
+        }
       }
-      Document(Sentence(tokens))
     }
     val wordSelector = tm.text.WordSelector.byTfIdf(minChar, 0, .25)
 

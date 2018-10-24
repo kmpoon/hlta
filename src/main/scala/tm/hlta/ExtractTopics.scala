@@ -309,7 +309,7 @@ object ExtractTopicTree {
       val subtree = new LTM();
       subtree.addNode(latent);
 
-      val lemma = tm.text.Lemmatization.EnglishLemma
+      val lemma = tm.text.DictionaryLemmatizer.EnglishLemmatizer
       val observedVarOrder = globallist.take(keywords).map{ case(v, mi) =>
         subtree.addNode(v);
         subtree.addEdge(subtree.getNode(v), subtree.getNode(latent));

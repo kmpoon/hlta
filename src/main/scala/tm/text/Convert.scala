@@ -73,17 +73,23 @@ object Convert {
                     case "zh" | "chinese" => 1
                     case "nonascii" | _ => 1
                   }
-    val engLemma = Lemmatization.EnglishLemma
     def preprocessor(text: String) = {
-      val tokens = conf.language().toLowerCase() match{
+      conf.language().toLowerCase() match{
         case "en" | "english" => {
-          val preprcoessed = Preprocessor.EnglishPreprocessor(text, minChars = minChar, stopwords = stopWords)
-          preprcoessed.map(engLemma.lemma)
+          StanfordNlp.EnglishPreprocessor(text, minChars = minChar, stopwords = stopWords)
+          //Without standford nlp
+          //val tokens = Preprocessor.EnglishPreprocessor(text, minChars = minChar, stopwords = stopWords)
+          //Docuemnt(Sentence(tokens))
         }
-        case "zh" | "chinese" => Preprocessor.ChinesePreprocessor(text, minChars = minChar, stopwords = stopWords)
-        case "nonascii" | _ => Preprocessor.NonAsciiPreprocessor(text, minChars = minChar, stopwords = stopWords)
+        case "zh" | "chinese" => {
+          val tokens = Preprocessor.ChinesePreprocessor(text, minChars = minChar, stopwords = stopWords)
+          Document(Sentence(tokens))
+        }
+        case "nonascii" | _ => {
+          val tokens = Preprocessor.NonAsciiPreprocessor(text, minChars = minChar, stopwords = stopWords)
+          Document(Sentence(tokens))
+        }
       }
-      Document(Sentence(tokens))
     }
     val wordSelector = WordSelector.byTfIdf(minChar, conf.minDocFraction(), conf.maxDocFraction())
         
