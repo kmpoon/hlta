@@ -17,7 +17,7 @@ import java.util.ArrayList
 import org.latlab.graph.DirectedNode
 import org.latlab.reasoner.CliqueTreePropagation
 import org.latlab.model.BeliefNode
-import org.apache.commons.lang.StringEscapeUtils
+import org.apache.commons.text.StringEscapeUtils
 
 import org.rogach.scallop._
 import tm.util.Arguments
@@ -298,7 +298,7 @@ case class DocumentCatalog(map: Map[Variable, Seq[(String, Double)]]){
   def saveAsJs(outputFile: String, decimalPlaces: Int = 2, jsVarName: String = "topicMap"){
     
     implicit class Escape(str: String){
-      def escape = StringEscapeUtils.escapeJavaScript(str)
+      def escape = StringEscapeUtils.escapeEcmaScript(str)
     }
     
     val writer = new PrintWriter(outputFile)

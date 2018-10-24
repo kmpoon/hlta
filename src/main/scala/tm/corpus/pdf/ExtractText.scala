@@ -3,12 +3,14 @@ package tm.corpus.pdf
 import java.io.StringWriter
 import java.nio.file.Path
 import org.apache.pdfbox.pdmodel.PDDocument
-import org.apache.pdfbox.util.PDFTextStripper
+import org.apache.pdfbox.text.PDFTextStripper
 import tm.corpus.Extractor
 import org.slf4j.LoggerFactory
 
 
 object ExtractText extends Extractor {
+  java.util.logging.Logger
+    .getLogger("org.apache.pdfbox").setLevel(java.util.logging.Level.SEVERE);
   val extension = "pdf"
 
   def main(args: Array[String]) {
@@ -28,7 +30,7 @@ object ExtractText extends Extractor {
 
     try {
       val stripper = new PDFTextStripper();
-      stripper.setForceParsing(force);
+      //stripper.setForceParsing(force);
       stripper.setSortByPosition(sort);
       stripper.setShouldSeparateByBeads(separateBeads);
       stripper.setStartPage(startPage);

@@ -11,9 +11,6 @@ import scala.collection.GenMap
 import scala.collection.GenSeq
 import tm.util.ParMapReduce._
 
-import org.apache.pdfbox.pdmodel.PDDocument
-import org.apache.pdfbox.util.PDFTextStripper
-
 import org.rogach.scallop._
 import tm.util.Arguments
 

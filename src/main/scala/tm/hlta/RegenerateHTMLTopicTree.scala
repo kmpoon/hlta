@@ -16,7 +16,7 @@ import java.nio.file.Path
 import tm.util.FileHelpers
 import tm.util.Arguments
 import scala.collection.GenSeq
-import org.apache.commons.lang.StringEscapeUtils
+import org.apache.commons.text.StringEscapeUtils
 
 object RegenerateHTMLTopicTree {
   
@@ -133,7 +133,7 @@ object BuildWebsite{
   def writeHtmlOutput(title: String, outputName: String, outputFile: String) = {
     
     implicit class Escape(str: String){
-      def escape = StringEscapeUtils.escapeHtml(str)
+      def escape = StringEscapeUtils.escapeHtml4(str)
     }
     
     val template = Source.fromInputStream(
@@ -293,7 +293,7 @@ object JstreeWriter{
   def writeSimpleHtml[A](roots: Seq[Tree[A]], outputFile: String, jstreeContent: A => Node){
     
     implicit class Escape(str: String){
-      def escape = StringEscapeUtils.escapeHtml(str)
+      def escape = StringEscapeUtils.escapeHtml4(str)
     }
 
     def _treeToHtml(tree: Tree[A], indent: Int): String = {
