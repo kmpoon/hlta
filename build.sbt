@@ -16,27 +16,24 @@ libraryDependencies ++=
   "org.apache.commons" % "commons-compress" % "1.18" ::
   "org.apache.commons" % "commons-text" % "1.6" ::
   "commons-io" % "commons-io" % "2.6" ::
+  "com.google.guava" % "guava" % "20.0" ::
   "edu.stanford.nlp" % "stanford-corenlp" % "3.9.1" ::
   ("edu.stanford.nlp" % "stanford-corenlp" % "3.9.1" classifier "models") ::
   "org.slf4j" % "slf4j-simple" % "1.7.21" ::
-//  "com.google.protobuf" % "protobuf-java" % "2.6.1"  ::
   "org.rogach" %% "scallop" % "2.0.0" ::
 //  "org.apache.spark" %% "spark-core" % "1.6.2" % "provided" ::
 //  "org.apache.spark" %% "spark-mllib" % "1.6.2" % "provided" ::
 //  "org.jsoup" % "jsoup" % "1.8.3" ::
 //  "org.apache.opennlp" % "opennlp-tools" % "1.6.0" ::
 //  "org.apache.opennlp" % "opennlp-maxent" % "3.0.3" ::
-//  "org.apache.lucene" % "lucene-core" % "5.5.0" ::
-//  "org.apache.lucene" % "lucene-analyzers-common" % "5.5.0" ::
   "org.apache.pdfbox" % "pdfbox" % "2.0.12" ::
   "colt" % "colt" % "1.2.0" ::
   "nz.ac.waikato.cms.weka" % "weka-stable" % "3.6.13" ::
-//  "org.scala-lang.modules" %% "scala-xml" % "1.0.6" ::
 //  "io.argonaut" %% "argonaut" % "6.1" ::
 // https://mvnrepository.com/artifact/org.deeplearning4j
-//  "org.nd4j" % "nd4j-native-platform" % "0.9.1" ::
-//  "org.deeplearning4j" % "deeplearning4j-core" % "0.9.1" ::
-//  "org.deeplearning4j" % "deeplearning4j-nlp" % "0.9.1" ::
+  "org.nd4j" % "nd4j-native-platform" % "0.9.1" ::
+  "org.deeplearning4j" % "deeplearning4j-core" % "0.9.1" ::
+  "org.deeplearning4j" % "deeplearning4j-nlp" % "0.9.1" ::
   "org.json4s" %% "json4s-native" % "3.6.0-M2" ::
   "com.github.tototoshi" %% "scala-csv" % "1.3.5" ::
 //  "junit" % "junit" % "4.11" ::

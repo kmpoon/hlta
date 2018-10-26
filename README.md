@@ -128,9 +128,9 @@ The output files include:
    java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCoherence myTopicTree.nodes.json myData.sparse.txt
    ```
 
-- Evaluate by topic compactness. 
+- Evaluate by topic compactness. (revamped in v2.3, please update to v2.3 to use this function)
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCompactness myTopicTree.nodes.json myData.sparse.txt GoogleNews-vectors-negative300.bin
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCompactness myTopicTree.nodes.json GoogleNews-vectors-negative300.bin
    ```
    Download pre-trained word2vec model from https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing
 
