@@ -30,10 +30,6 @@ libraryDependencies ++=
   "colt" % "colt" % "1.2.0" ::
   "nz.ac.waikato.cms.weka" % "weka-stable" % "3.6.13" ::
 //  "io.argonaut" %% "argonaut" % "6.1" ::
-// https://mvnrepository.com/artifact/org.deeplearning4j
-  "org.nd4j" % "nd4j-native-platform" % "0.9.1" ::
-  "org.deeplearning4j" % "deeplearning4j-core" % "0.9.1" ::
-  "org.deeplearning4j" % "deeplearning4j-nlp" % "0.9.1" ::
   "org.json4s" %% "json4s-native" % "3.6.0-M2" ::
   "com.github.tototoshi" %% "scala-csv" % "1.3.5" ::
 //  "junit" % "junit" % "4.11" ::
