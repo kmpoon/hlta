@@ -130,7 +130,7 @@ The output files include:
 
 - Evaluate by topic compactness. (revamped in v2.3, please update to v2.3 to use this function)
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCompactness myTopicTree.nodes.json GoogleNews-vectors-negative300.bin
+   java -Xmx4G -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCompactness myTopicTree.nodes.json GoogleNews-vectors-negative300.bin
    ```
    Download pre-trained word2vec model from https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing
 

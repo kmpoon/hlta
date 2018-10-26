@@ -104,14 +104,14 @@ object TopicCompactness {
     else Some(similarities.sum/similarities.size)
   }
   
-  def cosineSimilarity(vectorA: Seq[java.lang.Double], vectorB: Seq[java.lang.Double]) = {
+  def cosineSimilarity(vectorA: Seq[java.lang.Float], vectorB: Seq[java.lang.Float]) = {
     var dotProduct = 0.0;
     var normA = 0.0;
     var normB = 0.0;
     for (i <- 0 until vectorA.length) {
         dotProduct += vectorA(i) * vectorB(i)
-        normA += Math.pow(vectorA(i), 2)
-        normB += Math.pow(vectorB(i), 2)
+        normA += vectorA(i) * vectorA(i)
+        normB += vectorB(i) * vectorB(i)
     }   
     dotProduct / (Math.sqrt(normA * normB))
   }
