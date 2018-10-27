@@ -20,7 +20,7 @@ object HLTA {
   
   class Conf(args: Seq[String]) extends Arguments(args) {
     banner("""Usage: HLTA [OPTION]... dataFile emMaxStep name
-             |E.g. HLTA data.arff 50 model1
+             |E.g. HLTA data.sparse.txt 50 model1
              |The output file will be model1.bif
              |
              |Please refer to the paper "Latent Tree Models for Hierarchical Topic Detection" for algorithmic details""")
@@ -31,10 +31,8 @@ object HLTA {
     
     val ldaVocab = opt[String](default = None, descr = "LDA vocab file, only required if lda data is provided")
     
-    val maxThreads = opt[Int](descr =
-      "Maximum number of threads to use for parallel computation.  " +
-      "The default number is set to the number of CPU cores.  " +
-      "If the specified number is larger than the number of CPU cores, the latter number will be used.")
+    val maxCore = opt[Int](descr = "Maximum cores for parallel computation. (e.g. 2)" , default = Some(2))
+    val parallelFinding = opt[Int](descr = "The maximum topic tree level that uses parallel island finding, only affective when maxCore > 1. (e.g. 1)", default = Some(1))
     
     val emNumRestart = opt[Int](descr = "Number of restarts in EM (e.g. 5). <paper section 6.1>", default = Some(5))
     val emThreshold = opt[Double](descr = "Threshold of improvement to stop EM (e.g. 0.01) <paper section 6.1>", default = Some(0.01))
@@ -42,12 +40,13 @@ object HLTA {
     val ctThreshold = opt[Double](descr = "The correlation test threshold, high threshold makes island harder to expand.", default = Some(3))
     val maxIsland = opt[Int](descr = "Maximum number of variables in an island (e.g. 10). <paper section 5.1>", default = Some(10))
     val maxTop = opt[Int](descr = "Maximum number of variables in top level (e.g. 15). <paper section 5.1>", default = Some(15))
+    val bridging = opt[Boolean](descr = "Turn on island bridging. Default bridging is off. <paper section 5.2.3>", default = Some(false)) 
     
     val globalBatchSize = opt[Int](descr = "Number of data cases used in each stepwise EM step. <paper section 7>", default = Some(1000))
     val globalMaxEpochs = opt[Int](descr = "Number of times the whole training dataset has been gone through (e.g. 10). <paper section 7>", default = Some(10))
     val globalMaxEmSteps = opt[Int](descr = "Maximum number of stepwise EM steps (e.g. 128). <paper section 7>", default = Some(128))
     
-    val structBatchSize = opt[Int](descr = "Number of data cases used for building model structure. <paper section 7>", default = None)
+    val structLearnSize = opt[Int](descr = "Number of data cases used for building model structure. <paper section 7>", default = Some(10000))
     val structUseAll = opt[Boolean](descr = "Use all data cases for building model structure. <paper section 7>", default = Some(false))
 
     verify
@@ -56,43 +55,41 @@ object HLTA {
   
   /**
    * Model building, building a hierarchical latent tree
-   *    maxThread: Parallemism, how many thread run together
+   *    maxCore: Maximum cores for parallel computation. (e.g. 2)
+   *    parallelFinding: The maximum topic tree level that uses parallel island finding, only affective when maxCore > 1. (e.g. 1)
    * Local EM parameters:
    * 		emMaxSteps: Maximum number of EM steps (e.g. 50).
    * 		emNumRestarts: Number of restarts in EM (e.g. 5).
    * 		emThreshold: Threshold of improvement to stop EM (e.g. 0.01).
    * Model construction parameters:
    * 		udThreshold: The threshold used in unidimensionality test for constructing islands (e.g. 3).
+   *    ctThreshold: Correlation test threshold. A test to judge if a variable is correlated w/ the island. Make this None to skip the test. (e.g. None)
    * 		maxIsland: Maximum number of variables in an island (e.g. 10).
    * 		maxTop: Maximum number of variables in top level (e.g. 15).
+   *    noBridging: Disable island bridging (e.g. true)
+   *    structLearnSize: Number of data cases used for building model structure.
    * Global parameters:
    * 		globalBatchSize: Number of data cases used in each stepwise EM step (e.g. 1000).
    * 		globalMaxEpochs: Number of times the whole training dataset has been gone through (e.g. 10).
    * 		globalMaxEmSteps: Maximum number of stepwise EM steps (e.g. 128).
-   * 		structBatchSize: Number of data cases used for building model structure.
    * 
    * Parameter follows the suggested numbers in cluster.StepwiseEMHLTA
    */
-  def apply(data: Data, modelName: String, ldaVocab: String = null, maxThread: Option[Int] = None,
+  def apply(data: Data, modelName: String, ldaVocab: String = null,
+      maxCore: Int = 2, parallelFinding: Int = 1,
       emMaxStep: Int = 50, emNumRestart: Int = 3, emThreshold: Double = 0.01,
-      udThreshold: Double = 3.0, ctThreshold: Option[Double] = None, maxIsland: Int = 15, noBridging: Boolean = true, maxTop: Int = 30, 
+      udThreshold: Double = 3.0, ctThreshold: Option[Double] = None, maxIsland: Int = 15, maxTop: Int = 30, noBridging: Boolean = true, 
       globalBatchSize: Int = 500, globalMaxEpochs: Int = 10, globalMaxEmSteps: Int = 100, 
-      structBatchSize: Option[Int] = None, structBatchAll: Boolean = false): LTM = {
+      structLearnSize: Int = 10000, structBatchAll: Boolean = false): LTM = {
     
-    val _sizeFirstBatch = if(structBatchAll) "all"
-      else if(structBatchSize.isEmpty){//auto determine structBatchSize
-        if(data.size > 10000) 5000.toString() else "all"
-      }else{          
-        structBatchSize.toString()
-      }
-    if(maxThread.isDefined)
-      Parallelism.instance().setLevel(maxThread.get)
+    val _structLearnSize = if(structBatchAll) data.size() else structLearnSize
       
     val builder = new clustering.StepwiseEMHLTA()
     builder.initialize(data.toTupleSparseDataSet(), emMaxStep, emNumRestart, emThreshold, udThreshold, 
-        ctThreshold.getOrElse(Double.MinValue), ctThreshold.isEmpty, modelName, maxIsland, 
-        noBridging, maxTop, globalBatchSize, globalMaxEpochs,
-          globalMaxEmSteps, _sizeFirstBatch)
+        modelName, maxIsland, maxTop,
+        globalBatchSize, globalMaxEpochs, globalMaxEmSteps, 
+        noBridging, _structLearnSize, maxCore, parallelFinding,
+        ctThreshold.getOrElse(Double.MinValue), ctThreshold.isEmpty)
     builder.IntegratedLearn()
       
     Reader.readModel(modelName+".bif")
@@ -103,17 +100,15 @@ object HLTA {
     
     val data = Reader.readData(conf.data(), ldaVocabFile = conf.ldaVocab.getOrElse(""))
     
-    val _sizeFirstBatch = if(conf.structUseAll()) "all"
-      else if(conf.structBatchSize.isEmpty){//auto determine structBatchSize
-        if(data.size > 10000) 5000.toString() else "all"
-      }else{          
-        conf.structBatchSize().toString()
-      }
+    val _structLearnSize = if(conf.structUseAll()) data.size() else conf.structLearnSize()
+    val noBridging = !conf.bridging()
       
     val builder = new clustering.StepwiseEMHLTA()
     builder.initialize(data.toTupleSparseDataSet(), conf.emMaxStep(), conf.emNumRestart(), conf.emThreshold(), conf.udThreshold(), 
-        conf.ctThreshold.getOrElse(Double.MinValue), conf.ctThreshold.isEmpty, conf.outputName(), 
-        conf.maxIsland(), true, conf.maxTop(), conf.globalBatchSize(), conf.globalMaxEpochs(), conf.globalMaxEmSteps(), _sizeFirstBatch)
+        conf.outputName(), conf.maxIsland(), conf.maxTop(), 
+        conf.globalBatchSize(), conf.globalMaxEpochs(), conf.globalMaxEmSteps(), 
+        noBridging, _structLearnSize, conf.maxCore(), conf.parallelFinding(),
+        conf.ctThreshold.getOrElse(Double.MinValue), conf.ctThreshold.isEmpty)
     builder.IntegratedLearn()
   }
   
