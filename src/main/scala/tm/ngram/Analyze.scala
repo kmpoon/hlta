@@ -60,7 +60,7 @@ object Analyze {
     val topLevelTrees = HTMLTopicTable.readTopicTree(topicFile)
 
     def findDistinctWords(tree: Tree[Topic]): Seq[String] = {
-      tree.toList.filter(_.level == 1) // list of topics
+      tree.toList.filter(_.level.get == 1) // list of topics
         .flatMap(_.words.map(w => NGram.fromConcatenatedString(w.w))) // list of ngrams
         .flatMap(_.words) // list of words
         .distinct

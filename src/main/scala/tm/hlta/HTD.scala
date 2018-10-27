@@ -142,15 +142,14 @@ object HTD {
     val path = java.nio.file.Paths.get(conf.data())
     val (data, docNames, docUrls) = {
       if(java.nio.file.Files.isDirectory(path)){
-        
         //If path is a dir, look for txt or pdf
         val dir = path
         val files = FileHelpers.findFiles(dir, List())//List("txt","pdf"))
         if(files.isEmpty) throw new IllegalArgumentException("No txt/pdf files found files under " + dir)   
-        
         //Convert raw text/pdf to .sparse.txt format
         val data = tm.text.Convert(conf.name(), conf.vocabSize(), paths = files, encoding = conf.encoding(), 
             preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat())
+        data.saveAsTuple(conf.name()+".sparse.txt")
         val docNames = files.map{file => file.getFileName.toString()}
         val docUrls = files.map(_.toString())
         (data, docNames, docUrls)

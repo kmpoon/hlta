@@ -173,5 +173,5 @@ trait Extractor {
   }
 
   def undoHyphenation(text: String) =
-    text.replaceAll("""-\n(\S+)(\s*)""", "$1\n")
+    text.replaceAll("""-(\r\n|\n|\r)(\S+)(\s*)""", "$2\n")
 }

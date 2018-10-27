@@ -17,9 +17,9 @@ import tm.util.Arguments
 object Convert {
   class Conf(args: Seq[String]) extends Arguments(args) {
     banner("Usage: tm.text.Convert [OPTION]... name source max-words concat")
-    val name = trailArg[String](descr = "Name of data, default as \"data\"")
+    val name = trailArg[String](descr = "Dataset name")
     val source = trailArg[String](descr = "Source directory or source file, if dir, 1 file = 1 doc; if file, 1 line = 1 doc")
-    val maxWords = trailArg[Int](descr = "Dictionary size, maximum number of words (n-gram)")
+    val maxWords = trailArg[Int](descr = "Vocabulary size, maximum number of words (n-gram)")
     val concat = trailArg[Int](descr = "Concatenate words/tokens to produce n-grams with the given number of repetitions, where n can be 2^c.  Default is 0")
     
     val language = opt[String](default = Some("en"), descr = "Language, default as English, can be {english, chinese, nonascii}")//ISO 639-1 language code or general name both accepted    
@@ -38,7 +38,7 @@ object Convert {
     val stopWords = opt[String](default = None, descr = "File of stop words, default using built-in stopwords list")
     
     val inputExt = opt[List[String]](default = Some(List("txt", "pdf")), descr = "Look for these extensions if a directory is given, default \"txt pdf\"")
-    val inputEncoding = opt[String](default = Some("UTF-8"), descr = "Input .txt encoding, default UTF-8, see java.nio.charset.Charset for available encodings")
+    val inputEncoding = opt[String](default = Some("UTF-8"), descr = "Input text file encoding, default UTF-8, see java.nio.charset.Charset for available encodings")
     
     val outputHlcm = opt[Boolean](default = Some(false), descr = "Additionally output hlcm format")
     val outputArff = opt[Boolean](default = Some(false), descr = "Additionally output arff format")

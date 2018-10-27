@@ -31,9 +31,9 @@ object Doc2VecAssignment {
              |E.g. Doc2VecAssignment model.bif data.arff output
              |The output file will be """+getFileName("output", "js")+""" and """+getFileName("output", "arff"))
              
-    val model = trailArg[String]()
-    val data = trailArg[String](descr = "**Special** .hlcm file is not allowed")
-    val outputName = trailArg[String]()
+    val model = trailArg[String](descr = "Model file (e.g. model.bif)")
+    val data = trailArg[String](descr = "Data file, .hlcm file is not allowed")
+    val outputName = trailArg[String](descr = "Name of the output file")
     
     val ldaVocab = opt[String](default = None, descr = "LDA vocab file, only required if lda data is provided")
     

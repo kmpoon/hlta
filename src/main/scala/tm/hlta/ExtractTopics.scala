@@ -15,8 +15,8 @@ import tm.util.Data
 object ExtractTopicTree {
   class Conf(args: Seq[String]) extends Arguments(args) {    
     banner("Usage: tm.hlta.ExtractTopicTree [OPTION]... name model data")
-    val name = trailArg[String](descr = "Name of files to be generated")
-    val model = trailArg[String](descr = "Name of model file (e.g. model.bif)")
+    val name = trailArg[String](descr = "Name of the topic tree file to be generated")
+    val model = trailArg[String](descr = "Model file (e.g. model.bif)")
     val data = trailArg[String](required = false, descr = "Data file, if using --broad, this is not required")
     
     val ldaVocab = opt[String](default = None, descr = "LDA vocab file, only required if lda data is provided")

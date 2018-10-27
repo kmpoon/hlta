@@ -4,7 +4,7 @@ name := "HLTA"
 
 version := "2.3"
 
-scalaVersion := "2.11.11"
+scalaVersion := "2.12.7"
 
 classpathTypes += "maven-plugin"
 
@@ -16,11 +16,10 @@ libraryDependencies ++=
   "org.apache.commons" % "commons-compress" % "1.18" ::
   "org.apache.commons" % "commons-text" % "1.6" ::
   "commons-io" % "commons-io" % "2.6" ::
-  "com.google.guava" % "guava" % "20.0" ::
   "edu.stanford.nlp" % "stanford-corenlp" % "3.9.1" ::
   ("edu.stanford.nlp" % "stanford-corenlp" % "3.9.1" classifier "models") ::
-  "org.slf4j" % "slf4j-simple" % "1.7.21" ::
-  "org.rogach" %% "scallop" % "2.0.0" ::
+  "org.slf4j" % "slf4j-simple" % "1.7.25" ::
+  "org.rogach" %% "scallop" % "3.1.3" ::
 //  "org.apache.spark" %% "spark-core" % "1.6.2" % "provided" ::
 //  "org.apache.spark" %% "spark-mllib" % "1.6.2" % "provided" ::
 //  "org.jsoup" % "jsoup" % "1.8.3" ::
@@ -36,6 +35,8 @@ libraryDependencies ++=
 // dependecies for fnlp
   "net.sf.trove4j" % "trove4j" % "3.0.3" ::
   "commons-cli" % "commons-cli" % "1.2" ::
+// dependecy for word2vecjava
+  "com.google.guava" % "guava" % "20.0" ::
 Nil
 
 

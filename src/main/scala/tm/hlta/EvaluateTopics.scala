@@ -1,7 +1,6 @@
 package tm.hlta
 
 import scala.collection.JavaConversions._
-import com.google.common.collect.ImmutableList
 import tm.util.Data
 import tm.util.Arguments
 import com.medallia.word2vec.Word2VecModel
