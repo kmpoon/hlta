@@ -17,6 +17,7 @@ Peixian Chen, Nevin L. Zhang et al.
 An IJCAI tutorial and demonstration can be found at:
 [*Multidimensional Text Clustering for Hierarchical Topic Detection (IJCAI 2016 Tutorial)*](http://www.cse.ust.hk/~lzhang/topic/ijcai2016/) by Nevin L. Zhang and Leonard K.M. Poon
 
+This is the legacy page for HLTA package. You need v2.0 or v2.1 to run the following commands.
    
 # HLTA
  ```

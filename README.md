@@ -72,7 +72,7 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
    ./source/OneDocument.txt
    ./source/Folder1/Folder2/Folder3/HiddenSecret.txt
    ```
-- Split into training set and testing set if needed: (v2.1)
+- Split into training set and testing set if needed: (v2.1+)
    ```
    java -cp HLTA.jar:HLTA-deps.jar tm.text.Convert --testset-ratio 0.2 myData ./source 1000 1
    ```
@@ -128,7 +128,7 @@ The output files include:
    java -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCoherence myTopicTree.nodes.json myData.sparse.txt
    ```
 
-- Evaluate by topic compactness. (revamped in v2.3, please update to v2.3 to use this function)
+- Evaluate by topic compactness. (v2.3+)
    ```
    java -Xmx4G -cp HLTA.jar:HLTA-deps.jar tm.hlta.TopicCompactness myTopicTree.nodes.json GoogleNews-vectors-negative300.bin
    ```
@@ -137,12 +137,10 @@ The output files include:
 - Compute topic compactness in Python
    Install gensim (https://radimrehurek.com/gensim/) before using the python codes for computing compactness scores in AAAI17 paper (http://www.aaai.org/Conferences/AAAI/2017/PreliminaryPapers/12-Chen-Z-14201.pdf). One pre-trained Word2Vec model by Google is available at https://drive.google.com/file/d/0B7XkCwpI5KDYNlNUTTlSS21pQmM/edit?usp=sharing. The description of the model can be found at https://code.google.com/archive/p/word2vec/ under the section "Pre-trained word and phrase vectors".
    
- - Evaluate by loglikelihood. You will need to create a testing set in advance. (v2.1)
+ - Evaluate by loglikelihood. You will need to create a testing set in advance. (v2.1+)
    ```
    java -cp HLTA.jar:HLTA-deps.jar tm.hlta.PerDocumentLoglikelihood myModel.bif myData.test.sparse.txt
    ```
-
-   You may also see the Testing section of the [Old HLTA Page](https://github.com/kmpoon/hlta/blob/master/RESEARCH.md) (v2.0)
 
 # Options
 As introduced in Subroutine2 of Quick Example, we can train HLTA with default hyper-parameters by :
@@ -150,12 +148,12 @@ As introduced in Subroutine2 of Quick Example, we can train HLTA with default hy
    java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HLTA myData.sparse.txt 50 myModel
    ```
    
-HLTA also supports to tune hyper-parameters by (v2.3):
+HLTA also supports to tune hyper-parameters by (v2.3+):
    ```
    java -cp HLTA.jar:HLTA-deps.jar clustering.StepwiseEMHLTA $trainingdata $EmMaxSteps $EmNumRestarts $EM-threshold $UDtest-threshold $outputmodel $MaxIsland $MaxTop $GlobalsizeBatch $GlobalMaxEpochs $GlobalEMmaxsteps $IslandNotBridging $SampleSizeForstructureLearn $MaxCoreNumber $parallelIslandFindingLevel $CT-threshold
    ```
 
-For example,
+For example (v2.3+),
    ```
    java -cp HLTA.jar:HLTA-deps.jar clustering.StepwiseEMHLTA myData.sparse.txt 50 3 0.01 3 myModel 15 30 500 10 100 1 10000 2 1
    ```
