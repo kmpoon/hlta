@@ -27,6 +27,7 @@ object FileHelpers {
   /**
    * Find files with the specified extensions (e.g. pdf, txt) in the specified
    * directory.
+   * If extensions is an empty list, return all files under the directory.
    */
   def findFiles(directory: Path, extensions: List[String]): Vector[Path] = {
     val files = collection.mutable.Buffer.empty[Path]

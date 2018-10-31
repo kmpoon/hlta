@@ -191,7 +191,7 @@ private class NarrowTopicExtractor(model: LTM, data: Data, layer: Option[List[In
     convertProbabilities()
   }
 
-  def logCompute(latent: String) = logger.info("Computing probabilities for {}", latent)
+  def logCompute(latent: String) = logger.debug("Computing probabilities for {}", latent)
   
   override def extractTopicsByCounting(latent: String, observed: ArrayList[Variable]){
     if(_layer != null && !_layer.contains(varLevels(latent)))

@@ -11,6 +11,7 @@ import tm.hlta.HLTA._
 import org.latlab.util.DataSet
 import tm.util.Reader
 import tm.util.Data
+import org.slf4j.LoggerFactory
 
 object ExtractTopicTree {
   class Conf(args: Seq[String]) extends Arguments(args) {    
@@ -34,6 +35,8 @@ object ExtractTopicTree {
     if(data.isEmpty && !broad())
       throw new Exception("Missing parameter data or missing option --broad")
   }
+  
+  val logger = LoggerFactory.getLogger(ExtractTopicTree.getClass)
 
   def main(args: Array[String]) {
     val conf = new Conf(args)
@@ -42,25 +45,27 @@ object ExtractTopicTree {
       //Broad defined topic do not recompute parameters
       //Thus, no data are required
       val model = Reader.readModel(conf.model())
-      println(s"will broad")
+      logger.debug(s"will broad")
       broad(model, conf.layer.toOption, conf.keywords(), conf.keywordsProb())
     }
     else {
       //Narrow defined topic needs to re-do parameters estimation
       //Data is required
       val (model, data) = Reader.readModelAndData(conf.model(), conf.data(), ldaVocabFile = conf.ldaVocab.getOrElse(""))
-      println(s"will narrow")
+      logger.debug(s"will narrow")
       val binaryData = data.binary()
       narrow(model, binaryData, conf.layer.toOption, conf.keywords(), conf.keywordsProb())
     }
-    println(s"narrow or broad done. will BuildWebsite")
+    logger.info("Topic tree extraction is done.")
+    logger.debug(s"narrow or broad done. will BuildWebsite")
     
     //BuildWebsite generates file in .js format
-    BuildWebsite(".", conf.name(), conf.title(), topicTree)
+    BuildWebsite(conf.name(), conf.title(), topicTree)
     //Additionally generates .json file
     topicTree.saveAsJson(conf.name()+".nodes.json")
     topicTree.saveAsSimpleHtml(conf.name()+".simple.html")
-    println(s"saveAsJson done. filename " + conf.name() + ".nodes.json") 
+    logger.info("The topic tree is available at "+conf.name()+".html")
+    logger.debug(s"saveAsJson done. filename " + conf.name() + ".nodes.json") 
   }
   
   def broad(model: LTM, layer: Option[List[Int]] = None, keywords: Int = 7, keywordsProb: Boolean = false) = {
@@ -96,18 +101,18 @@ object ExtractTopicTree {
 //    val lcmNdtExtractor = new tm.hlta.ExtractTopicTree.ExtractNarrowTopics_Scala(model, binaryData, keywords)
 //    val param = Array("", "", tempDir, "no", "no", keywords.toString())
 //    lcmNdtExtractor.apply()
-//    println(s"narrow lcmNdtExtractor run done")
+//    logger.debug(s"narrow lcmNdtExtractor run done")
 //    val topicFile = output.resolve("TopicsTable.html")
 //    val topicTree = TopicTree.readHtml(topicFile.toString())
     //val order = RegenerateHTMLTopicTree.readIslands(FindTopLevelSiblingClusters.getIslandsFileName(conf.name()))
     //topicTree = topicTree.sortRoots { t => order(t.value.name) }
-//    println(s"readHtml done")
+//    logger.debug(s"readHtml done")
 //    if(layer.isDefined){
 //      val _layer = layer.get.map{l => if(l<=0) l+model.getHeight-1 else l}
-//      println(s"isDefined: will trimLevels")
+//      logger.debug(s"isDefined: will trimLevels")
 //      topicTree.trimLevels(_layer)
 //    }else{
-//      println(s"not Defined: will topicTree")
+//      logger.debug(s"not Defined: will topicTree")
 //      topicTree
 //    }
   }

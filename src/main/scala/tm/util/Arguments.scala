@@ -2,6 +2,8 @@ package tm.util
 
 import org.rogach.scallop.ScallopConf
 import org.rogach.scallop.exceptions.Exit
+import java.util.logging.Logger;
+import java.util.logging.Level;
 
 class Arguments(args: Seq[String]) extends ScallopConf(args) {
   /**
@@ -19,9 +21,19 @@ class Arguments(args: Seq[String]) extends ScallopConf(args) {
   val showLogTime = opt[Boolean](descr = "Show time in log", noshort = true)
 
   def checkDefaultOpts() = {
-    if (debug())
+    
+    if (debug()){
       System.getProperties.setProperty(
         "org.slf4j.simpleLogger.defaultLogLevel", "debug")
+      //Pdfbox uses java.util.Logger
+      Logger.getLogger("").setLevel(Level.WARNING);
+      edu.stanford.nlp.util.logging.RedwoodConfiguration.debugLevel().apply();
+    }else{
+      //Pdfbox uses java.util.Logger
+      Logger.getLogger("").setLevel(Level.OFF);
+      //Suppresses stanford nlp unnecessary message
+      edu.stanford.nlp.util.logging.RedwoodConfiguration.errorLevel().apply();
+    }
 
     if (showLogTime())
       System.getProperties.setProperty(

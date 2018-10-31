@@ -17,6 +17,7 @@ import tm.util.FileHelpers
 import tm.util.Arguments
 import scala.collection.GenSeq
 import org.apache.commons.text.StringEscapeUtils
+import org.slf4j.LoggerFactory
 
 object RegenerateHTMLTopicTree {
   
@@ -51,7 +52,7 @@ object RegenerateHTMLTopicTree {
     if(layer.isDefined)
       topLevelTrees = topLevelTrees.trimLevels(layer.get)
     topLevelTrees = topLevelTrees.sortRoots { t => order(t.value.name) }
-    BuildWebsite(".", outputName, title, topLevelTrees)
+    BuildWebsite(outputName, title, topLevelTrees)
   }  
   
   /**
@@ -78,16 +79,19 @@ object RegenerateHTMLTopicTree {
  */
 object BuildWebsite{
   
+  val logger = LoggerFactory.getLogger(BuildWebsite.getClass)
+  
   /**
    * for external call
    */
-  def apply(dir: String, outputName: String, title: String, topicTree: TopicTree = null, catalog: DocumentCatalog = null, 
+  def apply(outputName: String, title: String, topicTree: TopicTree = null, catalog: DocumentCatalog = null, 
       docNames: Seq[String] = null, docUrls: Seq[String] = null){
-    if(topicTree!=null) topicTree.saveAsJs(dir + "/" + outputName + ".nodes.js", jsVarName = "nodes")
-    if(catalog!=null) catalog.saveAsJs(dir + "/" + outputName + ".topics.js", jsVarName = "topicMap")
-    if(docNames!=null) writeDocNames(docNames, dir + "/" + s"${outputName}.titles.js", docUrls = docUrls)
-    writeHtmlOutput(title, outputName, dir + "/" + outputName + ".html")
-    copyAssetFiles(Paths.get(dir))
+    if(topicTree!=null) topicTree.saveAsJs(outputName + ".nodes.js", jsVarName = "nodes")
+    if(catalog!=null) catalog.saveAsJs(outputName + ".topics.js", jsVarName = "topicMap")
+    if(docNames!=null) writeDocNames(docNames, s"${outputName}.titles.js", docUrls = docUrls)
+    writeHtmlOutput(title, outputName, outputName + ".html")
+    val dir = Paths.get(outputName).getParent
+    copyAssetFiles(dir)
   }
   
   /**
@@ -170,7 +174,7 @@ object BuildWebsite{
 
     def copyTo(source: String, dir: Path, target: String) = {
       val input = this.getClass.getResourceAsStream(source)
-      println(s"Copying from resource ${source} to file ${dir.resolve(target)}")
+      logger.debug(s"Copying from resource ${source} to file ${dir.resolve(target)}")
       Files.copy(input, dir.resolve(target), StandardCopyOption.REPLACE_EXISTING)
     }
 
@@ -181,7 +185,7 @@ object BuildWebsite{
         val name = if (index < 0) source else source.substring(index + 1)
         copyTo(source, dir, name)
       }
-      println(s"Copy from resource, totally done")
+      //println(s"Copy from resource, totally done")
     }
 
     Seq(
@@ -224,6 +228,8 @@ object BuildWebsite{
  * Jstree is a javascript library, see www.jstree.com
  */
 object JstreeWriter{
+  
+  val logger = LoggerFactory.getLogger(JstreeWriter.getClass)
   
   /**
    * Describes how topic is presented in the jstree
@@ -277,12 +283,12 @@ object JstreeWriter{
       json
     }
     
-    println(s"will write json file, open writeJson: " + outputFile)
+    logger.debug(s"will write json file, open writeJson: " + outputFile)
     val writer = new PrintWriter(outputFile)
     writer.print("[")
     writer.println(roots.map(_treeToJson(_, 0)).mkString(", "))
     writer.println("]")
-    println(s"writeJson done")
+    logger.debug(s"writeJson done")
     writer.close
   }
 

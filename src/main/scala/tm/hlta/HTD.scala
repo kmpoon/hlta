@@ -3,6 +3,7 @@ package tm.hlta
 import org.latlab.model.LTM
 import scala.annotation.tailrec
 import scala.collection.JavaConversions._
+import java.io.PrintWriter
 import org.latlab.util.DataSet
 import tm.util.Data
 import tm.util.Tree
@@ -17,6 +18,9 @@ import tm.text.StopWords
 import tm.text.StanfordNlp
 
 object HTD {
+  
+  val logger = LoggerFactory.getLogger(HTD.getClass)
+  
   /**
    * Inference, gives a list of document for each topic z
    * 
@@ -134,28 +138,30 @@ object HTD {
     }
     val wordSelector = tm.text.WordSelector.byTfIdf(minChar, 0, .25)
 
-    //Simple default settings
-    //See tm.text.DataConvert for more options
-//    implicit val settings = tm.text.DataConverter.Settings(concatenations = conf.concat(), 
-//        minCharacters = minChar, wordSelector = tm.text.WordSelector.byTfIdf(minChar, 0, .25))
-
     val path = java.nio.file.Paths.get(conf.data())
     val (data, docNames, docUrls) = {
       if(java.nio.file.Files.isDirectory(path)){
         //If path is a dir, look for txt or pdf
         val dir = path
-        val files = FileHelpers.findFiles(dir, List())//List("txt","pdf"))
+        logger.info("Finding files under {}", dir.toString())
+        val files = FileHelpers.findFiles(dir, List("txt","pdf"))
         if(files.isEmpty) throw new IllegalArgumentException("No txt/pdf files found files under " + dir)   
-        //Convert raw text/pdf to .sparse.txt format
+        logger.info("Convert raw text/pdf to .sparse.txt format")
         val data = tm.text.Convert(conf.name(), conf.vocabSize(), paths = files, encoding = conf.encoding(), 
             preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat())
-        data.saveAsTuple(conf.name()+".sparse.txt")
+        data.saveAsTuple(conf.name()+".sparse.txt") 
+        logger.info("Output file reading order")
+        val writer = new PrintWriter(s"${conf.name()}.files.txt")
+        files.foreach(writer.println)
+        writer.close
+        
         val docNames = files.map{file => file.getFileName.toString()}
         val docUrls = files.map(_.toString())
         (data, docNames, docUrls)
         
       }else if(conf.format.isDefined || List(".arff", ".hlcm", ".sparse.txt", ".lda.txt").exists(path.toString().endsWith(_))){
         //If path is a data file
+        logger.info("Reading from data file")
         val data = tm.util.Reader.readData(path.toString, 
             ldaVocabFile = conf.ldaVocab.getOrElse(""), format = conf.format.toOption)
         val docNames = if(conf.docNames.isDefined) scala.io.Source.fromFile(conf.docNames())(conf.encoding()).getLines.toList 
@@ -165,6 +171,7 @@ object HTD {
         (data, docNames, docUrls)
       }else{
         //If path is not a data file, converts raw text / pdf to .sparse.txt file
+        logger.info("Reading from file {}", path.toString())
         val data = tm.text.Convert(conf.name(), conf.vocabSize(), path = path, encoding = conf.encoding(), 
             preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat())
         data.saveAsTuple(conf.name()+".sparse.txt")
@@ -177,18 +184,21 @@ object HTD {
       }
     }
     
+    logger.info("Building model")
     val model = HLTA(data, conf.name(), maxTop = conf.topLevelTopics(), globalMaxEpochs = conf.epoch())
     
+    logger.info("Extracting topic tree")
     val topicTree = extractTopicTree(model, broad = conf.broad(), data = data, keywords = conf.topicKeywords())
     topicTree.saveAsJson(conf.name()+".nodes.json")
     
+    logger.info("Assigning documents with a vector")
     val catalog = buildDocumentCatalog(model, data, broad = conf.broad(), keywords = conf.topicKeywords())
     catalog.saveAsJson(conf.name()+".topics.json")
     
-    //Generate one html file
+    logger.info("Generating a simple text-only website")
     topicTree.saveAsSimpleHtml(conf.name()+".nodes.simple.html")
       
-    //Generate a nice and pretty website, no server required
-    tm.hlta.BuildWebsite("./", conf.name(), conf.name(), topicTree = topicTree, catalog = catalog, docNames = docNames, docUrls = docUrls)
+    logger.info("Generating a nice and pretty website")
+    tm.hlta.BuildWebsite(conf.name(), conf.name(), topicTree = topicTree, catalog = catalog, docNames = docNames, docUrls = docUrls)
   }
 }

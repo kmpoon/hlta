@@ -12,8 +12,6 @@ import edu.stanford.nlp.util.logging.RedwoodConfiguration
 import tm.text.Preprocessor._
 
 object StanfordNlp{
-  //Suppresses stanford nlp unnecessary message
-  edu.stanford.nlp.util.logging.RedwoodConfiguration.errorLevel().apply();
   
   private val brackets = Set("-LRB-", "-RRB-", "-LCB-", "-RCB-", "-LSB-", "-RSB-")
   // creates a StanfordCoreNLP object, with tokenization, sentence splitting, POS tagging and lemmatization 
@@ -33,7 +31,11 @@ object StanfordNlp{
    * StanfordNLP English preprocessor
    */
   def EnglishPreprocessor(text: String, minChars: Int = 4, stopwords: StopWords = StopWords.EnglishStopwords, 
-      splitSentence: Boolean = true, lemmatization: Boolean = true): Document = {     
+      splitSentence: Boolean = true, lemmatization: Boolean = true): Document = {
+    //if text has 0 length, return empty document
+    if(text.length==0)
+      return Document(Sentence(Seq.empty[NGram]))
+//    try{  
     // create an empty Annotation just with the given text
     val document = new CoreDocument(text);
       
@@ -58,6 +60,10 @@ object StanfordNlp{
       Sentence(tokens.map(NGram.apply))
     }
     Document(sentences)
+//    }catch{
+//      case e: Exception => e.printStackTrace() 
+//      Document(Sentence(Seq.empty[NGram]))
+//    }
   }
 }
 

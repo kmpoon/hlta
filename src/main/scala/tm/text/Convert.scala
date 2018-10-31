@@ -116,11 +116,12 @@ object Convert {
             preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat(), seedWords = seedWords)
       }else{
         
+        logger.info("Reading from file {}", path.toString())
         apply(conf.name(), conf.maxWords(), path = path, encoding = conf.inputEncoding(), 
             preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat(), seedWords = seedWords)  
       }
     }
-    logger.info("done")
+    logger.info("Text to data conversion is done.")
     
     if(conf.testsetRatio() > 0.0 && conf.testsetRatio() < 1.0){
       val (testingData, trainingData) = data.randomSplit(conf.testsetRatio())

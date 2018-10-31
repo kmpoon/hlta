@@ -9,8 +9,7 @@ import org.slf4j.LoggerFactory
 
 
 object ExtractText extends Extractor {
-  java.util.logging.Logger
-    .getLogger("org.apache.pdfbox").setLevel(java.util.logging.Level.SEVERE);
+  
   val extension = "pdf"
 
   def main(args: Array[String]) {
@@ -38,6 +37,12 @@ object ExtractText extends Extractor {
       stripper.writeText(document, writer);
 
       undoHyphenation(writer.toString)
+    } catch {
+      case e: Exception => 
+        logger.error("Unable to extract "+inputFile.toString+", treating it as empty document instead")
+        if(logger.isDebugEnabled)
+          e.printStackTrace()
+        ""
     } finally {
       document.close()
       writer.close()
