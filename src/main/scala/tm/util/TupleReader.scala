@@ -13,7 +13,7 @@ import scala.collection.mutable.MutableList
  */
 object TupleReader {
 
-  def read(filename: String, binary: Boolean = true) = {
+  def read(filename: String) = {
     val variables = Map[String,Int]()
     val instances = Map[String,SparseInstance]()
     val order = MutableList[String]()
@@ -31,20 +31,25 @@ object TupleReader {
         firstLine = false
       }
       if(currDocId!=docId){
-        val sparseValues = if(instances.contains(currDocId)) currDocVars.mapValues(_.toDouble).++:(instances(currDocId).sparseValues).toMap
-                           else currDocVars.mapValues(_.toDouble).toMap
+        val sparseValues = if(instances.contains(currDocId)){
+          currDocVars.mapValues(_.toDouble).++:(instances(currDocId).sparseValues).toMap
+        }else{
+          order += currDocId
+          currDocVars.mapValues(_.toDouble).toMap
+        }
         instances += (currDocId -> new SparseInstance(sparseValues = sparseValues, 1.0, name = currDocId.toString))
-        order += currDocId
         currDocVars.clear()
         currDocId = docId
       }
-      if(binary) currDocVars.update(varId, 1)
-      else currDocVars.update(varId, currDocVars.getOrElse(varId, 0)+1)
+      currDocVars.update(varId, 1)
     }
-    val sparseValues = if(instances.contains(currDocId)) currDocVars.mapValues(_.toDouble).++:(instances(currDocId).sparseValues).toMap
-                       else currDocVars.mapValues(_.toDouble).toMap
+    val sparseValues = if(instances.contains(currDocId)){
+      currDocVars.mapValues(_.toDouble).++:(instances(currDocId).sparseValues).toMap
+    }else{
+      order += currDocId
+      currDocVars.mapValues(_.toDouble).toMap
+    }
     instances += (currDocId -> new SparseInstance(sparseValues = sparseValues, 1.0, name = currDocId.toString))
-    order += currDocId
     reader.close()
     
     def convert(a: String) = {
