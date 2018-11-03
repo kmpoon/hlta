@@ -16,7 +16,8 @@ object HlcmReader {
     val instances = MutableList[DenseInstance]()
     var name: Option[String] = None
 
-    for (line <- Source.fromFile(filename).getLines) {
+    val reader = Source.fromFile(filename)
+    for(line <- reader.getLines()){
       if(!line.isBlank() && !line.isComment()){
         if(variables.size == 0 && line.trim.startsWith("Name")){
           name = Some(getName(line))
@@ -29,6 +30,7 @@ object HlcmReader {
         }
       }
     }
+    reader.close()
     
     def convert(a: String, s: Seq[String]) = {
       val b = new ArrayList[String]()

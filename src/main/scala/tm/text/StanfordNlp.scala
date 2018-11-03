@@ -32,10 +32,10 @@ object StanfordNlp{
    */
   def EnglishPreprocessor(text: String, minChars: Int = 4, stopwords: StopWords = StopWords.EnglishStopwords, 
       splitSentence: Boolean = true, lemmatization: Boolean = true): Document = {
-    //if text has 0 length, return empty document
-    if(text.length==0)
+    //if text contains space only, return empty document
+    if(Preprocessor.replaceSpace(text).isEmpty)
       return Document(Sentence(Seq.empty[NGram]))
-//    try{  
+    try{  
     // create an empty Annotation just with the given text
     val document = new CoreDocument(text);
       
@@ -60,10 +60,10 @@ object StanfordNlp{
       Sentence(tokens.map(NGram.apply))
     }
     Document(sentences)
-//    }catch{
-//      case e: Exception => e.printStackTrace() 
-//      Document(Sentence(Seq.empty[NGram]))
-//    }
+    }catch{
+      case e: Exception => e.printStackTrace() 
+      Document(Sentence(Seq.empty[NGram]))
+    }
   }
 }
 

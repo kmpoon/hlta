@@ -14,14 +14,17 @@ import java.util.ArrayList
 object LdaReader {
   def read(dataFileName: String, vocabFileName: String) = {
     
-    val variables = Source.fromFile(vocabFileName).getLines.toIndexedSeq.map{line =>
+    val vocabReader = Source.fromFile(vocabFileName)
+    val variables = vocabReader.getLines.toIndexedSeq.map{line =>
       val b = new ArrayList[String]()
       b.add(0, "s0")
       b.add(1, "s1")
       new Variable(line, b)
     }
+    vocabReader.close()
     
-    val instances = Source.fromFile(dataFileName).getLines.zipWithIndex.toIndexedSeq.map{case(line, index) =>
+    val dataReader = Source.fromFile(dataFileName)
+    val instances = dataReader.getLines.zipWithIndex.toIndexedSeq.map{case(line, index) =>
 //      val values = Array.fill[Double](variables.size)(0)
 //      line.split(" ").drop(1).foreach { pair => 
 //        val pos = pair.split(":")(0).toInt
@@ -33,6 +36,8 @@ object LdaReader {
       }.toMap
       new SparseInstance(values, 1.0, name = index.toString())
     }
+    dataReader.close()
+    
     var name: Option[String] = None
 
     new Data(variables, instances)

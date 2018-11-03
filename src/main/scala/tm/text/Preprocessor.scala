@@ -110,7 +110,7 @@ object Preprocessor {
     
   //Replacement  
   
-  val Space = "\\s+|\u00A0|\u202F|\uFEFF".r
+  val Space = "\\s+|\u00A0|\u1680|\u180E|[\u2000-\u200B]|\u202F|\u205F|\u3000|\uFEFF".r
   val NonAlnum = "\\P{Alnum}".r
   val Digit = "^(\\p{Digit})|[\uFF10-\uFF19]".r
   val Punctuation = "\\p{Punct}|[\u2000-\u206F]|[\u3000-\u303F]|[\uFF00-\uFF0F]".r

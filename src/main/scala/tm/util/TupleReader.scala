@@ -4,35 +4,48 @@ import scala.io.Source
 import tm.util.Data.SparseInstance
 import org.latlab.util.Variable
 import java.util.ArrayList
-import scala.collection.mutable.MutableList
 import scala.collection.mutable.Map
+import scala.collection.mutable.MutableList
 
 /**
  * Alternative approach use SparseDataSet.java to read then call SparseDataSet.SparseToDense()
  * see org.latlab.learner.SparseDataSet
- * 
  */
 object TupleReader {
 
-  def read(filename: String) = {
-    val variables = MutableList[String]()    
-    val docList = Map[String, MutableList[String]]()
+  def read(filename: String, binary: Boolean = true) = {
+    val variables = Map[String,Int]()
+    val instances = Map[String,SparseInstance]()
+    val order = MutableList[String]()
 
-    for (line <- Source.fromFile(filename).getLines) {
+    val reader = Source.fromFile(filename)
+    var currDocId = ""
+    var firstLine = true
+    val currDocVars = Map[Int,Int]()
+    reader.getLines().foreach{ line =>
       val docId = line.split(",")(0)
       val variable = line.split(",")(1)
-      if(!variables.contains(variable))
-        variables += variable
-      if(docList.get(docId).isEmpty)
-        docList += (docId -> MutableList[String]())
-      docList.get(docId).get += variable
+      val varId = variables.getOrElseUpdate(variable, variables.size)
+      if(firstLine){
+        currDocId = docId
+        firstLine = false
+      }
+      if(currDocId!=docId){
+        val sparseValues = if(instances.contains(currDocId)) currDocVars.mapValues(_.toDouble).++:(instances(currDocId).sparseValues).toMap
+                           else currDocVars.mapValues(_.toDouble).toMap
+        instances += (currDocId -> new SparseInstance(sparseValues = sparseValues, 1.0, name = currDocId.toString))
+        order += currDocId
+        currDocVars.clear()
+        currDocId = docId
+      }
+      if(binary) currDocVars.update(varId, 1)
+      else currDocVars.update(varId, currDocVars.getOrElse(varId, 0)+1)
     }
-    
-    val instances = docList.toIndexedSeq.map{case (docId, doc) =>
-      val sparseValues = doc.groupBy{v => v}.map{ case (token, tokenList) => (variables.indexOf(token), tokenList.size.toDouble) }.toMap
-      //val values = (0 until variables.size).map{ i => if(indexes.contains(i)) 1.0 else 0.0}.toArray
-      new SparseInstance(sparseValues = sparseValues, 1.0, name = docId)
-    }
+    val sparseValues = if(instances.contains(currDocId)) currDocVars.mapValues(_.toDouble).++:(instances(currDocId).sparseValues).toMap
+                       else currDocVars.mapValues(_.toDouble).toMap
+    instances += (currDocId -> new SparseInstance(sparseValues = sparseValues, 1.0, name = currDocId.toString))
+    order += currDocId
+    reader.close()
     
     def convert(a: String) = {
       val b = new ArrayList[String]()
@@ -41,7 +54,7 @@ object TupleReader {
       new Variable(a, b)
     }
     
-    new Data(variables.map(convert(_)).toIndexedSeq, instances, isBinary = true)
+    new Data(variables.toIndexedSeq.sortBy(_._2).map(_._1).map(convert), order.map(instances).toIndexedSeq, isBinary = true)
   }
 
 }

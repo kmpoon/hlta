@@ -37,7 +37,7 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
   * `someName.bif`: HLTA model file
   * `someName.html`: HTML visualization 
   * `someName.nodes.js`: a topic tree
-  * `someName-topics.js`: a document catalog grouped by topics
+  * `someName.topics.js`: a document catalog grouped by topics
   * `lib`: Javascript and CSS files required by the main HTML file
   * `fonts`: fonts used by some CSS files
    

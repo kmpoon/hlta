@@ -109,7 +109,8 @@ object Reader {
         case "arff" => readARFF(dataFile)
         case "tuple" => readTuple(dataFile)
         case "hlcm" => readHLCM(dataFile)
-        case "lda" => readLda(dataFile, ldaVocabFile)
+        case "lda" => if(ldaVocabFile==null||ldaVocabFile.isEmpty) throw new Exception("Missing lda vocabulary file")
+                      else readLda(dataFile, ldaVocabFile)
         case _ => throw new Exception("Unknown format")
       }
     }else{
@@ -117,9 +118,10 @@ object Reader {
         readARFF_native(dataFile).toData()
       else if(dataFile.endsWith(".sparse.txt"))
         readTuple(dataFile)
-      else if(dataFile.endsWith(".lda.txt"))
-        readLda(dataFile, ldaVocabFile)
-      else
+      else if(dataFile.endsWith(".lda.txt")){
+        if(ldaVocabFile==null||ldaVocabFile.isEmpty) throw new Exception("Missing lda vocabulary file")
+        else readLda(dataFile, ldaVocabFile)
+      }else
         readHLCM(dataFile)
     }
   }
