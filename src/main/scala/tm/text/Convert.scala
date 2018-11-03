@@ -112,12 +112,12 @@ object Convert {
         paths.foreach(writer.println)
         writer.close
         
-        apply(conf.name(), conf.maxWords(), paths = paths, encoding = conf.inputEncoding(), 
+        apply(conf.name(), conf.maxWords(), paths = paths, encoding = conf.inputEncoding(), csvField = "text",
             preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat(), seedWords = seedWords)
       }else{
         
         logger.info("Reading from file {}", path.toString())
-        apply(conf.name(), conf.maxWords(), path = path, encoding = conf.inputEncoding(), 
+        apply(conf.name(), conf.maxWords(), path = path, encoding = conf.inputEncoding(), csvField = "text",
             preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat(), seedWords = seedWords)  
       }
     }
@@ -174,14 +174,18 @@ object Convert {
   /**
    * For external call
    */
-  def apply(name: String, maxWords: Int, path: Path = null, paths: Vector[Path] = null,
+  def apply(name: String, maxWords: Int, path: Path = null, paths: Vector[Path] = null, csvField: String = null,
       encoding: String = "UTF-8", preprocessor: (String) => Document = defaultPreprocessor, 
       wordSelector: WordSelector = WordSelector.basic(), concat: Int = 2, documentMinTf: Int = 1,
       seedWords: SeedTokens = SeedTokens.Empty()) = {
     val documents = {
       if(paths != null)
         readFiles(paths, preprocessor(_), encoding = encoding)
-      else if(path != null)
+      else if(path != null && path.endsWith("csv")){
+        if(csvField == null || csvField.isEmpty)
+          throw new Exception("Csv field name must be given for csv source")
+        readCsv(path, csvField, preprocessor(_), encoding = encoding)
+      }else if(path != null)
         readLines(path, preprocessor(_), encoding = encoding)
       else
         throw new Exception("Either path or paths must be given")

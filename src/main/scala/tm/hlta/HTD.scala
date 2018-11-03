@@ -4,6 +4,7 @@ import org.latlab.model.LTM
 import scala.annotation.tailrec
 import scala.collection.JavaConversions._
 import java.io.PrintWriter
+import scala.io.Source
 import org.latlab.util.DataSet
 import tm.util.Data
 import tm.util.Tree
@@ -99,11 +100,7 @@ object HTD {
     val topicKeywords = opt[Int](default = Some(7), descr = "Max number of keywords per topic")
         
     val encoding = opt[String](default = Some("UTF-8"), descr = "Input text encoding, default UTF-8")
-    val format = opt[String](descr = "Input format is determined by file ext., specify your own if needed. Can be \"arff\", \"hlcm\", \"tuple\", \"lda\"")
     val ldaVocab = opt[String](default = None, descr = "LDA vocab file, only required if input is lda data")
-    
-    val docNames = opt[String](default = None, descr = "Document names shown on the output webpage. Used when file name is not available.")
-    val docUrls = opt[String](default = None, descr = "Document url shown on the output webpage. Used when file url is not available")
 
     verify
     checkDefaultOpts()
@@ -141,6 +138,7 @@ object HTD {
     val path = java.nio.file.Paths.get(conf.data())
     val (data, docNames, docUrls) = {
       if(java.nio.file.Files.isDirectory(path)){
+        
         //If path is a dir, look for txt or pdf
         val dir = path
         logger.info("Finding files under {}", dir.toString())
@@ -159,28 +157,45 @@ object HTD {
         val docUrls = files.map(_.toString())
         (data, docNames, docUrls)
         
-      }else if(conf.format.isDefined || List(".arff", ".hlcm", ".sparse.txt", ".lda.txt").exists(path.toString().endsWith(_))){
-        //If path is a data file
+      }else if(List(".arff", ".hlcm", ".sparse.txt", ".lda.txt").exists(path.toString().endsWith(_))){
+        
         logger.info("Reading from data file")
-        val data = tm.util.Reader.readData(path.toString, 
-            ldaVocabFile = conf.ldaVocab.getOrElse(""), format = conf.format.toOption)
-        val docNames = if(conf.docNames.isDefined) scala.io.Source.fromFile(conf.docNames())(conf.encoding()).getLines.toList 
-                       else null
-        val docUrls = if(conf.docUrls.isDefined) scala.io.Source.fromFile(conf.docUrls())(conf.encoding()).getLines.toList 
-                      else null
+        val data = tm.util.Reader.readData(path.toString, ldaVocabFile = conf.ldaVocab.getOrElse(""))
+            
+        logger.info("Data file does not contains document name nor the original text. No topic details will be shown in the final webpage.")
+        val docNames = null
+        val docUrls = null
         (data, docNames, docUrls)
-      }else{
-        //If path is not a data file, converts raw text / pdf to .sparse.txt file
-        logger.info("Reading from file {}", path.toString())
+        
+      }else if(path.toString().endsWith(".txt")){
+        
+        logger.info("Reading from text file {}", path.toString())
         val data = tm.text.Convert(conf.name(), conf.vocabSize(), path = path, encoding = conf.encoding(), 
             preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat())
         data.saveAsTuple(conf.name()+".sparse.txt")
-        val docNames = if(conf.docNames.isDefined) scala.io.Source.fromFile(conf.docNames())(conf.encoding()).getLines.toList 
-                       else scala.io.Source.fromFile(path.toString()).getLines().toVector
-                       //If docNames is not given, use doc context as doc label
-        val docUrls = if(conf.docUrls.isDefined) scala.io.Source.fromFile(conf.docUrls())(conf.encoding()).getLines.toList 
+        
+        val docNames = FileHelpers.using(Source.fromFile(path.toString(), conf.encoding()))(_.getLines().toVector)
+        val docUrls = null
+        (data, docNames, docUrls)
+        
+      }else if(path.toString().endsWith(".csv")){
+        
+        import com.github.tototoshi.csv._
+        logger.info("Reading from csv file {}, looking for the field \"text\"", path.toString())
+        val data = tm.text.Convert(conf.name(), conf.vocabSize(), path = path, encoding = conf.encoding(), csvField = "text",
+            preprocessor = preprocessor, wordSelector = wordSelector, concat = conf.concat())
+        data.saveAsTuple(conf.name()+".sparse.txt")
+        
+        val header = FileHelpers.using(CSVReader.open(path.toString(), conf.encoding()))(_.readNext().getOrElse(List.empty))
+        val (hasTitle, hasUrl) = (header.contains("title"), header.contains("url"))
+        val docNames = if(hasTitle) FileHelpers.using(CSVReader.open(path.toString(), conf.encoding()))(_.iteratorWithHeaders.map{line => line("title")}.toVector)
+                       else FileHelpers.using(Source.fromFile(path.toString(), conf.encoding()))(_.getLines().toVector)
+        val docUrls = if(hasUrl) FileHelpers.using(CSVReader.open(path.toString(), conf.encoding()))(_.iteratorWithHeaders.map{line => line("url")}.toVector)
                       else null
         (data, docNames, docUrls)
+        
+      }else{
+        throw new Exception("Unspported file format")
       }
     }
     

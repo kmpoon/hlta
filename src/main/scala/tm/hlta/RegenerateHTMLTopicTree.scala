@@ -105,7 +105,10 @@ object BuildWebsite{
     val writer = new PrintWriter(outputFile)
     writer.println("var documents = [")
     if(docUrls==null)    writer.println(docNames.map{docName=>"\""+docName.escape+"\""}.mkString(",\n"))
-    else   writer.println(docNames.zip(docUrls).map{case(docName, docUrl)=>"[\""+docName.escape+"\",\""+docUrl.escape+"\"]"}.mkString(",\n"))
+    else   writer.println(docNames.zip(docUrls).map{case(docName, docUrl) => 
+        if(docUrl.isEmpty) "\""+docName.escape+"\""
+        else "[\""+docName.escape+"\",\""+docUrl.escape+"\"]"
+      }.mkString(",\n"))
     writer.println("]")
     writer.close
   }
