@@ -24,7 +24,7 @@ object Preprocessor {
    */
   def EnglishPreprocessor(s: String, minChars: Int = 4, stopwords: StopWords = StopWords.EnglishStopwords, 
       lemmatizer: DictionaryLemmatizer = DictionaryLemmatizer.EnglishLemmatizer): Seq[String] = 
-    tokenizeBySpace(s)
+    tokenizeBySpaceAndHyphen(s)
     .map(_.toLowerCase)
     .map(normalize)
     .map(replaceNonAlnum)
@@ -88,6 +88,8 @@ object Preprocessor {
   //Tokenization methods
   
   def tokenizeBySpace(text: String): Seq[String] = tokenizeByRegex(text, Space.regex)
+  
+  def tokenizeBySpaceAndHyphen(text: String): Seq[String] = tokenizeByRegex(text, "[ -]")
   
   def tokenizeByRegex(text: String, regex: String): Seq[String] = 
     //It needs to handle the case of an empty string, otherwise an array

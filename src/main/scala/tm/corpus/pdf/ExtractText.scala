@@ -24,6 +24,8 @@ object ExtractText extends Extractor {
     val startPage = 1;
     val endPage = Integer.MAX_VALUE;
 
+    try {
+      
     val document = PDDocument.load(inputFile.toFile)
     val writer = new StringWriter()
 
@@ -46,6 +48,14 @@ object ExtractText extends Extractor {
     } finally {
       document.close()
       writer.close()
+    }
+    
+    } catch {
+      case e: Exception => 
+        logger.error("Invalid PDF "+inputFile.toString+", treating it as empty document instead")
+        if(logger.isDebugEnabled)
+          e.printStackTrace()
+        ""
     }
   }
 }
