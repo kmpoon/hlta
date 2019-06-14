@@ -30,7 +30,7 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
 
   If you are in windows, remember to use semicolon instead
    ```
-   java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HTD ./quickstart someName
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HTD ./quickstart someName
    ``` 
    The output files include:
   * `someName.sparse.txt`: the converted data, generated if data conversion is necessary
@@ -43,7 +43,7 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
    
 - You can also do
    ```
-   java -cp HLTA.jar;HLTA-deps.jar tm.hlta.HTD documents.txt someName
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.HTD documents.txt someName
    ``` 
    
   Your `documents.txt`:
@@ -90,7 +90,7 @@ The output files include:
 
 - Exract topic from topic model
    ```
-   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopicTree myTopicTree myModel.bif myDataset.sparse.txt
+   java -cp HLTA.jar:HLTA-deps.jar tm.hlta.ExtractTopicTree myTopicTree myModel.bif myData.sparse.txt
    ```
 
   The output files include:
