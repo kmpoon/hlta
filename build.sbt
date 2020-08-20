@@ -4,7 +4,7 @@ name := "HLTA"
 
 version := "2.3"
 
-scalaVersion := "2.12.7"
+scalaVersion := "2.12.12"
 
 classpathTypes += "maven-plugin"
 
@@ -45,6 +45,8 @@ EclipseKeys.withSource := true
 EclipseKeys.withJavadoc := true
 
 javacOptions ++= Seq("-encoding", "UTF-8")
+
+javacOptions ++= Seq("-source", "8", "-target", "8")
 
 // EclipseKeys.eclipseOutput := Some("target")
 

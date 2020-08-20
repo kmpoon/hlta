@@ -2,6 +2,7 @@
 .cache-main
 .cache-tests
 .history
+.idea
 bin
 target
 project/target
