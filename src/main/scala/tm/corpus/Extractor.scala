@@ -20,11 +20,12 @@ import tm.util.FileHelpers
 
 trait Extractor {
   def extension: String
+
   val logger: Logger = LoggerFactory.getLogger(this.getClass)
 
   case class Parameters(stopwords: StopWords, minCharacters: Int = 3,
-    lemmatization: Boolean = true, sentenceSplitting: Boolean = true,
-    take: Option[Int] = None)
+                        lemmatization: Boolean = true, sentenceSplitting: Boolean = true,
+                        take: Option[Int] = None)
 
   class Conf(args: Seq[String], c: Class[_]) extends Arguments(args) {
     banner(s"Usage: ${c.getName.replaceAll("\\$$", "")} [Options] [input-file | input-dir output-dir]")
@@ -34,6 +35,7 @@ trait Extractor {
       default = Some(3))
     val noLemma = opt[Boolean](descr = "No lemmatization. Default: false")
     val noSplit = opt[Boolean](descr = "No sentence splitting. Default: false")
+    val noPreprocess = opt[Boolean](descr = "Do not preprocess the text before saving them. Default: false")
     val input = trailArg[String](descr = "Input file or input directory")
     val output = trailArg[String](
       descr = "Output directory, if the first argument is an input directory.",
@@ -57,23 +59,23 @@ trait Extractor {
         val dest = Paths.get(conf.output())
         // create output directory
         Files.createDirectories(dest)
-        extractDirectory(source, dest)
+        extractDirectory(source, dest, conf.noPreprocess())
       } else {
         conf.printHelp()
       }
     } else {
       val current = Paths.get(".")
-      extractFile(source, current, current)
+      extractFile(source, current, current, conf.noPreprocess())
     }
   }
 
-  def extractDirectory(inputDir: Path, outputDir: Path)(
+  def extractDirectory(inputDir: Path, outputDir: Path, noPreprocess: Boolean)(
     implicit parameters: Parameters) = {
 
     def takeOrAll(files: Seq[Path]) = {
       parameters.take match {
         case Some(n) => files.take(n)
-        case None    => files
+        case None => files
       }
     }
 
@@ -86,7 +88,7 @@ trait Extractor {
 
     files.par.foreach { f =>
       try {
-        extractFile(f, inputDir, outputDir)
+        extractFile(f, inputDir, outputDir, noPreprocess)
       } catch {
         case ex: Exception =>
           logger.error("Error occurred when reading file: {}", f)
@@ -94,7 +96,8 @@ trait Extractor {
     }
   }
 
-  def findFiles(inputDir: Path) = FileHelpers.findFiles(inputDir, extension)
+  def findFiles(inputDir: Path) =
+    FileHelpers.findFiles(inputDir, List(extension), addBase = false)
 
   def getOutputFile(inputFile: Path) =
     inputFile.toString.replaceAll(s".${extension}$$", ".txt")
@@ -104,15 +107,20 @@ trait Extractor {
    * a relative form so that the output file can be made relative to the
    * output directory.
    */
-  def extractFile(inputFile: Path, inputDir: Path, outputDir: Path)(implicit parameters: Parameters): Unit = {
+  def extractFile(inputFile: Path, inputDir: Path, outputDir: Path, noPreprocess: Boolean)(
+    implicit parameters: Parameters): Unit = {
 
     for ((filename, content) <- extractText(inputDir, inputFile).par) {
       var output: Option[PrintWriter] = None
       try {
-        val sentences = preprocess(
-          content, parameters.lemmatization, parameters.sentenceSplitting)
-          .filter(_.size > 0)
-        val text = sentences.map(_.mkString(" ")).mkString("\n")
+        val text = if (noPreprocess) {
+          content
+        } else {
+          val sentences = preprocess(
+            content, parameters.lemmatization, parameters.sentenceSplitting)
+            .filter(_.size > 0)
+          sentences.map(_.mkString(" ")).mkString("\n")
+        }
         val outputFile = outputDir.resolve(filename)
 
         if (text.size > 0) {
@@ -138,14 +146,14 @@ trait Extractor {
     (getOutputFile(inputFile), extractSingleText(inputDir.resolve(inputFile))) +: Nil
 
   /**
-   *  To be overridden for those cases where a single file corresponds
-   *  to one document.
+   * To be overridden for those cases where a single file corresponds
+   * to one document.
    */
   def extractSingleText(inputFile: Path): String = ???
 
   def preprocess(text: String, lemmatization: Boolean = true,
-    sentenceSplitting: Boolean = true)(
-    implicit parameters: Parameters) = {
+                 sentenceSplitting: Boolean = true)(
+                  implicit parameters: Parameters) = {
     val document =
       StanfordLemmatizer.process(text, lemmatization, sentenceSplitting)
 

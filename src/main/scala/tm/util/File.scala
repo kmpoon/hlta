@@ -29,21 +29,24 @@ object FileHelpers {
    * directory.
    * If extensions is an empty list, return all files under the directory.
    */
-  def findFiles(directory: Path, extensions: List[String]): Vector[Path] = {
+  def findFiles(base: Path, extensions: List[String], addBase: Boolean = true): Vector[Path] = {
     val files = collection.mutable.Buffer.empty[Path]
     val suffixes = extensions.map("." + _)
     val visitor = new SimpleFileVisitor[Path] {
       override def visitFile(file: Path, attr: BasicFileAttributes) = {
         if (suffixes.isEmpty || suffixes.exists(file.toString.endsWith(_)))
-          files += directory.relativize(file)
+          files += base.relativize(file)
 
         CONTINUE
       }
     }
 
-    Files.walkFileTree(directory,
+    Files.walkFileTree(base,
       EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, visitor)
-    files.map(directory.resolve(_)).toVector
+    if (addBase)
+      files.map(base.resolve(_)).toVector
+    else
+      files.toVector
   }
 
   def exists(s: String) = Files.exists(Paths.get(s))
