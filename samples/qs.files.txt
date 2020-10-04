@@ -1,0 +1,9 @@
+../quickstart/pdfs/Poon2017-Topic Browsing System for Research Papersa.pdf
+../quickstart/pdfs/Poon2010-Variable Selection in Model-Based Clustering To Do or To Facilitate.pdf
+../quickstart/pdfs/Chen2016-Latent Tree Models for Hierarchical Topic.pdf
+../quickstart/pdfs/Poon2013-Model-Based Clustering of High-Dimensional Data Variablea.pdf
+../quickstart/pdfs/Chen2016-Progressive EM for Latent Tree Models and Hierarchical.pdf
+../quickstart/pdfs/liu-n-ecml14.pdf
+../quickstart/pdfs/Poon2017-Clustering with Multidimensional Mixture Modelsa.pdf
+../quickstart/pdfs/Zhang2017-Latent Tree Analysis.pdf
+../quickstart/pdfs/Poon2018-UC-LTM Unidimensional Clustering Using Latenta.pdf

@@ -1,0 +1,43 @@
+.white-popup {
+  position: relative;
+  background: #FFF;
+  padding: 20px;
+  width:auto;
+  max-width: 800px;
+  margin: 20px auto;
+}
+
+body {
+  padding-top: 50px;
+  padding-bottom: 20px;
+}
+
+div#jstree {
+  font-size: 18px;
+}
+
+.jstree-default .jstree-anchor {
+  line-height: 28px;
+  height: 28px;
+}
+
+table.tablesorter{
+  width: 100%;
+}
+
+td {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+td:hover{
+  text-overflow: clip;
+  width: 100%;
+  white-space: normal;
+}
+
+td:nth-child(1) {
+  width: 100%; /* Extend the cell as much as possible */
+  max-width: 0; /* Avoid resizing beyond table width */
+}
