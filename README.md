@@ -55,6 +55,7 @@ The original HLTA java call associated to the papers: [Old HLTA Page](https://gi
    ```
    
  - You may also run through the following subroutines to do  data conversion, model building, topic extraction and topic assignment step by step.
+ - You may find the sample output files of the following four subrountines based on the quickstart example in the [samples folder](https://github.com/kmpoon/hlta/tree/master/samples).
 
 # Subroutine 1: Convert Text Files to Data
  
