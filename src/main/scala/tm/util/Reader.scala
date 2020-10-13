@@ -114,7 +114,7 @@ object Reader {
         case _ => throw new Exception("Unknown format")
       }
     }else{
-      if(dataFile.endsWith(".arff"))
+      if(dataFile.endsWith(".arff") || dataFile.endsWith(".arff.gz") || dataFile.endsWith(".arff.bz2"))
         readARFF_native(dataFile).toData()
       else if(dataFile.endsWith(".sparse.txt"))
         readTuple(dataFile)
