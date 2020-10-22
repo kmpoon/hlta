@@ -27,12 +27,12 @@ object Reader {
       Range(0, d.numAttributes).map(d.attribute)
 
     def getDataCases() =
-      (0 until d.numInstances).map{n => 
+      (0 until d.numInstances).map{n =>
         val i = d.instance(n)
         Data.DenseInstance(
           (0 until d.numAttributes).map(i.value).toArray, i.weight, name = n.toString())
       }
-        
+
     def toData() = {
       def convert(a: Attribute) = {
         val states = (0 until a.numValues).map(a.value)
@@ -45,14 +45,14 @@ object Reader {
       new Data(attributes.map(convert), instances)
     }
   }
-  
-  implicit final class HLCMToData(val d: DataSet) {    
+
+  implicit final class HLCMToData(val d: DataSet) {
     def getAttributes() =
       d.getVariables.toIndexedSeq
 
     def getDataCases() =
       d.getData.map(i => Data.DenseInstance(i.getStates.map(_.toDouble).toArray, i.getWeight)).toIndexedSeq
-        
+
     def toData() = {
       def convert(a: Attribute) = {
         val states = (0 until a.numValues).map(a.value)
@@ -65,7 +65,7 @@ object Reader {
       new Data(attributes, instances)
     }
   }
-  
+
   val logger = LoggerFactory.getLogger(Reader.getClass)
 
   def readLTM(modelFile: String) = {
@@ -75,14 +75,14 @@ object Reader {
   }
 
   def readModel(modelFile: String) = readLTM(modelFile)
-  
+
   def readHLCM(dataFile: String) = HlcmReader.read(dataFile)
-  
+
   /**
    * Native Java HLCM reader
    */
   def readHLCM_native(dataFile: String) = new DataSet(dataFile)
-  
+
   def readARFF(dataFile: String) = readARFF_native(dataFile).toData()
 
   def readARFF_native(dataFile: String): Instances = {
@@ -94,9 +94,12 @@ object Reader {
     readARFF_native(input)
   }
   def readARFF_native(dataFile: InputStream): Instances = new DataSource(dataFile).getDataSet
-  
+
+  def isArffFile(dataFile: String) =
+    dataFile.endsWith(".arff") || dataFile.endsWith(".arff.gz") || dataFile.endsWith(".arff.bz2")
+
   def readTuple(dataFile: String) = TupleReader.read(dataFile)
-  
+
   def readLda(dataFile: String, vocabFile: String) = LdaReader.read(dataFile, vocabFile)
 
   /**
@@ -114,7 +117,7 @@ object Reader {
         case _ => throw new Exception("Unknown format")
       }
     }else{
-      if(dataFile.endsWith(".arff") || dataFile.endsWith(".arff.gz") || dataFile.endsWith(".arff.bz2"))
+      if(isArffFile(dataFile))
         readARFF_native(dataFile).toData()
       else if(dataFile.endsWith(".sparse.txt"))
         readTuple(dataFile)
@@ -125,7 +128,7 @@ object Reader {
         readHLCM(dataFile)
     }
   }
-  
+
   /**
    * Native HLCM reader
    */
@@ -134,19 +137,19 @@ object Reader {
     val data = readHLCM_native(dataFile).synchronize(model)
     (model, data)
   }
-  
+
   def readLTMAndHLCM(modelFile: String, dataFile: String): (LTM, Data) = {
     val model = readLTM(modelFile)
     val data = readHLCM(dataFile).synchronize(model)
     (model, data)
   }
-  
+
   def readLTMAndTuple(modelFile: String, dataFile: String): (LTM, Data) = {
     val model = readLTM(modelFile)
     val data = readTuple(dataFile).synchronize(model)
     (model, data)
   }
-  
+
   def readLTMAndLDA(modelFile: String, dataFile: String, vocabFile: String): (LTM, Data) = {
     val model = readLTM(modelFile)
     val data = readLda(dataFile, vocabFile).synchronize(model)
@@ -185,7 +188,7 @@ object Reader {
     val data = new Data(variables, instances.map(_.select(indicesArray)))
     (model, data)
   }
-  
+
   /**
    * Auto detect file format and cast it to scala Data
    */
@@ -199,7 +202,7 @@ object Reader {
         case _ => throw new Exception("Unknown format")
       }
     }else{
-      if(dataFile.endsWith(".arff"))
+      if(isArffFile(dataFile))
         readLTMAndARFF(modelFile, dataFile)
       else if(dataFile.endsWith(".sparse.txt"))
         readLTMAndTuple(modelFile, dataFile)
